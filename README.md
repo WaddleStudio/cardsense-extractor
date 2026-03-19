@@ -65,7 +65,7 @@ CARDSENSE_OUTPUT_JSONL=outputs/esun-check.jsonl uv run python jobs/run_esun_real
 
 ### 匯入 JSONL 到 SQLite
 ```bash
-uv run python jobs/import_jsonl_to_db.py --input outputs/esun-v2-full.jsonl --db data/cardsense.db
+uv run python jobs/import_jsonl_to_db.py --input outputs/esun-v4-full.jsonl --db data/cardsense.db
 ```
 
 ### 環境變數
