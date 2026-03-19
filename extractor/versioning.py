@@ -1,43 +1,59 @@
 import hashlib
-import uuid
-from typing import Dict, Any
-from datetime import datetime
+import json
+from datetime import UTC, datetime
+from typing import Any, Dict
+
+
+EXTRACTOR_VERSION = "extractor-0.1.0"
+
 
 def assign_version_ids(data: Dict[str, Any], raw_text: str) -> Dict[str, Any]:
-    """
-    Assigns:
-    - raw_text_hash
-    - promo_id (if not present, generate predictable ID from bank+card or similar)
-    - promo_version_id (hash of data + version)
-    - extractor_version
-    - extracted_at
-    - confidence (mock)
-    """
+    """Assign stable promo and version identifiers using the current spec fields."""
     versioned = data.copy()
-    
-    # 1. Raw Text Hash
-    raw_hash = hashlib.sha256(raw_text.encode('utf-8')).hexdigest()
-    versioned["raw_text_hash"] = raw_hash
-    
-    # 2. Promo Logic ID (Should be stable across versions of the "same" promo)
-    # For now, let's use bank + card + start_date as a composite key if available, else random
-    # In reality this is complex entity resolution.
-    # Simple Mock: 
-    unique_string = f"{versioned.get('bank')}-{versioned.get('card_id')}-{versioned.get('start_date')}"
-    # Use MD5 for a shorter ID
-    versioned["promo_id"] = hashlib.md5(unique_string.encode('utf-8')).hexdigest()
-    
-    # 3. Extractor Metadata
-    versioned["extractor_version"] = "1.0.0"
-    versioned["extracted_at"] = datetime.now()
-    versioned["confidence"] = 0.95 # Mock confidence
 
-    # 4. Promo Version ID (Changes if ANY field in the normalized data changes)
-    # We serialize the data (excluding itself) to get a hash
-    # For simplicity, we just hash the current state + raw_hash
-    # In a real system, we'd check DB for previous version.
-    # Here we just generate a deterministic hash of the content.
-    content_string = str(sorted(versioned.items())) 
-    versioned["promo_version_id"] = hashlib.sha256(content_string.encode('utf-8')).hexdigest()
+    raw_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+    versioned["rawTextHash"] = raw_hash
+
+    logical_key = {
+        "bankCode": versioned.get("bankCode"),
+        "cardCode": versioned.get("cardCode"),
+        "category": versioned.get("category"),
+        "validFrom": versioned.get("validFrom"),
+        "title": versioned.get("title"),
+    }
+    versioned["promoId"] = _hash_dict(logical_key, algorithm="md5")
+
+    versioned["extractorVersion"] = EXTRACTOR_VERSION
+    versioned["extractedAt"] = datetime.now(UTC).isoformat()
+    versioned["confidence"] = _estimate_confidence(versioned)
+
+    semantic_payload = {
+        key: value
+        for key, value in versioned.items()
+        if key not in {"promoVersionId", "extractedAt", "confidence"}
+    }
+    versioned["promoVersionId"] = _hash_dict(semantic_payload, algorithm="sha256")
 
     return versioned
+
+
+def _hash_dict(value: Dict[str, Any], algorithm: str) -> str:
+    encoded = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if algorithm == "md5":
+        return hashlib.md5(encoded).hexdigest()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _estimate_confidence(payload: Dict[str, Any]) -> float:
+    required_signals = [
+        payload.get("bankCode"),
+        payload.get("cardCode"),
+        payload.get("category"),
+        payload.get("cashbackType"),
+        payload.get("cashbackValue"),
+        payload.get("validFrom"),
+        payload.get("validUntil"),
+        payload.get("sourceUrl"),
+    ]
+    present = sum(1 for signal in required_signals if signal not in (None, "", []))
+    return round(0.5 + (present / len(required_signals)) * 0.5, 2)

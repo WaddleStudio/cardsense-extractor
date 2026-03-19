@@ -1,6 +1,7 @@
 import sys
 import os
 import traceback
+from decimal import Decimal
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
@@ -13,20 +14,19 @@ def verify():
     
     # CASE 1: Valid Item
     try:
-        raw_text_1 = """
-            [Bank A] Rewards Card Special
-            Get 5% cashback on all dining spend!
-            Min spend: 500. Max cap: 1000.
-            Valid from 2023-10-01 to 2023-12-31.
-        """
+        raw_text_1 = ingest.get_raw_promotions("mock")[0]
         parsed = parse_rules.parse_promotion(raw_text_1)
         normalized = normalize.normalize_data(parsed)
         payload = versioning.assign_version_ids(normalized, raw_text_1)
         obj = validate.validate_promotion(payload)
         
         # Additional checks
-        if obj.bank != "Bank A": raise ValueError(f"Wrong bank: {obj.bank}")
-        if obj.reward_rate != 0.05: raise ValueError(f"Wrong rate: {obj.reward_rate}")
+        if obj.bankCode != "CTBC": raise ValueError(f"Wrong bankCode: {obj.bankCode}")
+        if obj.cardCode != "CTBC_DEMO_ONLINE": raise ValueError(f"Wrong cardCode: {obj.cardCode}")
+        if obj.cashbackValue != Decimal("3.00"): raise ValueError(f"Wrong cashbackValue: {obj.cashbackValue}")
+        if obj.frequencyLimit != "MONTHLY": raise ValueError(f"Wrong frequencyLimit: {obj.frequencyLimit}")
+        if not obj.requiresRegistration: raise ValueError("Expected requiresRegistration to be true")
+        if not obj.promoId or not obj.promoVersionId: raise ValueError("Missing version identifiers")
         
     except Exception:
         with open("verification_failure.log", "w") as f:
@@ -36,7 +36,7 @@ def verify():
 
     # CASE 2: Invalid Item
     try:
-        raw_text_2 = "Invalid Promo Text"
+        raw_text_2 = ingest.get_raw_promotions("mock")[2]
         parsed = parse_rules.parse_promotion(raw_text_2)
         normalized = normalize.normalize_data(parsed)
         payload = versioning.assign_version_ids(normalized, raw_text_2)
