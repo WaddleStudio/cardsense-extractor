@@ -26,6 +26,7 @@ def verify():
         if obj.cashbackValue != Decimal("3.00"): raise ValueError(f"Wrong cashbackValue: {obj.cashbackValue}")
         if obj.frequencyLimit != "MONTHLY": raise ValueError(f"Wrong frequencyLimit: {obj.frequencyLimit}")
         if not obj.requiresRegistration: raise ValueError("Expected requiresRegistration to be true")
+        if obj.conditions[0].type != "TEXT": raise ValueError(f"Wrong condition type: {obj.conditions[0].type}")
         if not obj.promoId or not obj.promoVersionId: raise ValueError("Missing version identifiers")
         
     except Exception:

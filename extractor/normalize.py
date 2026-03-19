@@ -54,8 +54,8 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "requiresRegistration": _normalize_bool(data.get("requires_registration"), default=False),
         "validFrom": _normalize_string(data.get("valid_from")),
         "validUntil": _normalize_string(data.get("valid_until")),
-        "conditions": _split_list_field(data.get("conditions")),
-        "excludedConditions": _split_list_field(data.get("excluded_conditions")),
+        "conditions": _normalize_conditions(_split_list_field(data.get("conditions"))),
+        "excludedConditions": _normalize_excluded_conditions(_split_list_field(data.get("excluded_conditions"))),
         "sourceUrl": _normalize_string(data.get("source_url")),
         "applyUrl": _normalize_string(data.get("apply_url")),
         "summary": _normalize_string(data.get("summary") or data.get("promotion")),
@@ -120,9 +120,39 @@ def _split_list_field(value: Any) -> List[str]:
     return [item.strip() for item in text.split(";") if item.strip()]
 
 
-def _infer_channel(category: str | None, conditions: List[str]) -> str:
+def _infer_channel(category: str | None, conditions: List[Dict[str, str]]) -> str:
     if category == "ONLINE":
         return "ONLINE"
-    if any("外幣" in condition or "海外" in condition for condition in conditions):
+    if any("外幣" in condition.get("label", "") or "海外" in condition.get("label", "") for condition in conditions):
         return "ONLINE"
     return "ALL"
+
+
+def _normalize_conditions(values: List[str]) -> List[Dict[str, str]]:
+    conditions: List[Dict[str, str]] = []
+    for value in values:
+        if value.startswith("LOCATION_ONLY:"):
+            location = value.split(":", 1)[1].strip().upper()
+            conditions.append({"type": "LOCATION_ONLY", "value": location, "label": f"限 {location} 適用"})
+            continue
+
+        conditions.append({"type": "TEXT", "value": value.upper().replace(" ", "_"), "label": value})
+
+    return conditions
+
+
+def _normalize_excluded_conditions(values: List[str]) -> List[Dict[str, str]]:
+    conditions: List[Dict[str, str]] = []
+    for value in values:
+        if value.startswith("LOCATION:"):
+            location = value.split(":", 1)[1].strip().upper()
+            conditions.append({"type": "LOCATION_EXCLUDE", "value": location, "label": f"排除 {location}"})
+            continue
+        if value.startswith("CATEGORY:"):
+            category = value.split(":", 1)[1].strip().upper()
+            conditions.append({"type": "CATEGORY_EXCLUDE", "value": category, "label": f"排除 {category}"})
+            continue
+
+        conditions.append({"type": "TEXT", "value": value.upper().replace(" ", "_"), "label": value})
+
+    return conditions

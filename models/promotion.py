@@ -31,6 +31,14 @@ class FrequencyLimitEnum(str, Enum):
     NONE = "NONE"
 
 
+class PromotionCondition(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: str = Field(..., min_length=3)
+    value: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1, max_length=120)
+
+
 class PromotionNormalized(BaseModel):
     model_config = ConfigDict(extra="forbid", use_enum_values=True)
 
@@ -54,8 +62,8 @@ class PromotionNormalized(BaseModel):
     requiresRegistration: bool = Field(default=False)
     validFrom: date
     validUntil: date
-    conditions: List[str] = Field(default_factory=list)
-    excludedConditions: List[str] = Field(default_factory=list)
+    conditions: List[PromotionCondition] = Field(default_factory=list)
+    excludedConditions: List[PromotionCondition] = Field(default_factory=list)
     sourceUrl: HttpUrl
     rawTextHash: str = Field(..., min_length=32)
     summary: str = Field(..., min_length=3, max_length=300)
@@ -68,11 +76,6 @@ class PromotionNormalized(BaseModel):
     @classmethod
     def strip_required_strings(cls, value: str) -> str:
         return value.strip()
-
-    @field_validator("conditions", "excludedConditions")
-    @classmethod
-    def normalize_string_lists(cls, value: List[str]) -> List[str]:
-        return [item.strip() for item in value if item and item.strip()]
 
     @field_validator("cashbackValue", mode="before")
     @classmethod
