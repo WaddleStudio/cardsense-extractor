@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any, Dict
 
 
-EXTRACTOR_VERSION = "extractor-0.1.0"
+EXTRACTOR_VERSION = "extractor-0.4.0"
 
 
 def assign_version_ids(data: Dict[str, Any], raw_text: str) -> Dict[str, Any]:

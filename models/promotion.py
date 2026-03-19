@@ -55,7 +55,7 @@ class PromotionNormalized(BaseModel):
     category: CategoryEnum
     channel: Optional[str] = Field(default=None)
     cashbackType: CashbackTypeEnum
-    cashbackValue: Decimal = Field(..., ge=Decimal("0.00"), decimal_places=2, max_digits=5)
+    cashbackValue: Decimal = Field(..., ge=Decimal("0.00"), decimal_places=2, max_digits=10)
     minAmount: int = Field(default=0, ge=0)
     maxCashback: Optional[int] = Field(default=None, ge=0)
     frequencyLimit: FrequencyLimitEnum = Field(default=FrequencyLimitEnum.NONE)

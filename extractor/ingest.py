@@ -1,4 +1,12 @@
+import re
+from html import unescape
 from typing import List
+from urllib.request import Request, urlopen
+
+
+DEFAULT_REAL_SOURCE_URLS = [
+    "https://www.esunbank.com/zh-tw/personal/credit-card",
+]
 
 
 def get_raw_promotions(source: str = "mock") -> List[str]:
@@ -56,3 +64,36 @@ def get_raw_promotions(source: str = "mock") -> List[str]:
         Come visit us today.
         """,
     ]
+
+
+def get_real_source_urls() -> List[str]:
+    return list(DEFAULT_REAL_SOURCE_URLS)
+
+
+def fetch_real_page(url: str, timeout: int = 20) -> str:
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+            "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+        },
+    )
+    with urlopen(request, timeout=timeout) as response:
+        charset = response.headers.get_content_charset() or "utf-8"
+        return response.read().decode(charset, errors="replace")
+
+
+def extract_page_summary(html: str) -> str:
+    title_match = re.search(r"<title[^>]*>(.*?)</title>", html, flags=re.IGNORECASE | re.DOTALL)
+    title = unescape(title_match.group(1)).strip() if title_match else ""
+
+    text = re.sub(r"<script[\s\S]*?</script>", " ", html, flags=re.IGNORECASE)
+    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    snippet = text[:500]
+
+    if title:
+        return f"TITLE: {title}\nSNIPPET: {snippet}"
+    return f"SNIPPET: {snippet}"
