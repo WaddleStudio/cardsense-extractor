@@ -10,6 +10,7 @@ from extractor.page_extractors import SectionedPageConfig, extract_sectioned_pag
 from extractor.promotion_rules import (
     build_conditions,
     build_summary,
+    classify_recommendation_scope,
     dedupe_promotions,
     extract_cap,
     extract_date_range,
@@ -135,6 +136,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             continue
 
         requires_registration = "登錄" in block.body
+        category = infer_category(clean_title, block.body, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+        recommendation_scope = classify_recommendation_scope(clean_title, block.body, category)
         promotions.append(
             {
                 "title": f"{enriched_card.card_name} {clean_title}",
@@ -145,7 +148,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "applyUrl": enriched_card.apply_url,
                 "bankCode": BANK_CODE,
                 "bankName": BANK_NAME,
-                "category": infer_category(clean_title, block.body, CATEGORY_SIGNALS, overseas_category="OVERSEAS"),
+                "category": category,
                 "channel": infer_channel(clean_title, block.body, CHANNEL_SIGNALS),
                 "cashbackType": reward["type"],
                 "cashbackValue": reward["value"],
@@ -153,6 +156,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "maxCashback": extract_cap(block.body),
                 "frequencyLimit": extract_frequency_limit(block.body),
                 "requiresRegistration": requires_registration,
+                "recommendationScope": recommendation_scope,
                 "validFrom": valid_from,
                 "validUntil": valid_until,
                 "conditions": build_conditions(block.body, enriched_card.application_requirements, requires_registration),

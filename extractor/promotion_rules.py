@@ -225,6 +225,46 @@ def extract_frequency_limit(text: str) -> str:
     return "NONE"
 
 
+def classify_recommendation_scope(title: str, body: str, category: str | None = None) -> str:
+    text = f"{title} {body}"
+
+    future_scope_tokens = (
+        "新戶",
+        "首刷",
+        "首次申辦",
+        "核卡後",
+        "保費",
+        "壽險",
+        "保險",
+        "財富管理會員",
+        "公會會員",
+        "附卡首刷",
+        "新卡友",
+    )
+    catalog_only_tokens = (
+        "道路救援",
+        "機場接送",
+        "旅遊保障",
+        "白金會員",
+        "會員禮遇",
+        "通道服務",
+        "貴賓室",
+        "停車",
+        "專屬禮遇",
+        "禮遇",
+        "服務",
+        "借電券",
+    )
+
+    if any(token in text for token in future_scope_tokens):
+        return "FUTURE_SCOPE"
+    if any(token in text for token in catalog_only_tokens):
+        return "CATALOG_ONLY"
+    if category == "OTHER" and any(token in text for token in ("會員", "服務", "優惠券", "購票優惠")):
+        return "CATALOG_ONLY"
+    return "RECOMMENDABLE"
+
+
 def infer_category(
     title: str,
     body: str,

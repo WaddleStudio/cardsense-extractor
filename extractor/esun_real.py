@@ -10,6 +10,7 @@ from extractor.page_extractors import SectionedPageConfig, extract_sectioned_pag
 from extractor.promotion_rules import (
     build_conditions,
     build_summary,
+    classify_recommendation_scope,
     clean_offer_text,
     dedupe_promotions,
     extract_cap,
@@ -188,6 +189,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             summary_noise_tokens=SUMMARY_NOISE_TOKENS,
         )
         category = _infer_category(clean_title, clean_body)
+        recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
 
         promotions.append(
@@ -208,6 +210,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "maxCashback": max_cashback,
                 "frequencyLimit": frequency_limit,
                 "requiresRegistration": requires_registration,
+                "recommendationScope": recommendation_scope,
                 "validFrom": valid_from,
                 "validUntil": valid_until,
                 "conditions": conditions,

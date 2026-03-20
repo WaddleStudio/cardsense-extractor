@@ -31,6 +31,12 @@ class FrequencyLimitEnum(str, Enum):
     NONE = "NONE"
 
 
+class RecommendationScopeEnum(str, Enum):
+    RECOMMENDABLE = "RECOMMENDABLE"
+    CATALOG_ONLY = "CATALOG_ONLY"
+    FUTURE_SCOPE = "FUTURE_SCOPE"
+
+
 class PromotionCondition(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -60,6 +66,7 @@ class PromotionNormalized(BaseModel):
     maxCashback: Optional[int] = Field(default=None, ge=0)
     frequencyLimit: FrequencyLimitEnum = Field(default=FrequencyLimitEnum.NONE)
     requiresRegistration: bool = Field(default=False)
+    recommendationScope: RecommendationScopeEnum = Field(default=RecommendationScopeEnum.RECOMMENDABLE)
     validFrom: date
     validUntil: date
     conditions: List[PromotionCondition] = Field(default_factory=list)

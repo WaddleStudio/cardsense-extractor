@@ -20,6 +20,8 @@ def initialize_database(db_path: str) -> sqlite3.Connection:
         connection.executescript(handle.read())
     _ensure_column(connection, "promotion_versions", "title", "TEXT NOT NULL DEFAULT ''")
     _ensure_column(connection, "promotion_current", "title", "TEXT NOT NULL DEFAULT ''")
+    _ensure_column(connection, "promotion_versions", "recommendation_scope", "TEXT NOT NULL DEFAULT 'RECOMMENDABLE'")
+    _ensure_column(connection, "promotion_current", "recommendation_scope", "TEXT NOT NULL DEFAULT 'RECOMMENDABLE'")
     return connection
 
 
@@ -95,6 +97,7 @@ def upsert_promotion(connection: sqlite3.Connection, payload: dict[str, Any], ru
         "max_cashback",
         "frequency_limit",
         "requires_registration",
+        "recommendation_scope",
         "valid_from",
         "valid_until",
         "conditions_json",
@@ -169,6 +172,7 @@ def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
         "max_cashback": payload.get("maxCashback"),
         "frequency_limit": payload.get("frequencyLimit"),
         "requires_registration": 1 if payload.get("requiresRegistration") else 0,
+        "recommendation_scope": payload.get("recommendationScope", "RECOMMENDABLE"),
         "valid_from": payload["validFrom"],
         "valid_until": payload["validUntil"],
         "conditions_json": json.dumps(payload.get("conditions", []), ensure_ascii=False, separators=(",", ":")),

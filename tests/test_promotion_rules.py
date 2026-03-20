@@ -1,4 +1,4 @@
-from extractor.promotion_rules import build_conditions, infer_channel
+from extractor.promotion_rules import build_conditions, classify_recommendation_scope, infer_channel
 
 
 CHANNEL_SIGNALS = {
@@ -30,3 +30,15 @@ def test_build_conditions_dedupes_registration_and_requirement_fragments():
         {"type": "TEXT", "value": "需年滿18歲", "label": "需年滿18歲"},
         {"type": "TEXT", "value": "單筆滿500元享5_回饋", "label": "單筆滿500元享5%回饋"},
     ]
+
+
+def test_classify_recommendation_scope_marks_insurance_offer_as_future_scope():
+    scope = classify_recommendation_scope("壽險保費加碼0.9%玉山e point", "持卡繳壽險保費不限金額，登錄享加碼。", "OTHER")
+
+    assert scope == "FUTURE_SCOPE"
+
+
+def test_classify_recommendation_scope_marks_service_perk_as_catalog_only():
+    scope = classify_recommendation_scope("道路救援", "玉山會員享起拖費1,500元內免費優惠。", "OTHER")
+
+    assert scope == "CATALOG_ONLY"

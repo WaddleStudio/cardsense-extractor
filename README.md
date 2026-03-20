@@ -59,6 +59,11 @@ uv run python jobs/analyze_jsonl_output.py --input outputs/esun-v5-full.jsonl
 - `extractor/esun_real.py`：保留玉山銀行專屬 URL、signals 與頁面設定
 - `extractor/cathay_real.py`：第二家銀行 skeleton，可直接補 card list selector 與 heading 規則
 
+## Recommendation Scope
+- `RECOMMENDABLE`：可由單筆交易上下文 deterministic 判斷的交易型回饋，提供給 `/v1/recommendations/card`
+- `CATALOG_ONLY`：保留在 DB / catalog 展示，不進 recommendation ranking
+- `FUTURE_SCOPE`：已抽取但需要未來 API 擴欄位才能正確判斷的優惠，例如首刷、新戶、保險與身份型活動
+
 ## Real Extractor 輸出
 - `jobs/run_esun_real_job.py` 預設會將結果寫到 `outputs/esun-real-<timestamp>.jsonl`
 - 可用 `CARDSENSE_OUTPUT_JSONL` 指定輸出路徑

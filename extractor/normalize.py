@@ -52,6 +52,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "maxCashback": _normalize_nullable_int(data.get("max_cashback")),
         "frequencyLimit": _normalize_enum(data.get("frequency_limit"), FREQUENCY_LIMIT_ALIASES, default="NONE"),
         "requiresRegistration": _normalize_bool(data.get("requires_registration"), default=False),
+        "recommendationScope": _normalize_string(data.get("recommendation_scope")) or "RECOMMENDABLE",
         "validFrom": _normalize_string(data.get("valid_from")),
         "validUntil": _normalize_string(data.get("valid_until")),
         "conditions": _normalize_conditions(_split_list_field(data.get("conditions"))),
