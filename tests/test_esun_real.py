@@ -4,7 +4,7 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
-from extractor.esun_real import _dedupe_promotions, _extract_reward, _normalize_promotion_title
+from extractor.esun_real import _dedupe_promotions, _extract_reward, _infer_channel, _normalize_promotion_title
 
 
 def test_extract_reward_prefers_fixed_when_title_is_fixed_offer():
@@ -77,3 +77,12 @@ def test_dedupe_promotions_removes_exact_duplicate_rows():
     deduped = _dedupe_promotions(promotions)
 
     assert len(deduped) == 1
+
+
+def test_infer_channel_prefers_online_for_digital_payment_offer():
+    channel = _infer_channel(
+        "行動支付、網路消費 基本回饋",
+        "國內外一般消費最高享1%現金回饋，行動支付與網路消費加碼。",
+    )
+
+    assert channel == "ONLINE"

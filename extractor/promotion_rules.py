@@ -1,0 +1,377 @@
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Sequence
+
+from extractor.html_utils import collapse_text
+
+
+@dataclass
+class RewardCandidate:
+    reward_type: str
+    value: float
+    label: str
+    score: int
+
+
+def clean_title(value: str) -> str:
+    return collapse_text(value).strip("-:：|；; ")
+
+
+def normalize_promotion_title(
+    card_name: str,
+    raw_title: str,
+    raw_body: str,
+    *,
+    generic_title_tokens: Iterable[str],
+    summary_noise_tokens: Sequence[str],
+    bank_suffixes: Iterable[str] = (),
+) -> str:
+    title = clean_title(raw_title)
+    for suffix in bank_suffixes:
+        title = re.sub(rf"\s*[-|]\s*{re.escape(suffix)}$", "", title)
+    title = re.sub(r"\s*※.*$", "", title)
+    title = collapse_text(title)
+
+    if title.startswith(card_name):
+        title = title[len(card_name):].strip(" -|：:；;")
+
+    if not title or title in set(generic_title_tokens) or any(token in title for token in summary_noise_tokens):
+        fallback = derive_title_from_body(raw_body, summary_noise_tokens)
+        if fallback:
+            return fallback
+
+    if len(title) > 50:
+        fallback = derive_title_from_body(raw_body, summary_noise_tokens)
+        if fallback:
+            return fallback
+
+    return title or "優惠活動"
+
+
+def derive_title_from_body(raw_body: str, summary_noise_tokens: Sequence[str]) -> str:
+    for fragment in extract_bullets(raw_body):
+        candidate = clean_summary_fragment(fragment, summary_noise_tokens)
+        if not candidate:
+            continue
+        if candidate.startswith("※") or any(token in candidate for token in ["請參閱", "詳見", "說明"]):
+            continue
+        if has_reward_signal(candidate):
+            return candidate[:40].rstrip("；;。")
+
+    cleaned = clean_summary_fragment(raw_body, summary_noise_tokens)
+    if cleaned and has_reward_signal(cleaned):
+        return cleaned[:40].rstrip("；;。")
+    return ""
+
+
+def dedupe_promotions(promotions: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    deduped: List[Dict[str, object]] = []
+    seen: set[tuple[object, ...]] = set()
+    for promotion in promotions:
+        dedupe_key = (
+            promotion.get("cardCode"),
+            promotion.get("title"),
+            promotion.get("category"),
+            promotion.get("channel"),
+            promotion.get("cashbackType"),
+            promotion.get("cashbackValue"),
+            promotion.get("minAmount"),
+            promotion.get("maxCashback"),
+            promotion.get("validFrom"),
+            promotion.get("validUntil"),
+            promotion.get("summary"),
+        )
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        deduped.append(promotion)
+    return deduped
+
+
+def clean_offer_text(value: str) -> str:
+    cleaned = collapse_text(value.replace("\u3000", " "))
+    cleaned = re.sub(r"(\d+)\.\s*[；;:：]?\s*(\d+)%", r"\1.\2%", cleaned)
+    cleaned = re.sub(r"(\d+)\.\s*[；;:：]?\s*(\d+)元", r"\1.\2元", cleaned)
+    cleaned = re.sub(r"\s*[※]+\s*", " ※", cleaned)
+    cleaned = re.sub(r"[；;]{2,}", "；", cleaned)
+    return cleaned.strip("；; ")
+
+
+def extract_reward(title: str, text: str) -> Dict[str, object] | None:
+    title_candidates = extract_reward_candidates(title, title_weight=50)
+    if title_candidates:
+        selected = max(title_candidates, key=lambda candidate: (candidate.score, candidate.value))
+        return {"type": selected.reward_type, "value": round(selected.value, 2)}
+
+    body_candidates = extract_reward_candidates(text, title_weight=0)
+    if not body_candidates:
+        return None
+
+    selected = max(body_candidates, key=lambda candidate: (candidate.score, candidate.value))
+    return {"type": selected.reward_type, "value": round(selected.value, 2)}
+
+
+def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandidate]:
+    candidates: List[RewardCandidate] = []
+    fragments = [fragment for fragment in extract_bullets(text) if fragment]
+    if not fragments:
+        fragments = [collapse_text(text)]
+
+    for index, fragment in enumerate(fragments):
+        order_bonus = max(0, 5 - index)
+        for match in re.finditer(r"(\d+(?:\.\d+)?)%", fragment):
+            value = float(match.group(1))
+            context = match_context(fragment, match.start(), match.end())
+            reward_type = "POINTS" if any(token in context for token in ["P幣", "e point", "點數", "里程", "哩"]) else "PERCENT"
+            score = score_reward_candidate(fragment, context, reward_type, title_weight, order_bonus)
+            candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
+
+        for match in re.finditer(r"([\d,]+)\s*(元|點|日圓)", fragment):
+            value = float(match.group(1).replace(",", ""))
+            unit = match.group(2)
+            context = match_context(fragment, match.start(), match.end())
+            if not is_reward_like_fixed_context(context):
+                continue
+            reward_type = classify_fixed_reward_type(unit, context)
+            score = score_reward_candidate(fragment, context, reward_type, title_weight, order_bonus)
+            if any(token in context for token in ["上限", "單筆交易回饋上限", "每歸戶回饋上限"]):
+                score -= 8
+            candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
+
+    return candidates
+
+
+def match_context(fragment: str, start: int, end: int) -> str:
+    left = max(0, start - 24)
+    right = min(len(fragment), end + 24)
+    return fragment[left:right]
+
+
+def is_reward_like_fixed_context(context: str) -> bool:
+    return any(token in context for token in ["回饋", "現折", "折扣", "優惠", "即享券", "折抵", "贈", "刷卡金", "點"])
+
+
+def classify_fixed_reward_type(unit: str, context: str) -> str:
+    if unit == "點" or any(token in context for token in ["e point", "點數", "里程", "哩"]):
+        return "POINTS"
+    return "FIXED"
+
+
+def score_reward_candidate(fragment: str, context: str, reward_type: str, title_weight: int, order_bonus: int) -> int:
+    score = title_weight + order_bonus
+
+    positive_signals = ["最高享", "最高", "回饋", "加碼", "現折", "折扣", "優惠", "贈", "刷卡金", "折抵"]
+    negative_signals = ["上限", "門檻", "滿額", "累積滿", "單筆滿", "限量", "活動期間", "旅遊期限", "入住期間", "預訂期限"]
+
+    score += sum(6 for token in positive_signals if token in context)
+    score -= sum(4 for token in negative_signals if token in context)
+
+    if reward_type == "POINTS" and any(token in context for token in ["回饋", "加碼", "e point", "點數"]):
+        score += 5
+    if reward_type == "FIXED" and any(token in context for token in ["現折", "折抵", "刷卡金"]):
+        score += 5
+    if reward_type == "FIXED" and any(token in context for token in ["即享券", "優惠券", "購物券"]):
+        score += 2
+    if reward_type == "PERCENT" and any(token in context for token in ["最高享", "回饋", "加碼"]):
+        score += 5
+
+    if "並同享" in fragment and reward_type == "PERCENT":
+        score -= 3
+    if "再享" in fragment and reward_type == "FIXED":
+        score += 3
+    if fragment.startswith(("最高享", "享最高", "滿額再享", "現折", "加碼", "回饋")):
+        score += 4
+
+    return score
+
+
+def extract_date_range(text: str) -> tuple[str | None, str | None]:
+    match = re.search(r"(\d{4}/\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{4}/\d{1,2}/\d{1,2})", text)
+    if not match:
+        return None, None
+    return normalize_date(match.group(1)), normalize_date(match.group(2))
+
+
+def normalize_date(value: str) -> str:
+    year, month, day = value.split("/")
+    return f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
+
+
+def extract_min_amount(text: str) -> int:
+    matches = re.findall(r"滿\s*([\d,]+)\s*元", text)
+    if not matches:
+        return 0
+    return min(int(match.replace(",", "")) for match in matches)
+
+
+def extract_cap(text: str) -> int | None:
+    matches = re.findall(r"上限\s*([\d,]+)\s*(?:P幣|元|點|日圓)", text)
+    if not matches:
+        return None
+    return max(int(match.replace(",", "")) for match in matches)
+
+
+def extract_frequency_limit(text: str) -> str:
+    if "每月" in text:
+        return "MONTHLY"
+    if "每季" in text:
+        return "QUARTERLY"
+    if "每年" in text:
+        return "YEARLY"
+    if "限領1次" in text or "限參加登錄1次" in text or "僅限兌換1次" in text:
+        return "ONCE"
+    return "NONE"
+
+
+def infer_category(
+    title: str,
+    body: str,
+    category_signals: Dict[str, List[tuple[str, int]]],
+    *,
+    overseas_category: str | None = None,
+) -> str:
+    text = f"{title} {body}"
+    scores = {category: score_signals(text, signals) for category, signals in category_signals.items()}
+    if overseas_category and scores.get(overseas_category, 0) >= 3 and scores.get(overseas_category, 0) >= scores.get("ONLINE", 0):
+        return overseas_category
+    best_category = max(scores, key=scores.get)
+    return best_category if scores[best_category] > 0 else "OTHER"
+
+
+def infer_channel(title: str, body: str, channel_signals: Dict[str, List[tuple[str, int]]]) -> str:
+    text = f"{title} {body}"
+    scores = {channel: score_signals(text, signals) for channel, signals in channel_signals.items()}
+    online_score = scores.get("ONLINE", 0)
+    offline_score = scores.get("OFFLINE", 0)
+    all_score = scores.get("ALL", 0)
+
+    if online_score == 0 and offline_score == 0:
+        return "ALL"
+    if online_score > 0 and offline_score == 0:
+        return "ONLINE"
+    if offline_score > 0 and online_score == 0:
+        return "OFFLINE" if offline_score >= all_score else "ALL"
+    if abs(online_score - offline_score) <= 1:
+        return "ALL"
+    return "ONLINE" if online_score > offline_score else "OFFLINE"
+
+
+def build_summary(
+    title: str,
+    body: str,
+    valid_from: str,
+    valid_until: str,
+    min_amount: int,
+    max_cashback: int | None,
+    requires_registration: bool,
+    *,
+    summary_noise_tokens: Sequence[str],
+) -> str:
+    bullets = extract_bullets(body)
+    summary_parts = [title]
+
+    reward_fragment = pick_summary_fragment(bullets, prefer_reward=True)
+    qualifier_fragment = pick_summary_fragment(bullets, prefer_reward=False)
+    for fragment in (reward_fragment, qualifier_fragment):
+        if fragment and fragment not in summary_parts:
+            summary_parts.append(fragment)
+
+    fallback_bits: List[str] = []
+    if min_amount > 0:
+        fallback_bits.append(f"滿{min_amount:,}元")
+    if max_cashback is not None:
+        fallback_bits.append(f"上限{max_cashback:,}")
+    if requires_registration:
+        fallback_bits.append("需登錄")
+    if fallback_bits:
+        summary_parts.append(" / ".join(fallback_bits))
+
+    summary_parts.append(f"期間 {valid_from}~{valid_until}")
+    summary = collapse_text("；".join(summary_parts))[:300]
+    return clean_summary_fragment(summary, summary_noise_tokens) or summary
+
+
+def extract_bullets(text: str) -> List[str]:
+    bullet_matches = re.findall(r"•\s*([^•]+?)(?=(?:•|$))", text)
+    if bullet_matches:
+        return [clean_summary_fragment(match, ()) for match in bullet_matches if clean_summary_fragment(match, ())]
+    normalized = text.replace("；", "。")
+    chunks = re.split(r"(?<=[。！？])|(?<!\d)\.(?!\d)", normalized)
+    return [clean_summary_fragment(chunk, ()) for chunk in chunks if clean_summary_fragment(chunk, ())]
+
+
+def pick_summary_fragment(fragments: List[str], prefer_reward: bool) -> str | None:
+    for fragment in fragments:
+        if prefer_reward and has_reward_signal(fragment):
+            return fragment
+        if not prefer_reward and has_qualifier_signal(fragment):
+            return fragment
+    return None
+
+
+def clean_summary_fragment(value: str, summary_noise_tokens: Sequence[str]) -> str:
+    cleaned = clean_offer_text(value)
+    cleaned = re.sub(r"(?:活動詳情|注意事項|了解更多|專屬網頁)", "", cleaned)
+    cleaned = re.sub(r"\s*※.*$", "", cleaned)
+    cleaned = collapse_text(cleaned).strip("；; ")
+    if len(cleaned) < 4:
+        return ""
+    if cleaned.startswith(("、", "及", ",", "，")):
+        return ""
+    if any(token in cleaned for token in ["請參閱活動網頁", "請參閱活動", "詳情請參閱"]):
+        return ""
+    if any(token in cleaned for token in summary_noise_tokens) and not has_reward_signal(cleaned):
+        return ""
+    return cleaned[:120]
+
+
+def has_reward_signal(value: str) -> bool:
+    return bool(re.search(r"\d+(?:\.\d+)?%|[\d,]+元|[\d,]+點|[\d,]+日圓|回饋|折扣|現折|優惠", value))
+
+
+def has_qualifier_signal(value: str) -> bool:
+    return any(token in value for token in ["滿", "上限", "登錄", "指定", "一般消費", "實體", "通路", "綁定", "國內", "日本", "海外"])
+
+
+def score_signals(text: str, signals: List[tuple[str, int]]) -> int:
+    return sum(weight for keyword, weight in signals if keyword in text)
+
+
+def build_conditions(
+    text: str,
+    application_requirements: Iterable[str],
+    requires_registration: bool,
+    *,
+    skip_tokens: Sequence[str] = ("活動詳情", "立即登錄", "注意事項"),
+) -> List[Dict[str, str]]:
+    conditions: List[Dict[str, str]] = []
+
+    if requires_registration:
+        conditions.append({"type": "REGISTRATION_REQUIRED", "value": "true", "label": "需登錄活動"})
+
+    for requirement in list(dict.fromkeys(application_requirements))[:3]:
+        conditions.append({"type": "TEXT", "value": to_condition_value(requirement), "label": requirement[:120]})
+
+    for bullet in extract_bullets(text)[:3]:
+        if any(token in bullet for token in skip_tokens):
+            continue
+        if requires_registration and "登錄" in bullet:
+            continue
+        conditions.append({"type": "TEXT", "value": to_condition_value(bullet), "label": bullet[:120]})
+
+    deduped: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for condition in conditions:
+        key = (condition["type"], condition["value"])
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(condition)
+    return deduped
+
+
+def to_condition_value(text: str) -> str:
+    normalized = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "_", text).strip("_")
+    return normalized[:80].upper() or "TEXT"

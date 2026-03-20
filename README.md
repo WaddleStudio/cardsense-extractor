@@ -7,6 +7,8 @@ CardSense 的資料擷取與正規化 pipeline。
 - 使用 Pydantic 驗證 normalized promotion model
 - 已對齊新版 promotion schema 與結構化 condition object
 - 已提供玉山銀行 real extractor 第一版，支援卡列表抓取、卡詳頁解析與 JSONL 落檔
+- 已將 section / block 頁面規則抽成 `page_extractors` 共用層，方便擴充第二家銀行
+- 已新增國泰世華 real extractor skeleton，沿用共用 promotion / page extractor 模組
 
 ## 目錄
 ```text
@@ -14,6 +16,9 @@ cardsense-extractor/
 ├── extractor/
 │   ├── ingest.py
 │   ├── esun_real.py
+│   ├── cathay_real.py
+│   ├── page_extractors/
+│   │   └── sectioned_page.py
 │   ├── parse_rules.py
 │   ├── normalize.py
 │   ├── validate.py
@@ -22,6 +27,7 @@ cardsense-extractor/
 ├── jobs/
 │   ├── run_sample_job.py
 │   ├── run_esun_real_job.py
+│   ├── analyze_jsonl_output.py
 │   └── test_real_fetch.py
 ├── models/
 │   └── promotion.py
@@ -44,7 +50,14 @@ uv run python tests/verify_pipeline.py
 uv run python jobs/run_sample_job.py
 uv run python jobs/test_real_fetch.py
 uv run python jobs/run_esun_real_job.py
+uv run python jobs/analyze_jsonl_output.py --input outputs/esun-v5-full.jsonl
 ```
+
+## 共用抽取層
+- `extractor/page_extractors/sectioned_page.py`：抽出 section heading、subsection 與 offer block 的頁面規則
+- `extractor/promotion_rules.py`：抽出 reward、summary、conditions、category / channel inference 規則
+- `extractor/esun_real.py`：保留玉山銀行專屬 URL、signals 與頁面設定
+- `extractor/cathay_real.py`：第二家銀行 skeleton，可直接補 card list selector 與 heading 規則
 
 ## Real Extractor 輸出
 - `jobs/run_esun_real_job.py` 預設會將結果寫到 `outputs/esun-real-<timestamp>.jsonl`
@@ -75,4 +88,6 @@ uv run python jobs/import_jsonl_to_db.py --input outputs/esun-v4-full.jsonl --db
 
 匯入後可讓 API 直接讀取 `promotion_current`，不需要再依賴 mock `promotions.json`。
 
-目前玉山實跑建議以最新的 `outputs/esun-v4-full.jsonl` 作為匯入來源。
+目前玉山實跑建議以最新的 `outputs/esun-v5-full.jsonl` 作為匯入來源。
+
+若要比較 heuristic 收斂前後的分佈，可先重跑玉山 extractor，再用 `jobs/analyze_jsonl_output.py` 檢查 `OTHER` 與 `ALL` 的主要來源。
