@@ -188,10 +188,18 @@ def score_reward_candidate(fragment: str, context: str, reward_type: str, title_
 
 
 def extract_date_range(text: str) -> tuple[str | None, str | None]:
+    # Full format: 2026/1/1~2026/3/31
     match = re.search(r"(\d{4}/\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{4}/\d{1,2}/\d{1,2})", text)
-    if not match:
-        return None, None
-    return normalize_date(match.group(1)), normalize_date(match.group(2))
+    if match:
+        return normalize_date(match.group(1)), normalize_date(match.group(2))
+    # Short format: 2026/1/1-3/31 (end date missing year, infer from start)
+    match = re.search(r"(\d{4})/(\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{1,2}/\d{1,2})", text)
+    if match:
+        year = match.group(1)
+        start = f"{year}/{match.group(2)}"
+        end = f"{year}/{match.group(3)}"
+        return normalize_date(start), normalize_date(end)
+    return None, None
 
 
 def normalize_date(value: str) -> str:
