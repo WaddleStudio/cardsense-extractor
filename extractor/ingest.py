@@ -1,9 +1,13 @@
+import os
 import re
 import ssl
 from html import unescape
 from typing import List
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+
+import requests
+from dotenv import load_dotenv
 
 
 DEFAULT_REAL_SOURCE_URLS = [
@@ -92,6 +96,32 @@ def fetch_real_page(url: str, timeout: int = 20) -> str:
                 charset = response.headers.get_content_charset() or "utf-8"
                 return response.read().decode(charset, errors="replace")
         raise
+
+
+def fetch_rendered_page(url: str, timeout: int = 90) -> str:
+    """Fetch fully rendered HTML via Cloudflare Browser Rendering API.
+
+    Requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in .env or environment.
+    """
+    load_dotenv()
+    account_id = os.environ["CLOUDFLARE_ACCOUNT_ID"]
+    api_token = os.environ["CLOUDFLARE_API_TOKEN"]
+
+    api_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/content"
+    response = requests.post(
+        api_url,
+        headers={
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "url": url,
+            "gotoOptions": {"waitUntil": "networkidle0", "timeout": 60000},
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    return response.json()["result"]
 
 
 def extract_page_summary(html: str) -> str:
