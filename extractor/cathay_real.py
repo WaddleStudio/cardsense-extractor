@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, Iterable, List
+from urllib.parse import urljoin
 
 from extractor import ingest
-from extractor.html_utils import collect_links, collapse_text, html_to_lines
-from extractor.page_extractors import SectionedPageConfig, extract_sectioned_page
+from extractor.html_utils import collapse_text, html_to_lines
 from extractor.promotion_rules import (
     build_conditions,
     build_summary,
@@ -23,7 +24,8 @@ from extractor.promotion_rules import (
 )
 
 
-CARD_LIST_URL = "https://www.cathaybk.com.tw/cathaybk/personal/product/credit-card/cards/"
+CARD_LIST_URL = "https://www.cathay-cube.com.tw/cathaybk/personal/product/credit-card/cards"
+CARD_LIST_MODEL_URL = f"{CARD_LIST_URL}.model.json"
 BANK_CODE = "CATHAY"
 BANK_NAME = "國泰世華"
 
@@ -45,16 +47,8 @@ CHANNEL_SIGNALS = {
 
 SUMMARY_NOISE_TOKENS = ("活動詳情", "注意事項", "立即登錄", "了解更多", "詳情請參閱")
 GENERIC_TITLE_TOKENS = {"優惠", "回饋", "活動", "加碼"}
-
-PAGE_CONFIG = SectionedPageConfig(
-    section_headings=frozenset({"卡片權益", "卡片特色", "優惠活動", "專屬禮遇", "注意事項"}),
-    active_sections=frozenset({"卡片權益", "卡片特色", "優惠活動", "專屬禮遇"}),
-    subsection_skip=frozenset({"注意事項", "活動詳情", "立即申辦", "了解更多"}),
-    title_prefixes=("CUBE", "國泰", "亞洲萬里通", "Costco", "蝦皮"),
-    annual_fee_signal_tokens=("首年免年費", "年費"),
-    application_requirement_tokens=("年滿18歲", "財力證明", "正卡", "附卡"),
-    ignored_offer_title_tokens=("立即申辦", "注意事項"),
-)
+PROMOTION_SIGNAL_PATTERN = re.compile(r"\d+(?:\.\d+)?%|[\d,]+\s*(?:元|點|日圓)|回饋|折扣|現折|優惠|加碼|里程|哩程|點數")
+DATE_PATTERN = re.compile(r"\d{4}/\d{1,2}/\d{1,2}\s*[~～-]\s*\d{4}/\d{1,2}/\d{1,2}")
 
 
 @dataclass
@@ -69,126 +63,293 @@ class CardRecord:
 
 
 def list_cathay_cards() -> List[CardRecord]:
-    html = ingest.fetch_real_page(CARD_LIST_URL)
-    links = collect_links(html, CARD_LIST_URL)
-
-    seen: set[str] = set()
+    model = _fetch_json(CARD_LIST_MODEL_URL)
+    seen: set[tuple[str, str]] = set()
     cards: List[CardRecord] = []
-    for link in links:
-        href = link["href"]
-        if "/credit-card/cards/" not in href:
+    for component in _iter_components(model):
+        credit_cards = component.get("creditCards")
+        if not isinstance(credit_cards, list):
             continue
-        if href in seen:
-            continue
-        seen.add(href)
-
-        card_name = _extract_card_name_from_link_text(link["text"])
-        if not card_name:
-            continue
-
-        cards.append(
-            CardRecord(
-                card_code=_build_card_code(href),
-                card_name=card_name,
-                detail_url=href,
-                apply_url=None,
-                annual_fee_summary=None,
-                application_requirements=[],
-                sections=[],
+        for entry in credit_cards:
+            if not isinstance(entry, dict):
+                continue
+            detail_url = _normalize_url(entry.get("ctaLink") or entry.get("cardLink") or entry.get("cardBtnLink"), CARD_LIST_URL)
+            if not detail_url or "/credit-card/cards/" not in detail_url:
+                continue
+            card_name = collapse_text(str(entry.get("cardName") or entry.get("itemName") or entry.get("title") or ""))
+            if not card_name:
+                continue
+            dedupe_key = (card_name, detail_url)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            sections = _collect_text_list(entry.get("features"))
+            cards.append(
+                CardRecord(
+                    card_code=_build_card_code(detail_url),
+                    card_name=card_name,
+                    detail_url=detail_url,
+                    apply_url=_normalize_url(entry.get("cardBtnLink"), CARD_LIST_URL),
+                    annual_fee_summary=None,
+                    application_requirements=[],
+                    sections=sections,
+                )
             )
-        )
 
     return cards
 
 
 def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str, object]]]:
-    html = ingest.fetch_real_page(card.detail_url)
-    links = collect_links(html, card.detail_url)
-    lines = html_to_lines(html)
-    extracted = extract_sectioned_page(lines, links, PAGE_CONFIG)
+    detail_model_url = _model_url(card.detail_url)
+    model = _fetch_json(detail_model_url)
+    components = list(_iter_components(model))
+
+    detail_card_name = _extract_detail_card_name(components) or card.card_name
+    apply_url = card.apply_url
+    annual_fee_summary = card.annual_fee_summary
+    application_requirements = list(card.application_requirements)
+
+    for component in components:
+        component_type = _component_type(component)
+        if "creditcardapplyinfo" not in component_type:
+            continue
+        apply_url = _normalize_url(component.get("mainBtnLink") or component.get("subBtnLink"), card.detail_url) or apply_url
+        information_lines = _collect_text_list(component.get("information"))
+        if not annual_fee_summary:
+            annual_fee_summary = _pick_annual_fee_summary(information_lines)
+        application_requirements.extend(_extract_application_requirements(information_lines))
 
     enriched_card = CardRecord(
         card_code=card.card_code,
-        card_name=extracted.card_name or card.card_name,
+        card_name=detail_card_name,
         detail_url=card.detail_url,
-        apply_url=extracted.apply_url,
-        annual_fee_summary=extracted.annual_fee_summary,
-        application_requirements=extracted.application_requirements,
-        sections=extracted.sections,
+        apply_url=apply_url,
+        annual_fee_summary=annual_fee_summary,
+        application_requirements=list(dict.fromkeys(application_requirements)),
+        sections=card.sections,
     )
 
     promotions: List[Dict[str, object]] = []
-    for block in extracted.offer_blocks:
-        clean_title = normalize_promotion_title(
-            enriched_card.card_name,
-            block.title,
-            block.body,
-            generic_title_tokens=GENERIC_TITLE_TOKENS,
-            summary_noise_tokens=SUMMARY_NOISE_TOKENS,
-            bank_suffixes=(BANK_NAME, "國泰世華銀行"),
-        )
-        reward = extract_reward(clean_title, block.body)
-        if reward is None:
+    for component in components:
+        component_type = _component_type(component)
+        if not any(
+            token in component_type
+            for token in ("horgraphictab", "simplegraphictab", "discountcard", "campaignpromotioncard", "treepointscardcf")
+        ):
             continue
 
-        valid_from, valid_until = extract_date_range(block.body)
-        if not valid_from or not valid_until:
-            continue
+        for candidate in _extract_component_candidates(component):
+            clean_title = normalize_promotion_title(
+                enriched_card.card_name,
+                candidate["title"],
+                candidate["body"],
+                generic_title_tokens=GENERIC_TITLE_TOKENS,
+                summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+                bank_suffixes=(BANK_NAME, "國泰世華銀行"),
+            )
+            if not clean_title:
+                continue
 
-        requires_registration = "登錄" in block.body
-        category = infer_category(clean_title, block.body, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
-        recommendation_scope = classify_recommendation_scope(clean_title, block.body, category)
-        promotions.append(
-            {
-                "title": f"{enriched_card.card_name} {clean_title}",
-                "cardCode": enriched_card.card_code,
-                "cardName": enriched_card.card_name,
-                "cardStatus": "ACTIVE",
-                "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
-                "applyUrl": enriched_card.apply_url,
-                "bankCode": BANK_CODE,
-                "bankName": BANK_NAME,
-                "category": category,
-                "channel": infer_channel(clean_title, block.body, CHANNEL_SIGNALS),
-                "cashbackType": reward["type"],
-                "cashbackValue": reward["value"],
-                "minAmount": extract_min_amount(block.body),
-                "maxCashback": extract_cap(block.body),
-                "frequencyLimit": extract_frequency_limit(block.body),
-                "requiresRegistration": requires_registration,
-                "recommendationScope": recommendation_scope,
-                "validFrom": valid_from,
-                "validUntil": valid_until,
-                "conditions": build_conditions(block.body, enriched_card.application_requirements, requires_registration),
-                "excludedConditions": [],
-                "sourceUrl": enriched_card.detail_url,
-                "summary": build_summary(
-                    clean_title,
-                    block.body,
-                    valid_from,
-                    valid_until,
-                    extract_min_amount(block.body),
-                    extract_cap(block.body),
-                    requires_registration,
-                    summary_noise_tokens=SUMMARY_NOISE_TOKENS,
-                ),
-                "status": "ACTIVE",
-            }
-        )
+            reward = extract_reward(clean_title, candidate["body"])
+            if reward is None:
+                continue
+
+            valid_from, valid_until = extract_date_range(candidate["body"])
+            if not valid_from or not valid_until:
+                continue
+
+            requires_registration = "登錄" in candidate["body"]
+            min_amount = extract_min_amount(candidate["body"])
+            max_cashback = extract_cap(candidate["body"])
+            category = infer_category(clean_title, candidate["body"], CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+            recommendation_scope = classify_recommendation_scope(clean_title, candidate["body"], category)
+            promotions.append(
+                {
+                    "title": f"{enriched_card.card_name} {clean_title}",
+                    "cardCode": enriched_card.card_code,
+                    "cardName": enriched_card.card_name,
+                    "cardStatus": "ACTIVE",
+                    "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
+                    "applyUrl": enriched_card.apply_url,
+                    "bankCode": BANK_CODE,
+                    "bankName": BANK_NAME,
+                    "category": category,
+                    "channel": infer_channel(clean_title, candidate["body"], CHANNEL_SIGNALS),
+                    "cashbackType": reward["type"],
+                    "cashbackValue": reward["value"],
+                    "minAmount": min_amount,
+                    "maxCashback": max_cashback,
+                    "frequencyLimit": extract_frequency_limit(candidate["body"]),
+                    "requiresRegistration": requires_registration,
+                    "recommendationScope": recommendation_scope,
+                    "validFrom": valid_from,
+                    "validUntil": valid_until,
+                    "conditions": build_conditions(candidate["body"], enriched_card.application_requirements, requires_registration),
+                    "excludedConditions": [],
+                    "sourceUrl": enriched_card.detail_url,
+                    "summary": build_summary(
+                        clean_title,
+                        candidate["body"],
+                        valid_from,
+                        valid_until,
+                        min_amount,
+                        max_cashback,
+                        requires_registration,
+                        summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+                    ),
+                    "status": "ACTIVE",
+                }
+            )
 
     return enriched_card, dedupe_promotions(promotions)
 
 
-def _extract_card_name_from_link_text(text: str) -> str:
-    cleaned = collapse_text(text)
-    if not cleaned:
-        return ""
-    for splitter in ["卡", "信用卡", "御璽卡", "世界卡"]:
-        if splitter in cleaned:
-            head = cleaned.split(splitter, 1)[0].strip()
-            if head:
-                return f"{head}{splitter}"[:30]
-    return cleaned[:30].strip()
+def _fetch_json(url: str) -> Dict[str, Any]:
+    return json.loads(ingest.fetch_real_page(url))
+
+
+def _iter_components(value: Any) -> Iterable[Dict[str, Any]]:
+    if isinstance(value, dict):
+        if ":type" in value:
+            yield value
+        for child in value.values():
+            yield from _iter_components(child)
+        return
+    if isinstance(value, list):
+        for child in value:
+            yield from _iter_components(child)
+
+
+def _component_type(component: Dict[str, Any]) -> str:
+    return str(component.get(":type") or "").lower()
+
+
+def _extract_detail_card_name(components: Iterable[Dict[str, Any]]) -> str:
+    for component in components:
+        for key in ("creditCardName", "cardName", "mainTitle"):
+            value = collapse_text(str(component.get(key) or ""))
+            if value and ("信用卡" in value or value.endswith("卡")):
+                return value
+    return ""
+
+
+def _pick_annual_fee_summary(lines: Iterable[str]) -> str | None:
+    for line in lines:
+        if "年費" in line or "首年免年費" in line:
+            return line[:200]
+    return None
+
+
+def _extract_application_requirements(lines: Iterable[str]) -> List[str]:
+    tokens = ("年滿", "財力證明", "正卡", "附卡", "申辦", "限申請")
+    results: List[str] = []
+    for line in lines:
+        if any(token in line for token in tokens):
+            results.append(line[:120])
+    return list(dict.fromkeys(results))
+
+
+def _extract_component_candidates(component: Dict[str, Any]) -> List[Dict[str, str]]:
+    candidates: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    def walk(value: Any, title_stack: List[str]) -> None:
+        if isinstance(value, list):
+            for item in value:
+                walk(item, title_stack)
+            return
+
+        if not isinstance(value, dict):
+            return
+
+        current_title = _primary_title(value)
+        next_titles = title_stack
+        if current_title and (not title_stack or current_title != title_stack[-1]):
+            next_titles = [*title_stack, current_title]
+
+        body = _compose_body(value)
+        if current_title and body and _looks_like_promotion(current_title, body):
+            title = current_title if len(next_titles) == 1 else " ".join(next_titles[-2:])
+            dedupe_key = (title, body)
+            if dedupe_key not in seen:
+                seen.add(dedupe_key)
+                candidates.append({"title": title, "body": body})
+
+        for child_key, child_value in value.items():
+            if child_key.startswith(":") or child_key in {
+                "title",
+                "mainTitle",
+                "cardName",
+                "creditCardName",
+                "tabText",
+                "content",
+                "description",
+                "rate",
+                "noticeText",
+                "noticeContent",
+                "noticeContent1",
+                "noticeContent2",
+                "subTitle",
+            }:
+                continue
+            walk(child_value, next_titles)
+
+    walk(component, [])
+    return candidates
+
+
+def _primary_title(value: Dict[str, Any]) -> str:
+    for key in ("title", "tabText", "mainTitle", "itemName", "cardName"):
+        title = collapse_text(str(value.get(key) or ""))
+        if title and title not in {"立即申辦", "注意事項", "了解更多"}:
+            return title
+    return ""
+
+
+def _compose_body(value: Dict[str, Any]) -> str:
+    body_parts: List[str] = []
+    for key in ("subTitle", "content", "description", "rate", "noticeText", "noticeContent", "noticeContent1", "noticeContent2"):
+        body_parts.extend(_collect_text_list(value.get(key)))
+    return collapse_text(" • ".join(part for part in body_parts if part))
+
+
+def _collect_text_list(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        results: List[str] = []
+        for item in value:
+            results.extend(_collect_text_list(item))
+        return [item for item in results if item]
+    if isinstance(value, dict):
+        results: List[str] = []
+        for key in ("text", "description", "content", "title", "noticeContent", "noticeText", "value"):
+            results.extend(_collect_text_list(value.get(key)))
+        return [item for item in results if item]
+
+    text = str(value)
+    if "<" in text and ">" in text:
+        return html_to_lines(text)
+    collapsed = collapse_text(text)
+    return [collapsed] if collapsed else []
+
+
+def _looks_like_promotion(title: str, body: str) -> bool:
+    text = f"{title} {body}"
+    if not DATE_PATTERN.search(text):
+        return False
+    return bool(PROMOTION_SIGNAL_PATTERN.search(text))
+
+
+def _normalize_url(url: Any, base_url: str) -> str | None:
+    if not url:
+        return None
+    normalized = urljoin(base_url, str(url).strip())
+    return normalized.split("#", 1)[0]
+
+
+def _model_url(detail_url: str) -> str:
+    return f"{detail_url.rstrip('/')}.model.json"
 
 
 def _build_card_code(url: str) -> str:

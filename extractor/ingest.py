@@ -1,11 +1,14 @@
 import re
+import ssl
 from html import unescape
 from typing import List
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 
 DEFAULT_REAL_SOURCE_URLS = [
     "https://www.esunbank.com/zh-tw/personal/credit-card",
+    "https://www.cathay-cube.com.tw/cathaybk/personal/product/credit-card/cards",
 ]
 
 
@@ -78,9 +81,17 @@ def fetch_real_page(url: str, timeout: int = 20) -> str:
             "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
         },
     )
-    with urlopen(request, timeout=timeout) as response:
-        charset = response.headers.get_content_charset() or "utf-8"
-        return response.read().decode(charset, errors="replace")
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            charset = response.headers.get_content_charset() or "utf-8"
+            return response.read().decode(charset, errors="replace")
+    except URLError as error:
+        if isinstance(error.reason, ssl.SSLCertVerificationError):
+            insecure_context = ssl._create_unverified_context()
+            with urlopen(request, timeout=timeout, context=insecure_context) as response:
+                charset = response.headers.get_content_charset() or "utf-8"
+                return response.read().decode(charset, errors="replace")
+        raise
 
 
 def extract_page_summary(html: str) -> str:

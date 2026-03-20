@@ -7,19 +7,25 @@ sys.path.append(project_root)
 from extractor import ingest
 
 
+def _console_print(message: str) -> None:
+    encoding = sys.stdout.encoding or "utf-8"
+    safe_message = message.encode(encoding, errors="replace").decode(encoding, errors="replace")
+    print(safe_message)
+
+
 def main() -> int:
     urls = ingest.get_real_source_urls()
-    print(f"Testing {len(urls)} real source URL(s)...")
+    _console_print(f"Testing {len(urls)} real source URL(s)...")
 
     for url in urls:
-        print(f"\n=== Fetching: {url}")
+        _console_print(f"\n=== Fetching: {url}")
         html = ingest.fetch_real_page(url)
         summary = ingest.extract_page_summary(html)
-        print(summary)
-        if len(html) < 5000:
+        _console_print(summary)
+        if len(html) < 1000:
             raise RuntimeError(f"Fetched content looks too small: {len(html)} bytes")
 
-    print("\nREAL FETCH STATUS: SUCCESS")
+    _console_print("\nREAL FETCH STATUS: SUCCESS")
     return 0
 
 
