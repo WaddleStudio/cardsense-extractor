@@ -1,6 +1,7 @@
 import os
 import re
 import ssl
+import time
 from html import unescape
 from typing import List
 from urllib.error import URLError
@@ -108,20 +109,25 @@ def fetch_rendered_page(url: str, timeout: int = 90) -> str:
     api_token = os.environ["CLOUDFLARE_API_TOKEN"]
 
     api_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/content"
-    response = requests.post(
-        api_url,
-        headers={
-            "Authorization": f"Bearer {api_token}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "url": url,
-            "gotoOptions": {"waitUntil": "networkidle0", "timeout": 60000},
-        },
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    return response.json()["result"]
+    for attempt in range(3):
+        response = requests.post(
+            api_url,
+            headers={
+                "Authorization": f"Bearer {api_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "url": url,
+                "gotoOptions": {"waitUntil": "networkidle0", "timeout": 60000},
+            },
+            timeout=timeout,
+        )
+        if response.status_code == 429 and attempt < 2:
+            wait = 10 * (attempt + 1)
+            time.sleep(wait)
+            continue
+        response.raise_for_status()
+        return response.json()["result"]
 
 
 def extract_page_summary(html: str) -> str:
