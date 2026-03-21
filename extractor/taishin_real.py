@@ -160,7 +160,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
     enriched_card = CardRecord(
         card_code=card.card_code,
-        card_name=extracted.card_name or card.card_name,
+        card_name=card.card_name,
         detail_url=card.detail_url,
         apply_url=extracted.apply_url,
         annual_fee_summary=extracted.annual_fee_summary,
