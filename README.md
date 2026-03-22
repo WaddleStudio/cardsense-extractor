@@ -39,11 +39,16 @@ uv run python tests/verify_pipeline.py             # mock pipeline 驗證
 # Real extraction
 uv run python jobs/run_esun_real_job.py            # 玉山
 uv run python jobs/run_cathay_real_job.py          # 國泰
+uv run python jobs/run_taishin_real_job.py         # 台新（Cloudflare Browser Rendering）
+uv run python jobs/run_fubon_real_job.py           # 富邦（Cloudflare Browser Rendering）
 
 # 匯入 SQLite
 uv run python jobs/import_jsonl_to_db.py \
-  --input outputs/esun-v5-full.jsonl \
+  --input outputs/fubon-real-*.jsonl \
   --db data/cardsense.db
+
+# 一鍵全銀行提取 → 匯入 DB → 複製到 API
+uv run python jobs/refresh_and_deploy.py
 ```
 
 抽樣限制與自訂輸出路徑：
@@ -51,6 +56,8 @@ uv run python jobs/import_jsonl_to_db.py \
 ```bash
 ESUN_REAL_LIMIT=5 uv run python jobs/run_esun_real_job.py
 CATHAY_REAL_LIMIT=5 uv run python jobs/run_cathay_real_job.py
+TAISHIN_REAL_LIMIT=3 uv run python jobs/run_taishin_real_job.py
+FUBON_REAL_LIMIT=3 uv run python jobs/run_fubon_real_job.py
 CARDSENSE_OUTPUT_JSONL=outputs/esun-check.jsonl uv run python jobs/run_esun_real_job.py
 ```
 
@@ -61,6 +68,8 @@ cardsense-extractor/
 ├── extractor/
 │   ├── esun_real.py               # E.SUN extractor
 │   ├── cathay_real.py             # Cathay extractor
+│   ├── taishin_real.py            # Taishin extractor (Cloudflare Browser Rendering)
+│   ├── fubon_real.py              # Fubon extractor (Cloudflare Browser Rendering)
 │   ├── promotion_rules.py         # reward / category / condition heuristics
 │   ├── html_utils.py              # HTML cleanup helpers
 │   ├── ingest.py                  # mock 與 real page fetch entrypoint
@@ -76,8 +85,11 @@ cardsense-extractor/
 │   ├── run_real_bank_job.py       # shared runner for bank extractors
 │   ├── run_esun_real_job.py       # E.SUN runner
 │   ├── run_cathay_real_job.py     # Cathay runner
+│   ├── run_taishin_real_job.py    # Taishin runner
+│   ├── run_fubon_real_job.py      # Fubon runner
 │   ├── run_sample_job.py          # mock pipeline runner
 │   ├── import_jsonl_to_db.py      # JSONL → SQLite importer
+│   ├── refresh_and_deploy.py      # 全銀行 extract → import → deploy 一鍵流程
 │   ├── analyze_jsonl_output.py    # distribution / quality inspection
 │   └── test_real_fetch.py         # real source connectivity smoke test
 ├── models/
@@ -101,12 +113,17 @@ cardsense-extractor/
 
 - **`sectioned_page.py`**：section heading、subsection、offer block 的共用頁面抽取邏輯
 - **`promotion_rules.py`**：reward detection、summary 組裝、condition inference、category / channel inference
-- **`run_real_bank_job.py`**：兩家銀行共用的 real extraction runner，包括輸出檔命名、validation、summary 統計
+- **`run_real_bank_job.py`**：各銀行共用的 real extraction runner，包括輸出檔命名、validation、summary 統計
+- **`refresh_and_deploy.py`**：一鍵全銀行 extract → import DB → 複製到 API 的部署流程
 
 ### Bank-Specific Extractor
 
-- **`esun_real.py`**：以玉山銀行 HTML 頁面結構與 section 規則為主
-- **`cathay_real.py`**：以 Cathay model JSON 為主，從 component tree 擷取卡片資訊
+| 銀行 | Extractor | 擷取方式 |
+|------|-----------|----------|
+| E.SUN（玉山） | `esun_real.py` | HTML 頁面直接抓取 |
+| CATHAY（國泰） | `cathay_real.py` | Model JSON 抽取 |
+| TAISHIN（台新） | `taishin_real.py` | Cloudflare Browser Rendering + HTML |
+| FUBON（富邦） | `fubon_real.py` | Cloudflare Browser Rendering + HTML |
 
 ### Recommendation Scope
 
