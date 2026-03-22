@@ -141,6 +141,14 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
             score = score_reward_candidate(fragment, context, reward_type, title_weight, order_bonus)
             if any(token in context for token in ["上限", "單筆交易回饋上限", "每歸戶回饋上限"]):
                 score -= 8
+            # Penalize suspiciously large fixed/points values — likely cap descriptions, not actual rewards
+            if value >= 5000:
+                score -= 15
+            elif value >= 1000:
+                score -= 5
+            # "最高" with large values is almost always a cap description, not reward
+            if value >= 1000 and any(token in context for token in ["最高", "最多", "累計最高"]):
+                score -= 10
             candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
 
     return candidates
@@ -218,10 +226,20 @@ def extract_min_amount(text: str) -> int:
 
 
 def extract_cap(text: str) -> int | None:
-    matches = re.findall(r"上限\s*([\d,]+)\s*(?:P幣|元|點|日圓)", text)
-    if not matches:
+    cap_patterns = [
+        r"上限\s*([\d,]+)\s*(?:P幣|元|點|日圓)",
+        r"(?:每月|每季|每年|每歸戶|每戶|每卡)(?:最高|回饋上限|累計上限)?\s*(?:回饋)?\s*([\d,]+)\s*(?:P幣|元|點|日圓)",
+        r"最高(?:回饋|可得|可享)?\s*([\d,]+)\s*(?:P幣|元|點|日圓)",
+        r"回饋上限\s*([\d,]+)\s*(?:P幣|元|點|日圓)",
+        r"(?:封頂|回饋金額上限)\s*([\d,]+)\s*(?:P幣|元|點|日圓)",
+    ]
+    all_matches: list[int] = []
+    for pattern in cap_patterns:
+        for match in re.findall(pattern, text):
+            all_matches.append(int(match.replace(",", "")))
+    if not all_matches:
         return None
-    return max(int(match.replace(",", "")) for match in matches)
+    return max(all_matches)
 
 
 def extract_frequency_limit(text: str) -> str:
