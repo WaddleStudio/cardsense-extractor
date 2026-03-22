@@ -124,6 +124,9 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
         for match in re.finditer(r"(\d+(?:\.\d+)?)%", fragment):
             value = float(match.group(1))
             context = match_context(fragment, match.start(), match.end())
+            # Skip condition-threshold patterns like "團費80%以上"
+            if re.search(r"\d+(?:\.\d+)?%\s*以上", context) and not any(token in context for token in ["回饋", "現折", "折扣", "加碼"]):
+                continue
             reward_type = "POINTS" if any(token in context for token in ["P幣", "e point", "點數", "里程", "哩"]) else "PERCENT"
             score = score_reward_candidate(fragment, context, reward_type, title_weight, order_bonus)
             candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
