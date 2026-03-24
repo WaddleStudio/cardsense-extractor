@@ -43,6 +43,7 @@ BANK_RUNNERS = {
     "CATHAY": "jobs.run_cathay_real_job",
     "TAISHIN": "jobs.run_taishin_real_job",
     "FUBON": "jobs.run_fubon_real_job",
+    "CTBC": "jobs.run_ctbc_real_job",
 }
 
 DEFAULT_DB_PATH = os.path.join(project_root, "data", "cardsense.db")

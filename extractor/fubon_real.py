@@ -150,7 +150,7 @@ def list_fubon_cards() -> List[CardRecord]:
             continue
         seen.add(detail_url)
 
-        card_name = link_text.strip()
+        card_name = _clean_fubon_card_name(link_text.strip(), slug)
         if not card_name or len(card_name) > 40:
             card_name = slug
 
@@ -199,7 +199,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     lines = html_to_lines(html)
     extracted = extract_sectioned_page(lines, links, PAGE_CONFIG)
 
-    resolved_card_name = extracted.card_name or card.card_name
+    slug = card.card_code.removeprefix("FUBON_").lower()
+    resolved_card_name = _clean_fubon_card_name(extracted.card_name or card.card_name, slug)
 
     enriched_card = CardRecord(
         card_code=card.card_code,
@@ -277,6 +278,30 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 def _build_card_code(slug: str) -> str:
     normalized = re.sub(r"[^a-zA-Z0-9]+", "_", slug).strip("_").upper()
     return f"FUBON_{normalized}"
+
+
+def _clean_fubon_card_name(name: str, slug: str = "") -> str:
+    """Strip Fubon-specific prefixes/suffixes and fall back to slug for generic names.
+
+    Patterns removed:
+    - "信用卡-" / "信用卡－" prefix  (e.g. "信用卡-J&Co聯名卡" → "J&Co聯名卡")
+    - "－台北富邦銀行" / "-台北富邦銀行" suffix (e.g. "Premier卡－台北富邦銀行" → "Premier卡")
+
+    If the cleaned name is empty or still just "信用卡" (i.e. no real name was present),
+    this returns the slug string and logs a warning so the caller can investigate whether
+    the page genuinely omits a card name or the parser needs adjustment.
+    """
+    cleaned = re.sub(r"^信用卡\s*[-－]\s*", "", name).strip()
+    cleaned = re.sub(r"\s*[-－]\s*台北富邦銀行\s*$", "", cleaned).strip()
+    if not cleaned or cleaned == "信用卡":
+        import logging
+        logging.warning(
+            "FUBON: card name resolved to generic ('信用卡') for slug=%r — "
+            "check whether the listing page omits the name or the parser missed it.",
+            slug or "(no slug)",
+        )
+        return slug or name
+    return cleaned
 
 
 def _normalize_promotion_title(card_name: str, raw_title: str, raw_body: str) -> str:

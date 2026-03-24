@@ -8,7 +8,12 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 import requests
+import urllib3
 from dotenv import load_dotenv
+
+# ctbcbank.com has a cert missing the Subject Key Identifier extension; suppress
+# the InsecureRequestWarning emitted when cert_reqs='CERT_NONE' is in use.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 DEFAULT_REAL_SOURCE_URLS = [
@@ -97,6 +102,58 @@ def fetch_real_page(url: str, timeout: int = 20) -> str:
                 charset = response.headers.get_content_charset() or "utf-8"
                 return response.read().decode(charset, errors="replace")
         raise
+
+
+def fetch_with_playwright(url: str, timeout: int = 60) -> str:
+    """Fetch a JS-challenge-protected page using a local Playwright Chromium browser.
+
+    Required once after adding playwright:
+        uv add playwright
+        uv run playwright install chromium
+
+    Unlike Cloudflare Browser Rendering, this uses a real browser on the local
+    machine's IP, which passes bot-protection systems (PerimeterX, Akamai Bot
+    Manager) that block data-centre IPs.  ctbcbank.com falls into this category.
+    """
+    import asyncio
+
+    async def _fetch() -> str:
+        from playwright.async_api import async_playwright
+        try:
+            from playwright_stealth import stealth_async  # type: ignore[import-untyped]
+            _has_stealth = True
+        except ImportError:
+            _has_stealth = False
+
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled"],
+            )
+            ctx = await browser.new_context(
+                locale="zh-TW",
+                extra_http_headers={"Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8"},
+                ignore_https_errors=True,
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/135.0.0.0 Safari/537.36"
+                ),
+            )
+            page = await ctx.new_page()
+            if _has_stealth:
+                await stealth_async(page)
+            await page.goto(url, wait_until="networkidle", timeout=timeout * 1000)
+            content = await page.content()
+            await browser.close()
+            return content
+
+    return asyncio.run(_fetch())
+
+
+def fetch_with_cloudscraper(url: str, timeout: int = 30) -> str:
+    """Alias kept for backwards compatibility — delegates to fetch_with_playwright."""
+    return fetch_with_playwright(url, timeout=timeout)
 
 
 def fetch_rendered_page(url: str, timeout: int = 90) -> str:
