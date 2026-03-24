@@ -199,12 +199,12 @@ def score_reward_candidate(fragment: str, context: str, reward_type: str, title_
 
 
 def extract_date_range(text: str) -> tuple[str | None, str | None]:
-    # Full format: 2026/1/1~2026/3/31
-    match = re.search(r"(\d{4}/\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{4}/\d{1,2}/\d{1,2})", text)
+    # Full format: 2026/1/1~2026/3/31 or ROC 115/1/1~115/6/30
+    match = re.search(r"(\d{3,4}/\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{3,4}/\d{1,2}/\d{1,2})", text)
     if match:
         return normalize_date(match.group(1)), normalize_date(match.group(2))
-    # Short format: 2026/1/1-3/31 (end date missing year, infer from start)
-    match = re.search(r"(\d{4})/(\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{1,2}/\d{1,2})", text)
+    # Short format: 2026/1/1-3/31 or 115/1/1-6/30 (end date missing year, infer from start)
+    match = re.search(r"(\d{3,4})/(\d{1,2}/\d{1,2})\s*[~～-]\s*(\d{1,2}/\d{1,2})", text)
     if match:
         year = match.group(1)
         start = f"{year}/{match.group(2)}"
@@ -215,7 +215,11 @@ def extract_date_range(text: str) -> tuple[str | None, str | None]:
 
 def normalize_date(value: str) -> str:
     year, month, day = value.split("/")
-    return f"{int(year):04d}-{int(month):02d}-{int(day):02d}"
+    year_int = int(year)
+    # Convert ROC calendar (3-digit, e.g. 115) to Gregorian
+    if year_int < 1000:
+        year_int += 1911
+    return f"{year_int:04d}-{int(month):02d}-{int(day):02d}"
 
 
 def extract_min_amount(text: str) -> int:

@@ -150,7 +150,7 @@ def is_subsection_title(line: str, config: SectionedPageConfig) -> bool:
         return False
     if line.startswith("•"):
         return False
-    if re.search(r"\d{4}/\d{1,2}/\d{1,2}", line):
+    if re.search(r"\d{3,4}/\d{1,2}/\d{1,2}", line):
         return False
     if any(line.startswith(prefix) for prefix in config.ignored_subsection_prefixes):
         return False
@@ -165,5 +165,5 @@ def is_real_offer_block(title: str, body: str, config: SectionedPageConfig) -> b
     if any(token in title for token in config.ignored_offer_title_tokens):
         return False
     has_value = bool(re.search(r"\d+(?:\.\d+)?%|[\d,]+元|[\d,]+P幣|[\d,]+點|折扣", body))
-    has_period = bool(re.search(r"\d{4}/\d{1,2}/\d{1,2}\s*[~～-]\s*\d{4}/\d{1,2}/\d{1,2}", body))
+    has_period = bool(re.search(r"\d{3,4}/\d{1,2}/\d{1,2}\s*[~～-]\s*\d{3,4}/\d{1,2}/\d{1,2}", body))
     return has_value and has_period and title not in config.subsection_skip
