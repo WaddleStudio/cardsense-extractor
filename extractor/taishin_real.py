@@ -114,7 +114,7 @@ class CardRecord:
 
 
 def list_taishin_cards() -> List[CardRecord]:
-    html = ingest.fetch_rendered_page(CARD_LIST_URL)
+    html = ingest.fetch_with_playwright(CARD_LIST_URL)
 
     seen: set[str] = set()
     cards: List[CardRecord] = []
@@ -153,7 +153,7 @@ def list_taishin_cards() -> List[CardRecord]:
 
 
 def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str, object]]]:
-    html = ingest.fetch_rendered_page(card.detail_url)
+    html = ingest.fetch_with_playwright(card.detail_url)
     links = collect_links(html, card.detail_url)
     lines = html_to_lines(html)
     extracted = extract_sectioned_page(lines, links, PAGE_CONFIG)

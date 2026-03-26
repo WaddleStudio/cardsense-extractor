@@ -130,27 +130,36 @@ class CardRecord:
 
 
 def list_fubon_cards() -> List[CardRecord]:
-    html = ingest.fetch_rendered_page(CARD_LIST_URL)
+    html = ingest.fetch_with_playwright(CARD_LIST_URL)
 
     seen: set[str] = set()
     cards: List[CardRecord] = []
 
-    # Fubon card list page uses links to /banking/personal/credit_card/all_card/{slug}/{slug}.htm
+    # Each card sits inside a card-list-box with:
+    #   <img alt="CARD NAME" ...>
+    #   <p class="card-title">CARD NAME</p>
+    #   <a href="/banking/personal/credit_card/all_card/{slug}/{slug}.htm" class="more-btn">了解更多</a>
+    # We extract the card name from card-title (preferred) or img alt, paired with the more-btn link.
     pattern = re.compile(
-        r'<a[^>]*href="(/banking/personal/credit_card/all_card/([^/"]+)/\2\.htm)"[^>]*>(.*?)</a>',
+        r'<div class="card-list-box"[^>]*>.*?'
+        r'<img\s+alt="([^"]*?)"[^>]*>.*?'
+        r'(?:<p class="card-title">([^<]*?)</p>.*?)?'
+        r'<a[^>]*href="(/banking/personal/credit_card/all_card/([^/"]+)/\4\.htm)"[^>]*class="more-btn"[^>]*>',
         re.DOTALL,
     )
     for match in pattern.finditer(html):
-        path = match.group(1)
-        slug = match.group(2)
-        link_text = collapse_text(re.sub(r"<[^>]+>", " ", match.group(3)))
+        img_alt = match.group(1).strip()
+        card_title = (match.group(2) or "").strip()
+        path = match.group(3)
+        slug = match.group(4)
 
         detail_url = f"{BASE_URL}{path}"
         if detail_url in seen:
             continue
         seen.add(detail_url)
 
-        card_name = _clean_fubon_card_name(link_text.strip(), slug)
+        raw_name = card_title or img_alt
+        card_name = _clean_fubon_card_name(raw_name, slug)
         if not card_name or len(card_name) > 40:
             card_name = slug
 
@@ -166,7 +175,7 @@ def list_fubon_cards() -> List[CardRecord]:
             )
         )
 
-    # Fallback: broader regex if the self-referencing pattern didn't match
+    # Fallback: broader regex if the card-list-box pattern didn't match
     if not cards:
         fallback_pattern = re.compile(
             r'href="(/banking/personal/credit_card/all_card/([a-zA-Z0-9_]+)/[^"]*\.htm)"',
@@ -194,13 +203,17 @@ def list_fubon_cards() -> List[CardRecord]:
 
 
 def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str, object]]]:
-    html = ingest.fetch_rendered_page(card.detail_url)
+    html = ingest.fetch_with_playwright(card.detail_url)
     links = collect_links(html, card.detail_url)
     lines = html_to_lines(html)
     extracted = extract_sectioned_page(lines, links, PAGE_CONFIG)
 
     slug = card.card_code.removeprefix("FUBON_").lower()
-    resolved_card_name = _clean_fubon_card_name(extracted.card_name or card.card_name, slug)
+    # Prefer the list-page card name (already cleaned); fall back to detail-page extraction
+    if card.card_name and card.card_name != slug:
+        resolved_card_name = card.card_name
+    else:
+        resolved_card_name = _clean_fubon_card_name(extracted.card_name or card.card_name, slug)
 
     enriched_card = CardRecord(
         card_code=card.card_code,
