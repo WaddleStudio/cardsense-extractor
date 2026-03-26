@@ -1,18 +1,21 @@
 """
-CardSense: 全銀行提取 → 匯入 DB → 部署流程
+CardSense: 全銀行提取 → 匯入 DB → 同步 Supabase 流程
 
 Usage:
-    # 提取全部銀行、匯入 DB、複製到 API
+    # 提取全部銀行、匯入 DB、同步 Supabase
     uv run python jobs/refresh_and_deploy.py
 
     # 只提取指定銀行
     uv run python jobs/refresh_and_deploy.py --banks FUBON TAISHIN
 
-    # 跳過提取，只匯入最新 JSONL 並部署
+    # 跳過提取，只匯入最新 JSONL 並同步
     uv run python jobs/refresh_and_deploy.py --import-only
 
-    # 提取 + 匯入，但不複製到 API
-    uv run python jobs/refresh_and_deploy.py --no-deploy
+    # 提取 + 匯入，但跳過 Supabase 同步
+    uv run python jobs/refresh_and_deploy.py --no-supabase
+
+    # 提取 + 匯入 + 同步，並複製 DB 到 cardsense-api/data/（本機測試用）
+    uv run python jobs/refresh_and_deploy.py --deploy-local
 
     # 每家銀行限制提取卡片數（測試用）
     uv run python jobs/refresh_and_deploy.py --limit 2
@@ -20,7 +23,7 @@ Usage:
 流程:
     1. 依序跑各銀行 extractor → 產出 JSONL
     2. 將每份 JSONL 匯入 extractor 的 SQLite DB
-    3. 複製 DB 到 cardsense-api/data/（供 Docker build 使用）
+    3. 同步 SQLite DB 到 Supabase（PostgreSQL）
     4. 印出摘要與後續指令提示
 """
 

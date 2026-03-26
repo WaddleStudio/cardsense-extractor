@@ -57,42 +57,43 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
     result = SyncResult()
     sqlite_conn = sqlite3.connect(sqlite_db_path)
     sqlite_conn.row_factory = sqlite3.Row
-    pg_conn = psycopg2.connect(supabase_url)
-
     try:
-        _sync_table(
-            sqlite_conn, pg_conn,
-            sqlite_table="extract_runs",
-            pg_table="extract_runs",
-            cols=_EXTRACT_RUN_COLS,
-            pk="run_id",
-            bool_cols=frozenset(),
-            counter_attr="runs_upserted",
-            result=result,
-        )
-        _sync_table(
-            sqlite_conn, pg_conn,
-            sqlite_table="promotion_versions",
-            pg_table="promotion_versions",
-            cols=_PROMOTION_VERSION_COLS,
-            pk="promo_version_id",
-            bool_cols=frozenset({"requires_registration"}),
-            counter_attr="versions_upserted",
-            result=result,
-        )
-        _sync_table(
-            sqlite_conn, pg_conn,
-            sqlite_table="promotion_current",
-            pg_table="promotion_current",
-            cols=_PROMOTION_CURRENT_COLS,
-            pk="promo_id",
-            bool_cols=frozenset({"requires_registration"}),
-            counter_attr="current_upserted",
-            result=result,
-        )
+        pg_conn = psycopg2.connect(supabase_url)
+        try:
+            _sync_table(
+                sqlite_conn, pg_conn,
+                sqlite_table="extract_runs",
+                pg_table="extract_runs",
+                cols=_EXTRACT_RUN_COLS,
+                pk="run_id",
+                bool_cols=frozenset(),
+                counter_attr="runs_upserted",
+                result=result,
+            )
+            _sync_table(
+                sqlite_conn, pg_conn,
+                sqlite_table="promotion_versions",
+                pg_table="promotion_versions",
+                cols=_PROMOTION_VERSION_COLS,
+                pk="promo_version_id",
+                bool_cols=frozenset({"requires_registration"}),
+                counter_attr="versions_upserted",
+                result=result,
+            )
+            _sync_table(
+                sqlite_conn, pg_conn,
+                sqlite_table="promotion_current",
+                pg_table="promotion_current",
+                cols=_PROMOTION_CURRENT_COLS,
+                pk="promo_id",
+                bool_cols=frozenset({"requires_registration"}),
+                counter_attr="current_upserted",
+                result=result,
+            )
+        finally:
+            pg_conn.close()
     finally:
         sqlite_conn.close()
-        pg_conn.close()
 
     return result
 
@@ -131,10 +132,10 @@ def _sync_table(
             psycopg2.extras.execute_values(cursor, sql, rows)
         pg_conn.commit()
         setattr(result, counter_attr, len(rows))
-    except Exception:
+    except Exception as exc:
         pg_conn.rollback()
         result.failures += len(rows)
-        # Do not re-raise — caller receives a SyncResult with failures > 0
+        print(f"[supabase_store] failed to sync {pg_table}: {exc}", flush=True)
 
 
 def _to_pg_row(row: sqlite3.Row, cols: tuple[str, ...], bool_cols: frozenset[str]) -> tuple:
