@@ -1,18 +1,21 @@
 """
-CardSense: 全銀行提取 → 匯入 DB → 部署流程
+CardSense: 全銀行提取 → 匯入 DB → 同步 Supabase 流程
 
 Usage:
-    # 提取全部銀行、匯入 DB、複製到 API
+    # 提取全部銀行、匯入 DB、同步 Supabase
     uv run python jobs/refresh_and_deploy.py
 
     # 只提取指定銀行
     uv run python jobs/refresh_and_deploy.py --banks FUBON TAISHIN
 
-    # 跳過提取，只匯入最新 JSONL 並部署
+    # 跳過提取，只匯入最新 JSONL 並同步
     uv run python jobs/refresh_and_deploy.py --import-only
 
-    # 提取 + 匯入，但不複製到 API
-    uv run python jobs/refresh_and_deploy.py --no-deploy
+    # 提取 + 匯入，但跳過 Supabase 同步
+    uv run python jobs/refresh_and_deploy.py --no-supabase
+
+    # 提取 + 匯入 + 同步，並複製 DB 到 cardsense-api/data/（本機測試用）
+    uv run python jobs/refresh_and_deploy.py --deploy-local
 
     # 每家銀行限制提取卡片數（測試用）
     uv run python jobs/refresh_and_deploy.py --limit 2
@@ -20,7 +23,7 @@ Usage:
 流程:
     1. 依序跑各銀行 extractor → 產出 JSONL
     2. 將每份 JSONL 匯入 extractor 的 SQLite DB
-    3. 複製 DB 到 cardsense-api/data/（供 Docker build 使用）
+    3. 同步 SQLite DB 到 Supabase（PostgreSQL）
     4. 印出摘要與後續指令提示
 """
 
@@ -34,6 +37,8 @@ import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
@@ -57,15 +62,17 @@ def _console(message: str) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="CardSense: extract → import → deploy")
+    parser = argparse.ArgumentParser(description="CardSense: extract → import → sync")
     parser.add_argument("--banks", nargs="*", default=None,
                         help=f"Banks to extract (default: all). Choices: {', '.join(BANK_RUNNERS)}")
     parser.add_argument("--limit", type=int, default=None,
                         help="Limit cards per bank (for testing)")
     parser.add_argument("--import-only", action="store_true",
                         help="Skip extraction, import latest JSONL files per bank")
-    parser.add_argument("--no-deploy", action="store_true",
-                        help="Skip copying DB to cardsense-api")
+    parser.add_argument("--no-supabase", action="store_true",
+                        help="Skip Supabase sync step")
+    parser.add_argument("--deploy-local", action="store_true",
+                        help="Copy DB to cardsense-api/data/ after sync (local dev only)")
     parser.add_argument("--db", default=DEFAULT_DB_PATH,
                         help="SQLite DB path")
     return parser.parse_args()
@@ -152,6 +159,24 @@ def deploy_db(db_path: str) -> bool:
     return True
 
 
+def run_sync(db_path: str) -> bool:
+    """Sync SQLite → Supabase. Returns True on success, False on failure."""
+    load_dotenv()
+    supabase_url = os.environ.get("SUPABASE_DATABASE_URL")
+    if not supabase_url:
+        _console(">>> SKIP Supabase sync: SUPABASE_DATABASE_URL not set")
+        return False
+
+    from extractor.supabase_store import sync_sqlite_to_supabase
+    _console("\n>>> SYNCING to Supabase...")
+    result = sync_sqlite_to_supabase(db_path, supabase_url)
+    _console(f">>> Supabase sync: runs={result.runs_upserted} versions={result.versions_upserted} current={result.current_upserted} failures={result.failures}")
+    if result.failures > 0:
+        _console(f">>> WARNING: {result.failures} rows failed to sync")
+        return False
+    return True
+
+
 def print_db_summary(db_path: str) -> None:
     """Print a summary of the current DB state."""
     conn = sqlite3.connect(db_path)
@@ -213,19 +238,21 @@ def main() -> int:
     # Summary
     print_db_summary(args.db)
 
-    # Deploy
-    if not args.no_deploy:
+    # Supabase sync (default when SUPABASE_DATABASE_URL is set)
+    if not args.no_supabase:
+        synced = run_sync(args.db)
+        if synced:
+            _console("\n>>> NEXT STEPS:")
+            _console("  Railway will auto-deploy from Supabase data (no git push needed)")
+    else:
+        _console("\n>>> --no-supabase: skipped Supabase sync")
+
+    # Local deploy (opt-in, for local Docker testing)
+    if args.deploy_local:
         _console("")
         deployed = deploy_db(args.db)
         if deployed:
-            _console("")
-            _console(">>> NEXT STEPS:")
-            _console("  cd ../cardsense-api")
-            _console("  git add data/cardsense.db")
-            _console('  git commit -m "data: refresh promotions DB"')
-            _console("  git push    # triggers Railway auto-deploy")
-    else:
-        _console("\n>>> --no-deploy: skipped copying DB to cardsense-api")
+            _console("  cd ../cardsense-api && git add data/cardsense.db && git push")
 
     elapsed = (datetime.now() - start_time).total_seconds()
     _console(f"\n>>> Done in {elapsed:.0f}s")
