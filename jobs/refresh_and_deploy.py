@@ -162,15 +162,68 @@ def deploy_db(db_path: str) -> bool:
 def run_sync(db_path: str) -> bool:
     """Sync SQLite → Supabase. Returns True on success, False on failure."""
     load_dotenv()
-    supabase_url = os.environ.get("SUPABASE_DATABASE_URL")
+    from extractor.supabase_store import (
+        get_reconnect_warn_threshold,
+        sync_sqlite_to_supabase,
+        validate_supabase_url,
+    )
+
+    candidates = (
+        ("SUPABASE_DATABASE_URL", os.environ.get("SUPABASE_DATABASE_URL")),
+        ("SUPABASE_POOL_MODE", os.environ.get("SUPABASE_POOL_MODE")),
+    )
+
+    supabase_url = None
+    selected_var = None
+    config_errors: list[str] = []
+    for env_name, value in candidates:
+        if not value:
+            continue
+        try:
+            validate_supabase_url(value)
+        except ValueError as error:
+            config_errors.append(f"{env_name}: {error}")
+            continue
+        supabase_url = value
+        selected_var = env_name
+        break
+
     if not supabase_url:
-        _console(">>> SKIP Supabase sync: SUPABASE_DATABASE_URL not set")
+        _console(">>> SKIP Supabase sync: no valid Supabase DSN found")
+        for error in config_errors:
+            _console(f">>> CONFIG ERROR: {error}")
         return False
 
-    from extractor.supabase_store import sync_sqlite_to_supabase
+    if selected_var and selected_var != "SUPABASE_DATABASE_URL":
+        _console(f">>> Using {selected_var} for Supabase sync")
+
     _console("\n>>> SYNCING to Supabase...")
-    result = sync_sqlite_to_supabase(db_path, supabase_url)
+    _console(
+        ">>> Sync config: "
+        f"batch_size={os.environ.get('SUPABASE_SYNC_BATCH_SIZE', '10')} "
+        f"statement_timeout_ms={os.environ.get('SUPABASE_STATEMENT_TIMEOUT_MS', '300000')}"
+    )
+    try:
+        result = sync_sqlite_to_supabase(db_path, supabase_url)
+    except Exception as error:
+        _console(f">>> ERROR: Supabase sync failed: {error}")
+        return False
+
     _console(f">>> Supabase sync: runs={result.runs_upserted} versions={result.versions_upserted} current={result.current_upserted} failures={result.failures}")
+    _console(f">>> Supabase reconnects: {result.reconnects}")
+    if result.table_durations:
+        _console(
+            ">>> Table durations: "
+            + " ".join(
+                f"{table}={seconds:.1f}s"
+                for table, seconds in result.table_durations.items()
+            )
+        )
+    reconnect_warn_threshold = get_reconnect_warn_threshold()
+    if result.reconnects > reconnect_warn_threshold:
+        _console(
+            f">>> WARNING: reconnects={result.reconnects} exceeded threshold={reconnect_warn_threshold}"
+        )
     if result.failures > 0:
         _console(f">>> WARNING: {result.failures} rows failed to sync")
         return False

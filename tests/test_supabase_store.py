@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from extractor.supabase_store import SyncResult, sync_sqlite_to_supabase
+from extractor.supabase_store import SyncResult, sync_sqlite_to_supabase, validate_supabase_url
 
 
 # ---------------------------------------------------------------------------
@@ -113,12 +113,26 @@ def test_sync_returns_sync_result(sqlite_db, mock_pg):
     assert isinstance(result, SyncResult)
 
 
+def test_validate_supabase_url_rejects_placeholder_pooler_host():
+    with pytest.raises(ValueError, match="placeholder host"):
+        validate_supabase_url(
+            "postgresql://postgres:secret@aws-0-region.pooler.supabase.com:6543/postgres"
+        )
+
+
 def test_sync_counts_all_three_tables(sqlite_db, mock_pg):
     result = sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
     assert result.runs_upserted == 1
     assert result.versions_upserted == 1
     assert result.current_upserted == 1
     assert result.failures == 0
+
+
+def test_sync_uses_configurable_statement_timeout(sqlite_db, mock_pg, monkeypatch):
+    monkeypatch.setenv("SUPABASE_STATEMENT_TIMEOUT_MS", "98765")
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+    sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+    assert mock_psycopg2.connect.call_args.kwargs["options"] == "-c statement_timeout=98765"
 
 
 def test_sync_requires_registration_converted_to_bool(sqlite_db, mock_pg):
@@ -137,6 +151,47 @@ def test_sync_requires_registration_converted_to_bool(sqlite_db, mock_pg):
     requires_reg_value = row[17]
     assert requires_reg_value is True
     assert isinstance(requires_reg_value, bool)
+
+
+def test_sync_passes_batch_size_to_execute_values(sqlite_db, mock_pg, monkeypatch):
+    monkeypatch.setenv("SUPABASE_SYNC_BATCH_SIZE", "7")
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+    sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+    assert mock_psycopg2.extras.execute_values.call_args.kwargs["page_size"] == 7
+
+
+def test_sync_retries_failed_batch_with_smaller_chunks(sqlite_db, mock_pg, monkeypatch):
+    monkeypatch.setenv("SUPABASE_SYNC_BATCH_SIZE", "2")
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+
+    call_count = {"n": 0}
+
+    def flaky_execute_values(cursor, sql, rows, page_size=None):
+        if "promotion_versions" in sql and len(rows) == 2 and call_count["n"] == 0:
+            call_count["n"] += 1
+            raise Exception("statement timeout")
+
+    mock_psycopg2.extras.execute_values.side_effect = flaky_execute_values
+    result = sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+
+    assert result.versions_upserted == 1
+    assert result.failures == 0
+
+
+def test_sync_skips_current_rows_when_parent_version_not_synced(sqlite_db, mock_pg, capsys):
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+
+    def fail_versions(cursor, sql, rows, page_size=None):
+        if "promotion_versions" in sql:
+            raise Exception("statement timeout")
+
+    mock_psycopg2.extras.execute_values.side_effect = fail_versions
+    result = sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+    output = capsys.readouterr().out
+
+    assert result.versions_upserted == 0
+    assert result.current_upserted == 0
+    assert "skipping 1 promotion_current rows" in output
 
 
 def test_sync_requires_registration_zero_becomes_false(sqlite_db, mock_pg):
