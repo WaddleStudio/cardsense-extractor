@@ -43,6 +43,7 @@ def sqlite_db():
             max_cashback INTEGER, frequency_limit TEXT,
             requires_registration INTEGER NOT NULL DEFAULT 0,
             recommendation_scope TEXT NOT NULL DEFAULT 'RECOMMENDABLE',
+            eligibility_type TEXT NOT NULL DEFAULT 'GENERAL',
             valid_from TEXT NOT NULL, valid_until TEXT NOT NULL,
             conditions_json TEXT NOT NULL, excluded_conditions_json TEXT NOT NULL,
             source_url TEXT NOT NULL, raw_text_hash TEXT NOT NULL,
@@ -53,7 +54,7 @@ def sqlite_db():
         INSERT INTO promotion_versions VALUES
             ('ver1','promo1','Test Promo','TEST','Test Bank','TEST_CARD','Test Card',
              'ACTIVE',0,NULL,'ONLINE',NULL,'PERCENT',3.0,0,NULL,NULL,
-             1,'RECOMMENDABLE','2026-01-01','2026-12-31',
+             1,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
              '[]','[]','https://example.com','abc123','summary','1.0',
              '2026-01-01T00:00:00',0.9,'ACTIVE','run1','{}');
 
@@ -67,6 +68,7 @@ def sqlite_db():
             max_cashback INTEGER, frequency_limit TEXT,
             requires_registration INTEGER NOT NULL DEFAULT 0,
             recommendation_scope TEXT NOT NULL DEFAULT 'RECOMMENDABLE',
+            eligibility_type TEXT NOT NULL DEFAULT 'GENERAL',
             valid_from TEXT NOT NULL, valid_until TEXT NOT NULL,
             conditions_json TEXT NOT NULL, excluded_conditions_json TEXT NOT NULL,
             source_url TEXT NOT NULL, raw_text_hash TEXT NOT NULL,
@@ -77,7 +79,7 @@ def sqlite_db():
         INSERT INTO promotion_current VALUES
             ('promo1','ver1','Test Promo','TEST','Test Bank','TEST_CARD','Test Card',
              'ACTIVE',0,NULL,'ONLINE',NULL,'PERCENT',3.0,0,NULL,NULL,
-             1,'RECOMMENDABLE','2026-01-01','2026-12-31',
+             1,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
              '[]','[]','https://example.com','abc123','summary','1.0',
              '2026-01-01T00:00:00',0.9,'ACTIVE','run1','{}');
     """)

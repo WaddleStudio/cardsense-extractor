@@ -37,6 +37,12 @@ class RecommendationScopeEnum(str, Enum):
     FUTURE_SCOPE = "FUTURE_SCOPE"
 
 
+class EligibilityTypeEnum(str, Enum):
+    GENERAL = "GENERAL"
+    PROFESSION_SPECIFIC = "PROFESSION_SPECIFIC"
+    BUSINESS = "BUSINESS"
+
+
 class PromotionCondition(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -67,6 +73,7 @@ class PromotionNormalized(BaseModel):
     frequencyLimit: FrequencyLimitEnum = Field(default=FrequencyLimitEnum.NONE)
     requiresRegistration: bool = Field(default=False)
     recommendationScope: RecommendationScopeEnum = Field(default=RecommendationScopeEnum.RECOMMENDABLE)
+    eligibilityType: EligibilityTypeEnum = Field(default=EligibilityTypeEnum.GENERAL)
     validFrom: date
     validUntil: date
     conditions: List[PromotionCondition] = Field(default_factory=list)

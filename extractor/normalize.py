@@ -36,6 +36,27 @@ FREQUENCY_LIMIT_ALIASES = {
     "NONE": "NONE",
 }
 
+_PROFESSION_KEYWORDS = (
+    "醫師", "牙醫", "中醫", "藥師", "會計師", "建築師", "律師",
+    "教師", "護理師", "獸醫", "公會會員",
+)
+
+_BUSINESS_KEYWORDS = (
+    "商務卡", "商務御璽", "商務鈦金", "企業卡",
+)
+
+
+def _infer_eligibility_type(card_name: str | None) -> str:
+    if not card_name:
+        return "GENERAL"
+    for kw in _PROFESSION_KEYWORDS:
+        if kw in card_name:
+            return "PROFESSION_SPECIFIC"
+    for kw in _BUSINESS_KEYWORDS:
+        if kw in card_name:
+            return "BUSINESS"
+    return "GENERAL"
+
 
 def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize parsed data to the current CardSense promotion shape."""
@@ -53,6 +74,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "frequencyLimit": _normalize_enum(data.get("frequency_limit"), FREQUENCY_LIMIT_ALIASES, default="NONE"),
         "requiresRegistration": _normalize_bool(data.get("requires_registration"), default=False),
         "recommendationScope": _normalize_string(data.get("recommendation_scope")) or "RECOMMENDABLE",
+        "eligibilityType": _infer_eligibility_type(_normalize_string(data.get("card_name"))),
         "validFrom": _normalize_string(data.get("valid_from")),
         "validUntil": _normalize_string(data.get("valid_until")),
         "conditions": _normalize_conditions(_split_list_field(data.get("conditions"))),

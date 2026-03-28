@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS promotion_versions (
     frequency_limit TEXT,
     requires_registration INTEGER NOT NULL DEFAULT 0,
     recommendation_scope TEXT NOT NULL DEFAULT 'RECOMMENDABLE',
+    eligibility_type TEXT NOT NULL DEFAULT 'GENERAL',
     valid_from TEXT NOT NULL,
     valid_until TEXT NOT NULL,
     conditions_json TEXT NOT NULL,
