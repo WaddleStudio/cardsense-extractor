@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, List
 
 
@@ -46,6 +47,52 @@ _BUSINESS_KEYWORDS = (
 )
 
 
+_CARD_NAME_SUFFIXES = re.compile(
+    r"\s*("
+    r" - .+銀行"           # " - 玉山銀行"
+    r"|[|｜].+"            # "|2026年一起去日本旅遊吧!"
+    r"|\s+公會會員專屬申辦"  # " 公會會員專屬申辦"
+    r")\s*$"
+)
+
+# Card name endings: 卡, 金融卡, 專區. After the last such token, everything is noise.
+_CARD_NAME_BOUNDARY = re.compile(
+    r"((?:信用|聯名|認同|金融|簽帳金融|採購|御璽|鈦金|白金|無限|世界)?卡(?!友)|專區|Unicard|UniCard)"
+)
+
+
+def _clean_card_name(raw_name: str | None) -> str | None:
+    """Strip promotional text and bank-name suffixes from card names."""
+    if not raw_name:
+        return raw_name
+
+    name = raw_name.strip()
+
+    # Step 1: Remove known suffix patterns
+    name = _CARD_NAME_SUFFIXES.sub("", name).strip()
+
+    # Step 2: Truncate after the last card-type token (卡/專區)
+    matches = list(_CARD_NAME_BOUNDARY.finditer(name))
+    if matches:
+        last_match = matches[-1]
+        name = name[:last_match.end()].strip()
+    else:
+        # No card-type token found; trim at first CJK enumeration (、) with multiple items
+        enum_match = re.search(r"[\u4e00-\u9fff]、[\u4e00-\u9fff]", name)
+        if enum_match:
+            # Walk back to the space before the enumeration starts
+            before = name[:enum_match.start()]
+            space_idx = before.rfind(" ")
+            if space_idx > 2:
+                name = name[:space_idx].strip()
+
+    # Step 3: If cleaning made it too short or empty, fall back to raw
+    if len(name) < 3:
+        return raw_name.strip()
+
+    return name
+
+
 def _infer_eligibility_type(card_name: str | None) -> str:
     if not card_name:
         return "GENERAL"
@@ -64,7 +111,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "bankCode": _normalize_string(data.get("bank")),
         "bankName": _normalize_string(data.get("bank_name")),
         "cardCode": _normalize_string(data.get("card_code")),
-        "cardName": _normalize_string(data.get("card_name")),
+        "cardName": _clean_card_name(_normalize_string(data.get("card_name"))),
         "category": _normalize_enum(data.get("category"), CATEGORY_ALIASES, default="OTHER"),
         "channel": _normalize_enum(data.get("channel"), CHANNEL_ALIASES, default=None),
         "cashbackType": _normalize_enum(data.get("cashback_type"), CASHBACK_TYPE_ALIASES, default=None),
