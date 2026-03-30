@@ -85,6 +85,7 @@ class PromotionNormalized(BaseModel):
     extractedAt: datetime
     confidence: float = Field(..., ge=0.0, le=1.0)
     status: str = Field(default="ACTIVE")
+    planId: Optional[str] = Field(default=None, min_length=3)
 
     @field_validator("bankCode", "cardCode", "bankName", "cardName", "title", "summary", "status", "cardStatus")
     @classmethod
