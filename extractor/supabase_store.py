@@ -11,6 +11,8 @@ import psycopg2
 import psycopg2.extras
 import requests
 
+from extractor.card_lifecycle import normalize_card_status, normalize_promotion_status
+
 _DEFAULT_BATCH_SIZE = 10
 _DEFAULT_STATEMENT_TIMEOUT_MS = 300000
 _DEFAULT_RECONNECT_WARN_THRESHOLD = 3
@@ -145,6 +147,7 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
             result.table_durations["promotion_versions"] = time.perf_counter() - table_start
 
             table_start = time.perf_counter()
+            _clear_table_pg(pg_conn, "promotion_current")
             pg_conn, _ = _sync_table(
                 sqlite_conn, pg_conn, supabase_url,
                 sqlite_table="promotion_current",
@@ -228,6 +231,13 @@ def sync_sqlite_to_supabase_http(
         result.table_durations["promotion_versions"] = time.perf_counter() - table_start
 
         table_start = time.perf_counter()
+        _clear_table_http(
+            session,
+            base_url=base_url,
+            headers=headers,
+            rest_table="promotion_current",
+            timeout_sec=timeout_sec,
+        )
         _sync_table_http(
             sqlite_conn,
             session,
@@ -425,6 +435,29 @@ def _build_upsert_sql(pg_table: str, cols: tuple[str, ...], pk: str) -> str:
     """
 
 
+def _clear_table_pg(pg_conn, pg_table: str) -> None:
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f"DELETE FROM {pg_table}")
+    pg_conn.commit()
+
+
+def _clear_table_http(
+    session: requests.Session,
+    *,
+    base_url: str,
+    headers: dict[str, str],
+    rest_table: str,
+    timeout_sec: int,
+) -> None:
+    response = session.delete(
+        f"{base_url}/rest/v1/{rest_table}",
+        params={rest_table.split("_")[0]: "not.is.null"} if rest_table == "extract_runs" else {"promo_id": "not.is.null"},
+        headers={**headers, "Prefer": "return=minimal"},
+        timeout=timeout_sec,
+    )
+    response.raise_for_status()
+
+
 def _upsert_with_fallback(
     *,
     pg_conn,
@@ -585,7 +618,13 @@ def _rows_to_json_objects(rows: list[tuple], cols: tuple[str, ...]) -> list[dict
 
 
 def _to_pg_row(row: sqlite3.Row, cols: tuple[str, ...], bool_cols: frozenset[str]) -> tuple:
-    return tuple(
-        bool(row[col]) if col in bool_cols else row[col]
-        for col in cols
-    )
+    normalized = {col: (bool(row[col]) if col in bool_cols else row[col]) for col in cols}
+
+    if "card_name" in normalized:
+        card_name = normalized["card_name"]
+        if "card_status" in normalized:
+            normalized["card_status"] = normalize_card_status(normalized["card_status"], normalized.get("status"), card_name=card_name)
+        if "status" in normalized:
+            normalized["status"] = normalize_promotion_status(normalized["status"], normalized.get("card_status"), card_name=card_name)
+
+    return tuple(normalized[col] for col in cols)

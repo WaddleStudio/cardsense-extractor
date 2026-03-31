@@ -34,6 +34,15 @@ def test_extract_reward_prefers_points_over_voucher_in_generic_title():
     assert reward == {"type": "POINTS", "value": 2000.0}
 
 
+def test_extract_reward_ignores_lottery_prize_value_campaign():
+    reward = _extract_reward(
+        "活動期間持玉山Unicard購買KKday行程享抽獎機會",
+        "活動期間持玉山Unicard購買KKday任一不限金額商品，即可累積1次抽獎機會，抽獎贈品價值18,000元，活動總數量共1組。",
+    )
+
+    assert reward is None
+
+
 def test_normalize_promotion_title_drops_note_noise_and_uses_body_fallback():
     title = _normalize_promotion_title(
         "玉山愛心卡 - 玉山銀行",

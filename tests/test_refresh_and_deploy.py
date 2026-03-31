@@ -8,7 +8,7 @@ from unittest.mock import call, patch
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
-from jobs.refresh_and_deploy import run_sync
+from jobs.refresh_and_deploy import find_latest_jsonl, run_sync
 
 
 def _sync_result() -> SimpleNamespace:
@@ -86,3 +86,25 @@ def test_run_sync_falls_back_to_direct_url_when_pooler_fails(monkeypatch):
         call("dummy.db", pool_url),
         call("dummy.db", direct_url),
     ]
+
+
+def test_find_latest_jsonl_prefers_timestamped_output_over_full_latest_alias(tmp_path, monkeypatch):
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+
+    full_latest = outputs_dir / "esun-real-full-latest.jsonl"
+    full_latest.write_text("old", encoding="utf-8")
+
+    older = outputs_dir / "esun-real-20260331-172145.jsonl"
+    older.write_text("older", encoding="utf-8")
+
+    newest = outputs_dir / "esun-real-20260331-175216.jsonl"
+    newest.write_text("newest", encoding="utf-8")
+
+    os.utime(full_latest, (100, 100))
+    os.utime(older, (200, 200))
+    os.utime(newest, (300, 300))
+
+    monkeypatch.setattr("jobs.refresh_and_deploy.project_root", str(tmp_path))
+
+    assert find_latest_jsonl("ESUN") == str(newest)

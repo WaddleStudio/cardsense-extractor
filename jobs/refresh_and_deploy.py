@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import glob
 import os
+import re
 import shutil
 import sqlite3
 import sys
@@ -83,7 +84,15 @@ def find_latest_jsonl(bank_label: str) -> str | None:
     """Find the most recent JSONL file for a given bank."""
     output_dir = os.path.join(project_root, "outputs")
     pattern = os.path.join(output_dir, f"{bank_label.lower()}-real-*.jsonl")
-    files = sorted(glob.glob(pattern), reverse=True)
+    files = glob.glob(pattern)
+    timestamped_files = [
+        path
+        for path in files
+        if re.search(rf"{bank_label.lower()}-real-\d{{8}}-\d{{6}}\.jsonl$", os.path.basename(path))
+    ]
+    if timestamped_files:
+        files = timestamped_files
+    files.sort(key=os.path.getmtime, reverse=True)
     return files[0] if files else None
 
 
@@ -158,6 +167,13 @@ def deploy_db(db_path: str) -> bool:
     shutil.copy2(db_path, API_DB_PATH)
     _console(f">>> DB copied to {API_DB_PATH}")
     return True
+
+
+def apply_benefit_plan_tags(db_path: str) -> None:
+    from jobs.tag_plan_ids import tag_plan_ids
+
+    _console("\n>>> TAGGING benefit plan ids")
+    tag_plan_ids(db_path, dry_run=False)
 
 
 def _iter_supabase_candidates(validate_supabase_url) -> tuple[list[tuple[str, str]], list[str]]:
@@ -353,6 +369,8 @@ def main() -> int:
         imported = run_import(jsonl_path, args.db)
         results[bank] = {"status": "OK", "imported": imported, "jsonl": os.path.basename(jsonl_path)}
         _console(f">>> {bank}: {imported} promotions imported")
+
+    apply_benefit_plan_tags(args.db)
 
     # Summary
     print_db_summary(args.db)

@@ -223,6 +223,9 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
 def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
     """Extract CUBE plan-based promotions from treepointscardcf and cube-list page."""
+    if card.card_code != "CATHAY_CUBE":
+        return []
+
     # Step 1: Get date ranges from cube-list page cubelisttitle components
     plan_dates: dict[str, tuple[str, str]] = {}
     try:

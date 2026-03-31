@@ -55,14 +55,14 @@ def sqlite_db():
             source_url TEXT NOT NULL, raw_text_hash TEXT NOT NULL,
             summary TEXT NOT NULL, extractor_version TEXT NOT NULL,
             extracted_at TEXT NOT NULL, confidence REAL NOT NULL,
-            status TEXT NOT NULL, run_id TEXT, raw_payload_json TEXT NOT NULL
+            status TEXT NOT NULL, plan_id TEXT, run_id TEXT, raw_payload_json TEXT NOT NULL
         );
         INSERT INTO promotion_versions VALUES
             ('ver1','promo1','Test Promo','TEST','Test Bank','TEST_CARD','Test Card',
              'ACTIVE',0,NULL,'ONLINE',NULL,'PERCENT',3.0,0,NULL,NULL,
              1,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
              '[]','[]','https://example.com','abc123','summary','1.0',
-             '2026-01-01T00:00:00',0.9,'ACTIVE','run1','{}');
+             '2026-01-01T00:00:00',0.9,'ACTIVE','TEST_PLAN','run1','{}');
 
         CREATE TABLE promotion_current (
             promo_id TEXT PRIMARY KEY, promo_version_id TEXT NOT NULL,
@@ -80,14 +80,14 @@ def sqlite_db():
             source_url TEXT NOT NULL, raw_text_hash TEXT NOT NULL,
             summary TEXT NOT NULL, extractor_version TEXT NOT NULL,
             extracted_at TEXT NOT NULL, confidence REAL NOT NULL,
-            status TEXT NOT NULL, run_id TEXT, raw_payload_json TEXT NOT NULL
+            status TEXT NOT NULL, plan_id TEXT, run_id TEXT, raw_payload_json TEXT NOT NULL
         );
         INSERT INTO promotion_current VALUES
             ('promo1','ver1','Test Promo','TEST','Test Bank','TEST_CARD','Test Card',
              'ACTIVE',0,NULL,'ONLINE',NULL,'PERCENT',3.0,0,NULL,NULL,
              1,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
              '[]','[]','https://example.com','abc123','summary','1.0',
-             '2026-01-01T00:00:00',0.9,'ACTIVE','run1','{}');
+             '2026-01-01T00:00:00',0.9,'ACTIVE','TEST_PLAN','run1','{}');
     """)
     conn.commit()
     conn.close()
@@ -119,6 +119,7 @@ def mock_rest():
         mock_response = MagicMock()
         mock_response.raise_for_status.return_value = None
         mock_session.post.return_value = mock_response
+        mock_session.delete.return_value = mock_response
         mock_session_cls.return_value = mock_session
         yield mock_session_cls, mock_session, mock_response
 
@@ -206,6 +207,7 @@ def test_sync_http_counts_all_three_tables(sqlite_db, mock_rest):
     assert result.current_upserted == 1
     assert result.failures == 0
     assert mock_session.post.call_count == 3
+    assert mock_session.delete.call_count == 1
 
     first_call = mock_session.post.call_args_list[0]
     assert first_call.kwargs["params"] == {"on_conflict": "run_id"}
@@ -213,6 +215,27 @@ def test_sync_http_counts_all_three_tables(sqlite_db, mock_rest):
 
     versions_call = mock_session.post.call_args_list[1]
     assert versions_call.kwargs["json"][0]["requires_registration"] is True
+    assert versions_call.kwargs["json"][0]["plan_id"] == "TEST_PLAN"
+
+    current_call = mock_session.post.call_args_list[2]
+    assert current_call.kwargs["json"][0]["plan_id"] == "TEST_PLAN"
+
+    delete_call = mock_session.delete.call_args_list[0]
+    assert delete_call.kwargs["params"] == {"promo_id": "not.is.null"}
+
+
+def test_sync_includes_plan_id_in_postgres_upserts(sqlite_db, mock_pg):
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+
+    sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+
+    versions_call = mock_psycopg2.extras.execute_values.call_args_list[1]
+    version_rows = versions_call[0][2]
+    assert version_rows[0][31] == "TEST_PLAN"
+
+    current_call = mock_psycopg2.extras.execute_values.call_args_list[2]
+    current_rows = current_call[0][2]
+    assert current_rows[0][31] == "TEST_PLAN"
 
 
 def test_sync_retries_failed_batch_with_smaller_chunks(sqlite_db, mock_pg, monkeypatch):
@@ -273,8 +296,8 @@ def test_sync_commits_per_table(sqlite_db, mock_pg):
     """Each table upsert is followed by a commit."""
     mock_psycopg2, mock_conn, mock_cursor = mock_pg
     sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
-    # Three tables → three commits
-    assert mock_conn.commit.call_count == 3
+    # extract_runs + promotion_versions + clear promotion_current + promotion_current upsert
+    assert mock_conn.commit.call_count == 4
 
 
 def test_sync_closes_pg_connection_on_success(sqlite_db, mock_pg):
@@ -302,3 +325,21 @@ def test_sync_upsert_order_runs_before_versions_before_current(sqlite_db, mock_p
     assert "extract_runs" in calls[0][0][1]
     assert "promotion_versions" in calls[1][0][1]
     assert "promotion_current" in calls[2][0][1]
+    mock_cursor.execute.assert_any_call("DELETE FROM promotion_current")
+
+
+def test_sync_marks_discontinued_card_name_as_inactive(sqlite_db, mock_pg):
+    conn = sqlite3.connect(sqlite_db)
+    conn.execute("UPDATE promotion_versions SET card_name = 'KOKO icash聯名卡(已停發)', card_status = 'ACTIVE', status = 'ACTIVE'")
+    conn.execute("UPDATE promotion_current SET card_name = 'KOKO icash聯名卡(已停發)', card_status = 'ACTIVE', status = 'ACTIVE'")
+    conn.commit()
+    conn.close()
+
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+    sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+
+    versions_call = mock_psycopg2.extras.execute_values.call_args_list[1]
+    version_rows = versions_call[0][2]
+    assert version_rows[0][6] == 'KOKO icash聯名卡(已停發)'
+    assert version_rows[0][7] == 'DISCONTINUED'
+    assert version_rows[0][30] == 'INACTIVE'

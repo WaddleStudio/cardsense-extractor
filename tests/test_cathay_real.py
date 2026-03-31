@@ -71,3 +71,4 @@ def test_cathay_model_json_parser_extracts_card_and_promotion(monkeypatch):
     assert promotions[0]["recommendationScope"] == "RECOMMENDABLE"
     assert promotions[0]["validFrom"] == "2026-01-01"
     assert promotions[0]["validUntil"] == "2026-03-31"
+    assert all(not promotion.get("planId") for promotion in promotions)

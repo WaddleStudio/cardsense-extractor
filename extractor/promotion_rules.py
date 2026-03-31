@@ -10,6 +10,7 @@ from extractor.html_utils import collapse_text
 THRESHOLD_LEFT_PATTERN = re.compile(
     r"(?:"
     r"滿|達|達到|累積滿|累積新增|新增一般消費滿|"
+    r"單筆消費滿|消費滿|"
     r"符合|符合條件|符合消費門檻|活動門檻|消費門檻|門檻|條件|"
     r"支付|刷卡支付|票款|票款或|團費|團費或|旅遊團費|機票|"
     r"金額|金額合計達|消費金額|消費額|費用"
@@ -18,9 +19,30 @@ THRESHOLD_LEFT_PATTERN = re.compile(
 
 THRESHOLD_RIGHT_PATTERN = re.compile(
     r"^\s*(?:"
-    r"以上|以上之|\(含\)以上|即可|即享|可享|享有|享|"
+    r"以上|以上之|\(\s*含\s*\)\s*以上|即可|即享|可享|享有|享|"
     r"贈|送|現折|折抵|回饋|加碼|始符合|方可|才可|即符合"
     r")"
+)
+
+NON_REWARD_PROMOTION_TOKENS = (
+    "抽獎",
+    "贈品價值",
+    "活動總數量",
+    "總數量",
+    "名額",
+    "抽",
+    "機會",
+    "乙組",
+    "乙次抽獎",
+)
+
+CAP_VALUE_TOKENS = (
+    "上限",
+    "回饋上限",
+    "每月回饋上限",
+    "每卡每月回饋上限",
+    "累計上限",
+    "最高回饋",
 )
 
 
@@ -142,6 +164,10 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
             value = float(match.group(1))
             context = match_context(fragment, match.start(), match.end())
             left_context, right_context = match_local_context(fragment, match.start(), match.end())
+            if is_non_reward_promotion_context(context):
+                continue
+            if is_cap_value_context(left_context, right_context):
+                continue
             # Skip condition-threshold patterns like "團費80%以上"
             if re.search(r"\d+(?:\.\d+)?%\s*以上", context) and not any(token in context for token in ["回饋", "現折", "折扣", "加碼"]):
                 continue
@@ -156,6 +182,10 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
             unit = match.group(2)
             context = match_context(fragment, match.start(), match.end())
             left_context, right_context = match_local_context(fragment, match.start(), match.end())
+            if is_non_reward_promotion_context(context):
+                continue
+            if is_cap_value_context(left_context, right_context):
+                continue
             if looks_like_threshold_value(left_context, right_context):
                 continue
             if not is_reward_like_fixed_context(context):
@@ -190,11 +220,26 @@ def match_local_context(fragment: str, start: int, end: int, *, window: int = 18
 
 
 def looks_like_threshold_value(left_context: str, right_context: str) -> bool:
+    normalized_right = right_context.replace(" ", "")
     if "門檻" in left_context or "條件" in left_context:
         return True
-    if THRESHOLD_LEFT_PATTERN.search(left_context) and THRESHOLD_RIGHT_PATTERN.match(right_context):
+    if THRESHOLD_LEFT_PATTERN.search(left_context) and THRESHOLD_RIGHT_PATTERN.match(normalized_right):
+        return True
+    if THRESHOLD_LEFT_PATTERN.search(left_context) and any(
+        token in normalized_right for token in ("贈", "送", "現折", "折抵", "回饋", "加碼", "折")
+    ):
         return True
     return False
+
+
+def is_non_reward_promotion_context(context: str) -> bool:
+    return any(token in context for token in NON_REWARD_PROMOTION_TOKENS)
+
+
+def is_cap_value_context(left_context: str, right_context: str) -> bool:
+    return any(token in left_context for token in CAP_VALUE_TOKENS) or any(
+        right_context.startswith(token) for token in CAP_VALUE_TOKENS
+    )
 
 
 def is_reward_like_fixed_context(context: str) -> bool:
@@ -324,6 +369,10 @@ def classify_recommendation_scope(title: str, body: str, category: str | None = 
         "禮遇",
         "服務",
         "借電券",
+        "抽獎",
+        "贈品價值",
+        "活動總數量",
+        "名額",
     )
 
     if any(token in text for token in future_scope_tokens):

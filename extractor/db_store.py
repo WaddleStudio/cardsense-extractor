@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from extractor.card_lifecycle import normalize_card_status, normalize_promotion_status
+
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "cardsense_schema.sql"
 
@@ -159,6 +161,10 @@ def delete_current_promotions_for_bank(connection: sqlite3.Connection, bank_code
 
 
 def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
+    card_name = payload.get("cardName")
+    card_status = normalize_card_status(payload.get("cardStatus"), payload.get("status"), card_name=card_name)
+    promotion_status = normalize_promotion_status(payload.get("status"), payload.get("cardStatus"), card_name=card_name)
+
     return {
         "promo_version_id": payload["promoVersionId"],
         "promo_id": payload["promoId"],
@@ -166,8 +172,8 @@ def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
         "bank_code": payload["bankCode"],
         "bank_name": payload["bankName"],
         "card_code": payload["cardCode"],
-        "card_name": payload["cardName"],
-        "card_status": payload.get("cardStatus"),
+        "card_name": card_name,
+        "card_status": card_status,
         "annual_fee": payload.get("annualFee", 0),
         "apply_url": payload.get("applyUrl"),
         "category": payload["category"],
@@ -190,7 +196,7 @@ def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
         "extractor_version": payload["extractorVersion"],
         "extracted_at": payload["extractedAt"],
         "confidence": payload["confidence"],
-        "status": payload["status"],
+        "status": promotion_status,
         "plan_id": payload.get("planId"),
         "run_id": run_id,
         "raw_payload_json": json.dumps(payload, ensure_ascii=False, separators=(",", ":")),

@@ -69,3 +69,48 @@ def test_extract_reward_skips_threshold_percentage_and_keeps_actual_reward_perce
     )
 
     assert reward == {"type": "PERCENT", "value": 1.0}
+
+
+def test_extract_reward_ignores_cap_points_and_keeps_actual_percent_reward():
+    reward = extract_reward(
+        "每週末實體門市、寶雅線上買享13%現金回饋 週間精彩刷",
+        "活動期間每卡每月回饋上限27,000點寶雅點數，點數贈送皆含原本1倍。",
+    )
+
+    assert reward == {"type": "PERCENT", "value": 13.0}
+
+
+def test_extract_reward_ignores_cap_fixed_amount_and_keeps_actual_percent_reward():
+    reward = extract_reward(
+        "TWQR優惠專區",
+        "指定實體門市消費，單筆消費不限金額，可享10%現金回饋，活動期間每月回饋上限3,000元。",
+    )
+
+    assert reward == {"type": "PERCENT", "value": 10.0}
+
+
+def test_extract_reward_prefers_actual_voucher_value_over_threshold_amount():
+    reward = extract_reward(
+        "LOPIA超市採買享新鮮",
+        "單筆消費滿888元(含)以上，贈【宏匯廣場電子禮券100元】1份。",
+    )
+
+    assert reward == {"type": "FIXED", "value": 100.0}
+
+
+def test_extract_reward_prefers_discount_value_over_threshold_amount():
+    reward = extract_reward(
+        "KKday趣亞太",
+        "單筆消費金額滿2,000元(含)，於結帳頁面輸入指定優惠碼，滿額折200元。",
+    )
+
+    assert reward == {"type": "FIXED", "value": 200.0}
+
+
+def test_extract_reward_prefers_voucher_value_over_threshold_amount_without_immediate_reward_token():
+    reward = extract_reward(
+        "每週三卡友日",
+        "每週三持玉山宏匯廣場聯名卡，當日於宏匯廣場館內單筆消費滿1,000元(含)以上，贈【宏匯廣場電子禮券100元】1份。",
+    )
+
+    assert reward == {"type": "FIXED", "value": 100.0}
