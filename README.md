@@ -51,6 +51,10 @@ uv run python jobs/import_jsonl_to_db.py \
 
 # 一鍵全銀行提取 → 匯入 DB → 複製到 API
 uv run python jobs/refresh_and_deploy.py
+
+# planId 標記（為既有 promotion 補上 planId）
+uv run python jobs/tag_plan_ids.py --db data/cardsense.db --dry-run   # 預覽
+uv run python jobs/tag_plan_ids.py --db data/cardsense.db             # 執行
 ```
 
 抽樣限制與自訂輸出路徑：
@@ -83,6 +87,7 @@ cardsense-extractor/
 │   ├── versioning.py              # promoId / promoVersionId / hash
 │   ├── load.py                    # JSONL writer
 │   ├── db_store.py                # SQLite persistence helpers
+│   ├── supabase_store.py          # Supabase (PostgreSQL) persistence helpers
 │   └── page_extractors/
 │       └── sectioned_page.py      # shared section / offer block extraction
 ├── jobs/
@@ -95,13 +100,15 @@ cardsense-extractor/
 │   ├── run_sample_job.py          # mock pipeline runner
 │   ├── import_jsonl_to_db.py      # JSONL → SQLite importer
 │   ├── refresh_and_deploy.py      # 全銀行 extract → import → deploy 一鍵流程
+│   ├── tag_plan_ids.py            # planId 批次標記（權益方案切換卡）
 │   ├── analyze_jsonl_output.py    # distribution / quality inspection
 │   └── test_real_fetch.py         # real source connectivity smoke test
 ├── models/
 │   └── promotion.py               # Promotion model
 ├── outputs/                       # generated JSONL outputs
 ├── sql/
-│   └── cardsense_schema.sql       # SQLite schema
+│   ├── cardsense_schema.sql       # SQLite schema
+│   └── supabase_schema.sql        # Supabase (PostgreSQL) schema
 ├── tests/
 └── pyproject.toml
 ```
@@ -126,7 +133,7 @@ cardsense-extractor/
 | 銀行 | Extractor | 擷取方式 |
 |------|-----------|----------|
 | E.SUN（玉山） | `esun_real.py` | HTML 頁面直接抓取 |
-| CATHAY（國泰） | `cathay_real.py` | Model JSON 抽取 |
+| CATHAY（國泰） | `cathay_real.py` | Model JSON 抽取 + plan extraction（treepointscardcf / cube-list）|
 | TAISHIN（台新） | `taishin_real.py` | Cloudflare Browser Rendering + HTML |
 | FUBON（富邦） | `fubon_real.py` | Cloudflare Browser Rendering + HTML |
 | CTBC（中信） | `ctbc_real.py` | JSON API（creditcards.cardlist.json）+ Playwright（detail 頁）|
@@ -138,6 +145,21 @@ cardsense-extractor/
 | `RECOMMENDABLE` | 可由單筆交易上下文 deterministic 判斷，進入推薦排名 |
 | `CATALOG_ONLY` | 保留在卡片 catalog 展示，不進 ranking |
 | `FUTURE_SCOPE` | 已抽取但 API 缺乏必要上下文，無法安全推薦（首刷、新戶、身份型等） |
+
+### 權益方案切換卡（Benefit Plan Switching）
+
+部分信用卡（如 CUBE、Richart、Unicard）支援多個互斥的回饋方案，使用者可在方案間切換以獲得不同通路的加碼回饋。
+
+- Promotion 的 `planId` 欄位將優惠綁定到特定方案（nullable，`None` = 傳統優惠）
+- 國泰 CUBE：extractor 自動從 `treepointscardcf` 元件及 cube-list 頁面提取各方案的回饋費率
+- `tag_plan_ids.py`：根據 cardCode + category 映射，批次為既有 promotions 標記 planId
+- 方案定義（`benefit-plans.json`）由 API 管理，不在 extractor 端
+
+| 卡片 | 方案數 | 切換頻率 |
+|------|--------|----------|
+| 國泰 CUBE | 7（玩數位/樂饗購/趣旅行/集精選/慶生月/童樂匯/日本賞） | 每日 |
+| 台新 Richart | 7（Pay著刷/天天刷/大筆刷/好饗刷/數趣刷/玩旅刷/假日刷） | 每日 |
+| 玉山 Unicard | 3（簡單選/任意選/UP選） | 每月（上限 30 次） |
 
 ### JSONL 版本化
 
@@ -154,6 +176,10 @@ cardsense-extractor/
 | `extract_runs` | 每次抽取或匯入執行紀錄 |
 
 匯入同一銀行的全量 JSONL 時，會先刷新該銀行在 `promotion_current` 的舊資料，再寫入最新版本。
+
+### Supabase Schema
+
+`sql/supabase_schema.sql` 提供 PostgreSQL 版本的 schema，用於線上環境。結構與 SQLite 相同，`supabase_store.py` 負責透過 REST API 寫入。線上 migration 需手動執行 `ALTER TABLE` 加入新欄位（如 `plan_id`）。
 
 ## 與其他子專案的關係
 
