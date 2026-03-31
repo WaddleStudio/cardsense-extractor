@@ -50,6 +50,20 @@ GENERIC_TITLE_TOKENS = {"優惠", "回饋", "活動", "加碼"}
 PROMOTION_SIGNAL_PATTERN = re.compile(r"\d+(?:\.\d+)?%|[\d,]+\s*(?:元|點|日圓)|回饋|折扣|現折|優惠|加碼|里程|哩程|點數")
 DATE_PATTERN = re.compile(r"\d{4}/\d{1,2}/\d{1,2}\s*[~～-]\s*\d{4}/\d{1,2}/\d{1,2}")
 
+CUBE_LIST_URL = "https://www.cathay-cube.com.tw/cathaybk/personal/product/credit-card/cards/cube-list"
+
+# Plan name → (planId, default_cashback_rate, primary category)
+# Used for plans whose rate isn't embedded in the JSON model data.
+CUBE_PLAN_CONFIG: dict[str, tuple[str, str, str]] = {
+    "玩數位": ("CATHAY_CUBE_DIGITAL", "3", "ONLINE"),
+    "樂饗購": ("CATHAY_CUBE_SHOPPING", "3", "SHOPPING"),
+    "趣旅行": ("CATHAY_CUBE_TRAVEL", "3", "OVERSEAS"),
+    "集精選": ("CATHAY_CUBE_ESSENTIALS", "2", "OTHER"),
+    "慶生月": ("CATHAY_CUBE_BIRTHDAY", "3.5", "DINING"),
+    "童樂匯": ("CATHAY_CUBE_KIDS", "5", "OTHER"),
+    "日本賞": ("CATHAY_CUBE_JAPAN", "3.5", "OVERSEAS"),
+}
+
 
 @dataclass
 class CardRecord:
@@ -201,7 +215,180 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 }
             )
 
+    plan_promotions = _extract_plan_promotions(enriched_card)
+    promotions.extend(plan_promotions)
+
     return enriched_card, dedupe_promotions(promotions)
+
+
+def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
+    """Extract CUBE plan-based promotions from treepointscardcf and cube-list page."""
+    # Step 1: Get date ranges from cube-list page cubelisttitle components
+    plan_dates: dict[str, tuple[str, str]] = {}
+    try:
+        cubelist_model = _fetch_json(_model_url(CUBE_LIST_URL))
+        current_plan_name: str | None = None
+        for comp in _iter_components(cubelist_model):
+            ct = _component_type(comp)
+            if "cubelisttitle" in ct:
+                title_html = comp.get("mainTitle", "")
+                plan_match = re.search(r">([^<]+?)(?:&nbsp;|\s*<)", title_html)
+                if plan_match:
+                    current_plan_name = plan_match.group(1).strip()
+                date_match = re.search(
+                    r"適用期間[：:](\d{4}/\d{1,2}/\d{1,2})\s*[~～]\s*(\d{4}/\d{1,2}/\d{1,2})",
+                    title_html,
+                )
+                if date_match and current_plan_name:
+                    vf = _normalize_date(date_match.group(1))
+                    vu = _normalize_date(date_match.group(2))
+                    if vf and vu:
+                        plan_dates[current_plan_name] = (vf, vu)
+    except Exception:
+        pass  # cube-list page may be unavailable; proceed with what we have
+
+    # Step 2: Extract structured rates from treepointscardcf on the main card page
+    plan_rates: dict[str, list[dict[str, str]]] = {}
+    try:
+        detail_model = _fetch_json(_model_url(card.detail_url))
+        for comp in _iter_components(detail_model):
+            ct = _component_type(comp)
+            if "treepointscard" not in ct:
+                continue
+            for tree in comp.get("contentTrees", []):
+                tab_text = (tree.get("contentTreeItem") or {}).get("tabText", "")
+                if not tab_text:
+                    continue
+                tiers: list[dict[str, str]] = []
+                for card_item in tree.get("cardList", []):
+                    rate = card_item.get("rate")
+                    title = card_item.get("title", "")
+                    content = collapse_text(card_item.get("content", ""))
+                    content_clean = re.sub(r"<[^>]+>", "", content)
+                    if rate and title and title != "一般消費":
+                        tiers.append({"rate": rate, "title": title, "merchants": content_clean})
+                if tiers:
+                    plan_rates[tab_text] = tiers
+    except Exception:
+        pass
+
+    # Step 3: Build promotions for each plan
+    promotions: List[Dict[str, object]] = []
+    seen_plans: set[str] = set()
+
+    # 3a: Plans with structured rate data from treepointscardcf
+    for plan_name, tiers in plan_rates.items():
+        seen_plans.add(plan_name)
+        config = CUBE_PLAN_CONFIG.get(plan_name)
+        plan_id = config[0] if config else None
+        dates = plan_dates.get(plan_name)
+
+        for tier in tiers:
+            rate = tier["rate"]
+            tier_title = tier["title"]
+            merchants = tier["merchants"]
+            category = infer_category(tier_title, merchants, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+            channel = infer_channel(tier_title, merchants, CHANNEL_SIGNALS)
+            title = f"{card.card_name} {plan_name} {tier_title}"
+            body = f"{tier_title} 享{rate}%小樹點回饋 {merchants}"
+            valid_from = dates[0] if dates else None
+            valid_until = dates[1] if dates else None
+
+            if not valid_from or not valid_until:
+                continue
+
+            promo = _build_plan_promotion(
+                card=card,
+                title=title,
+                body=body,
+                rate=rate,
+                category=category,
+                channel=channel,
+                valid_from=valid_from,
+                valid_until=valid_until,
+                plan_id=plan_id,
+                plan_name=plan_name,
+            )
+            promotions.append(promo)
+
+    # 3b: Plans without treepointscardcf data — use config fallback rates
+    for plan_name, (plan_id, default_rate, default_category) in CUBE_PLAN_CONFIG.items():
+        if plan_name in seen_plans:
+            continue
+        dates = plan_dates.get(plan_name)
+        if not dates:
+            continue
+
+        valid_from, valid_until = dates
+        title = f"{card.card_name} {plan_name} 指定通路回饋"
+        body = f"{plan_name}方案 指定通路享{default_rate}%小樹點回饋"
+        channel = "ONLINE" if default_category == "ONLINE" else "ALL"
+
+        promo = _build_plan_promotion(
+            card=card,
+            title=title,
+            body=body,
+            rate=default_rate,
+            category=default_category,
+            channel=channel,
+            valid_from=valid_from,
+            valid_until=valid_until,
+            plan_id=plan_id,
+            plan_name=plan_name,
+        )
+        promotions.append(promo)
+
+    return promotions
+
+
+def _build_plan_promotion(
+    *,
+    card: CardRecord,
+    title: str,
+    body: str,
+    rate: str,
+    category: str,
+    channel: str,
+    valid_from: str,
+    valid_until: str,
+    plan_id: str | None,
+    plan_name: str,
+) -> Dict[str, object]:
+    return {
+        "title": title,
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "channel": channel,
+        "cashbackType": "PERCENT",
+        "cashbackValue": rate,
+        "minAmount": 0,
+        "maxCashback": None,
+        "frequencyLimit": "NONE",
+        "requiresRegistration": False,
+        "recommendationScope": "RECOMMENDABLE",
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": [{"type": "TEXT", "value": f"需切換至「{plan_name}」方案", "label": f"需切換至「{plan_name}」方案"}],
+        "excludedConditions": [],
+        "sourceUrl": card.detail_url,
+        "summary": f"{title}；享{rate}%小樹點回饋；期間 {valid_from}~{valid_until}",
+        "status": "ACTIVE",
+        "planId": plan_id,
+    }
+
+
+def _normalize_date(date_str: str) -> str | None:
+    """Convert '2026/1/1' to '2026-01-01'."""
+    match = re.match(r"(\d{4})/(\d{1,2})/(\d{1,2})", date_str)
+    if not match:
+        return None
+    return f"{match.group(1)}-{int(match.group(2)):02d}-{int(match.group(3)):02d}"
 
 
 def _fetch_json(url: str) -> Dict[str, Any]:
