@@ -1,6 +1,8 @@
 import re
 from typing import Any, Dict, List
 
+from extractor.benefit_plans import infer_plan_id
+
 
 CATEGORY_ALIASES = {
     "DINING": "DINING",
@@ -107,12 +109,16 @@ def _infer_eligibility_type(card_name: str | None) -> str:
 
 def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize parsed data to the current CardSense promotion shape."""
+    card_code = _normalize_string(data.get("card_code"))
+    category = _normalize_enum(data.get("category"), CATEGORY_ALIASES, default="OTHER")
+    explicit_plan_id = _normalize_string(data.get("plan_id"))
+
     normalized = {
         "bankCode": _normalize_string(data.get("bank")),
         "bankName": _normalize_string(data.get("bank_name")),
-        "cardCode": _normalize_string(data.get("card_code")),
+        "cardCode": card_code,
         "cardName": _clean_card_name(_normalize_string(data.get("card_name"))),
-        "category": _normalize_enum(data.get("category"), CATEGORY_ALIASES, default="OTHER"),
+        "category": category,
         "channel": _normalize_enum(data.get("channel"), CHANNEL_ALIASES, default=None),
         "cashbackType": _normalize_enum(data.get("cashback_type"), CASHBACK_TYPE_ALIASES, default=None),
         "cashbackValue": _normalize_decimal(data.get("cashback_value")),
@@ -133,7 +139,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "status": _normalize_string(data.get("status") or "ACTIVE"),
         "cardStatus": _normalize_string(data.get("status") or "ACTIVE"),
         "annualFee": _normalize_int(data.get("annual_fee"), default=0),
-        "planId": _normalize_string(data.get("plan_id")),
+        "planId": explicit_plan_id or infer_plan_id(card_code, category),
     }
 
     if normalized["channel"] is None:
