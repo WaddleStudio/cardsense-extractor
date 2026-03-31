@@ -1,4 +1,4 @@
-from extractor.promotion_rules import build_conditions, classify_recommendation_scope, infer_channel
+from extractor.promotion_rules import build_conditions, classify_recommendation_scope, extract_reward, infer_channel
 
 
 CHANNEL_SIGNALS = {
@@ -42,3 +42,30 @@ def test_classify_recommendation_scope_marks_service_perk_as_catalog_only():
     scope = classify_recommendation_scope("道路救援", "玉山會員享起拖費1,500元內免費優惠。", "OTHER")
 
     assert scope == "CATALOG_ONLY"
+
+
+def test_extract_reward_ignores_threshold_percentage_without_real_reward_value():
+    reward = extract_reward(
+        "機場接送使用條件",
+        "刷卡支付當次旅遊團費80%以上，即可免費使用乙次機場接送服務。",
+    )
+
+    assert reward is None
+
+
+def test_extract_reward_ignores_threshold_amount_without_real_reward_value():
+    reward = extract_reward(
+        "免費機場停車優惠",
+        "使用前六個月內刷卡支付當次旅遊之機票或旅遊團費金額合計達30,000元以上，即可免費使用乙次。",
+    )
+
+    assert reward is None
+
+
+def test_extract_reward_skips_threshold_percentage_and_keeps_actual_reward_percentage():
+    reward = extract_reward(
+        "海外團費加碼",
+        "刷卡支付當次旅遊團費80%以上可享1%回饋。",
+    )
+
+    assert reward == {"type": "PERCENT", "value": 1.0}

@@ -7,6 +7,23 @@ from typing import Dict, Iterable, List, Sequence
 from extractor.html_utils import collapse_text
 
 
+THRESHOLD_LEFT_PATTERN = re.compile(
+    r"(?:"
+    r"滿|達|達到|累積滿|累積新增|新增一般消費滿|"
+    r"符合|符合條件|符合消費門檻|活動門檻|消費門檻|門檻|條件|"
+    r"支付|刷卡支付|票款|票款或|團費|團費或|旅遊團費|機票|"
+    r"金額|金額合計達|消費金額|消費額|費用"
+    r")\s*$"
+)
+
+THRESHOLD_RIGHT_PATTERN = re.compile(
+    r"^\s*(?:"
+    r"以上|以上之|\(含\)以上|即可|即享|可享|享有|享|"
+    r"贈|送|現折|折抵|回饋|加碼|始符合|方可|才可|即符合"
+    r")"
+)
+
+
 @dataclass
 class RewardCandidate:
     reward_type: str
@@ -124,8 +141,11 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
         for match in re.finditer(r"(\d+(?:\.\d+)?)%", fragment):
             value = float(match.group(1))
             context = match_context(fragment, match.start(), match.end())
+            left_context, right_context = match_local_context(fragment, match.start(), match.end())
             # Skip condition-threshold patterns like "團費80%以上"
             if re.search(r"\d+(?:\.\d+)?%\s*以上", context) and not any(token in context for token in ["回饋", "現折", "折扣", "加碼"]):
+                continue
+            if looks_like_threshold_value(left_context, right_context):
                 continue
             reward_type = "POINTS" if any(token in context for token in ["P幣", "e point", "點數", "里程", "哩"]) else "PERCENT"
             score = score_reward_candidate(fragment, context, reward_type, title_weight, order_bonus)
@@ -135,6 +155,9 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
             value = float(match.group(1).replace(",", ""))
             unit = match.group(2)
             context = match_context(fragment, match.start(), match.end())
+            left_context, right_context = match_local_context(fragment, match.start(), match.end())
+            if looks_like_threshold_value(left_context, right_context):
+                continue
             if not is_reward_like_fixed_context(context):
                 continue
             reward_type = classify_fixed_reward_type(unit, context)
@@ -158,6 +181,20 @@ def match_context(fragment: str, start: int, end: int) -> str:
     left = max(0, start - 24)
     right = min(len(fragment), end + 24)
     return fragment[left:right]
+
+
+def match_local_context(fragment: str, start: int, end: int, *, window: int = 18) -> tuple[str, str]:
+    left = collapse_text(fragment[max(0, start - window):start]).rstrip(" ，,、:：;；")
+    right = collapse_text(fragment[end:min(len(fragment), end + window)]).lstrip(" ，,、:：;；")
+    return left, right
+
+
+def looks_like_threshold_value(left_context: str, right_context: str) -> bool:
+    if "門檻" in left_context or "條件" in left_context:
+        return True
+    if THRESHOLD_LEFT_PATTERN.search(left_context) and THRESHOLD_RIGHT_PATTERN.match(right_context):
+        return True
+    return False
 
 
 def is_reward_like_fixed_context(context: str) -> bool:
