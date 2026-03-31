@@ -31,7 +31,7 @@ _PROMOTION_VERSION_COLS = (
     "recommendation_scope", "eligibility_type", "valid_from", "valid_until",
     "conditions_json", "excluded_conditions_json", "source_url",
     "raw_text_hash", "summary", "extractor_version", "extracted_at",
-    "confidence", "status", "run_id", "raw_payload_json",
+    "confidence", "status", "plan_id", "run_id", "raw_payload_json",
 )
 
 _PROMOTION_CURRENT_COLS = (
@@ -42,7 +42,7 @@ _PROMOTION_CURRENT_COLS = (
     "recommendation_scope", "eligibility_type", "valid_from", "valid_until",
     "conditions_json", "excluded_conditions_json", "source_url",
     "raw_text_hash", "summary", "extractor_version", "extracted_at",
-    "confidence", "status", "run_id", "raw_payload_json",
+    "confidence", "status", "plan_id", "run_id", "raw_payload_json",
 )
 
 
