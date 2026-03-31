@@ -1,4 +1,4 @@
-"""Sync all three SQLite tables to Supabase (PostgreSQL) via psycopg2."""
+"""Sync SQLite tables to Supabase via PostgreSQL or HTTPS REST."""
 from __future__ import annotations
 
 import os
@@ -9,10 +9,12 @@ from urllib.parse import urlsplit
 
 import psycopg2
 import psycopg2.extras
+import requests
 
 _DEFAULT_BATCH_SIZE = 10
 _DEFAULT_STATEMENT_TIMEOUT_MS = 300000
 _DEFAULT_RECONNECT_WARN_THRESHOLD = 3
+_DEFAULT_HTTP_TIMEOUT_SEC = 60
 
 # Column order must match supabase_schema.sql exactly.
 _EXTRACT_RUN_COLS = (
@@ -60,6 +62,17 @@ class SyncResult:
 
 def validate_supabase_url(supabase_url: str) -> None:
     """Reject placeholder or malformed Postgres DSNs before psycopg2 connects."""
+    if "://" not in supabase_url:
+        raise ValueError("Supabase DSN must start with postgresql:// or postgres://")
+
+    after_scheme = supabase_url.split("://", 1)[1]
+    if "@" in after_scheme:
+        raw_userinfo = after_scheme.rsplit("@", 1)[0]
+        if any(char in raw_userinfo for char in "?#/"):
+            raise ValueError(
+                "Supabase DSN contains unencoded reserved characters in the username or password; URL-encode characters like ?, #, /, and @"
+            )
+
     parsed = urlsplit(supabase_url)
     if parsed.scheme not in {"postgresql", "postgres"}:
         raise ValueError("Supabase DSN must start with postgresql:// or postgres://")
@@ -76,6 +89,15 @@ def validate_supabase_url(supabase_url: str) -> None:
         raise ValueError(
             "Supabase DSN still contains a placeholder host; replace it with the real pooler hostname from Supabase settings"
         )
+
+
+def validate_supabase_project_url(supabase_project_url: str) -> None:
+    """Validate the HTTPS project URL used by Supabase REST APIs."""
+    parsed = urlsplit(supabase_project_url)
+    if parsed.scheme != "https":
+        raise ValueError("Supabase project URL must start with https://")
+    if not parsed.hostname:
+        raise ValueError("Supabase project URL is missing a hostname")
 
 
 def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResult:
@@ -144,6 +166,92 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
     return result
 
 
+def sync_sqlite_to_supabase_http(
+    sqlite_db_path: str,
+    supabase_project_url: str,
+    service_role_key: str,
+) -> SyncResult:
+    """Sync all three SQLite tables to Supabase via the REST API over HTTPS."""
+    validate_supabase_project_url(supabase_project_url)
+    if not service_role_key:
+        raise ValueError("Supabase service role key is required for REST sync")
+
+    result = SyncResult()
+    sqlite_conn = sqlite3.connect(sqlite_db_path)
+    sqlite_conn.row_factory = sqlite3.Row
+    session = requests.Session()
+    headers = {
+        "apikey": service_role_key,
+        "Authorization": f"Bearer {service_role_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+    timeout_sec = get_http_timeout_seconds()
+    base_url = supabase_project_url.rstrip("/")
+
+    try:
+        table_start = time.perf_counter()
+        synced_run_ids = _sync_table_http(
+            sqlite_conn,
+            session,
+            base_url=base_url,
+            headers=headers,
+            sqlite_table="extract_runs",
+            rest_table="extract_runs",
+            cols=_EXTRACT_RUN_COLS,
+            pk="run_id",
+            bool_cols=frozenset(),
+            counter_attr="runs_upserted",
+            result=result,
+            timeout_sec=timeout_sec,
+        )
+        result.table_durations["extract_runs"] = time.perf_counter() - table_start
+
+        table_start = time.perf_counter()
+        synced_version_ids = _sync_table_http(
+            sqlite_conn,
+            session,
+            base_url=base_url,
+            headers=headers,
+            sqlite_table="promotion_versions",
+            rest_table="promotion_versions",
+            cols=_PROMOTION_VERSION_COLS,
+            pk="promo_version_id",
+            bool_cols=frozenset({"requires_registration"}),
+            counter_attr="versions_upserted",
+            result=result,
+            timeout_sec=timeout_sec,
+            required_parent_keys=synced_run_ids,
+            parent_key_col="run_id",
+        )
+        result.table_durations["promotion_versions"] = time.perf_counter() - table_start
+
+        table_start = time.perf_counter()
+        _sync_table_http(
+            sqlite_conn,
+            session,
+            base_url=base_url,
+            headers=headers,
+            sqlite_table="promotion_current",
+            rest_table="promotion_current",
+            cols=_PROMOTION_CURRENT_COLS,
+            pk="promo_id",
+            bool_cols=frozenset({"requires_registration"}),
+            counter_attr="current_upserted",
+            result=result,
+            timeout_sec=timeout_sec,
+            required_parent_keys=synced_version_ids,
+            parent_key_col="promo_version_id",
+        )
+        result.table_durations["promotion_current"] = time.perf_counter() - table_start
+    finally:
+        sqlite_conn.close()
+        session.close()
+
+    return result
+
+
 def _pg_connect(supabase_url: str):
     """Open a PostgreSQL connection with a configurable statement timeout."""
     timeout_ms = _get_positive_int_env(
@@ -159,6 +267,10 @@ def _pg_connect(supabase_url: str):
 
 def _get_batch_size() -> int:
     return _get_positive_int_env("SUPABASE_SYNC_BATCH_SIZE", _DEFAULT_BATCH_SIZE)
+
+
+def get_http_timeout_seconds() -> int:
+    return _get_positive_int_env("SUPABASE_HTTP_TIMEOUT_SEC", _DEFAULT_HTTP_TIMEOUT_SEC)
 
 
 def get_reconnect_warn_threshold() -> int:
@@ -196,10 +308,7 @@ def _sync_table(
 ):
     """Upsert rows in batches. Returns pg_conn plus synced primary keys."""
     batch_size = _get_batch_size()
-    rows = [
-        _to_pg_row(row, cols, bool_cols)
-        for row in sqlite_conn.execute(f"SELECT {', '.join(cols)} FROM {sqlite_table}")
-    ]
+    rows = _read_sqlite_rows(sqlite_conn, sqlite_table, cols, bool_cols)
     if required_parent_keys is not None and parent_key_col is not None:
         parent_idx = cols.index(parent_key_col)
         filtered_rows = [row for row in rows if row[parent_idx] in required_parent_keys]
@@ -238,6 +347,67 @@ def _sync_table(
 
     setattr(result, counter_attr, upserted)
     return pg_conn, synced_keys
+
+
+def _sync_table_http(
+    sqlite_conn: sqlite3.Connection,
+    session: requests.Session,
+    *,
+    base_url: str,
+    headers: dict[str, str],
+    sqlite_table: str,
+    rest_table: str,
+    cols: tuple[str, ...],
+    pk: str,
+    bool_cols: frozenset[str],
+    counter_attr: str,
+    result: SyncResult,
+    timeout_sec: int,
+    required_parent_keys: set[str] | None = None,
+    parent_key_col: str | None = None,
+) -> set[str]:
+    """Upsert rows into Supabase REST in batches and return synced primary keys."""
+    batch_size = _get_batch_size()
+    rows = _read_sqlite_rows(sqlite_conn, sqlite_table, cols, bool_cols)
+    if required_parent_keys is not None and parent_key_col is not None:
+        parent_idx = cols.index(parent_key_col)
+        filtered_rows = [row for row in rows if row[parent_idx] in required_parent_keys]
+        skipped_rows = len(rows) - len(filtered_rows)
+        if skipped_rows:
+            result.failures += skipped_rows
+            print(
+                f"[supabase_store] skipping {skipped_rows} {rest_table} rows because parent {parent_key_col} was not synced",
+                flush=True,
+            )
+        rows = filtered_rows
+    if not rows:
+        setattr(result, counter_attr, 0)
+        return set()
+
+    upserted = 0
+    synced_keys: set[str] = set()
+    pk_idx = cols.index(pk)
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i : i + batch_size]
+        succeeded_rows = _upsert_http_with_fallback(
+            session=session,
+            base_url=base_url,
+            headers=headers,
+            rest_table=rest_table,
+            pk=pk,
+            rows=batch,
+            cols=cols,
+            batch_size=batch_size,
+            result=result,
+            batch_num=i // batch_size + 1,
+            pk_idx=pk_idx,
+            timeout_sec=timeout_sec,
+        )
+        upserted += len(succeeded_rows)
+        synced_keys.update(row[pk_idx] for row in succeeded_rows)
+
+    setattr(result, counter_attr, upserted)
+    return synced_keys
 
 
 def _build_upsert_sql(pg_table: str, cols: tuple[str, ...], pk: str) -> str:
@@ -324,6 +494,94 @@ def _upsert_with_fallback(
             pk_idx=pk_idx,
         )
         return pg_conn, first_succeeded + second_succeeded
+
+
+def _upsert_http_with_fallback(
+    *,
+    session: requests.Session,
+    base_url: str,
+    headers: dict[str, str],
+    rest_table: str,
+    pk: str,
+    rows: list[tuple],
+    cols: tuple[str, ...],
+    batch_size: int,
+    result: SyncResult,
+    batch_num: int,
+    pk_idx: int,
+    timeout_sec: int,
+) -> list[tuple]:
+    """Try an HTTP upsert batch, then recursively split it to isolate bad rows."""
+    try:
+        response = session.post(
+            f"{base_url}/rest/v1/{rest_table}",
+            params={"on_conflict": pk},
+            headers=headers,
+            json=_rows_to_json_objects(rows, cols),
+            timeout=timeout_sec,
+        )
+        response.raise_for_status()
+        return rows
+    except requests.RequestException as exc:
+        if len(rows) == 1:
+            result.failures += 1
+            print(
+                f"[supabase_store] failed to sync {rest_table} row {rows[0][pk_idx]} in batch {batch_num}: {exc}",
+                flush=True,
+            )
+            return []
+
+        print(
+            f"[supabase_store] failed to sync {rest_table} batch {batch_num} ({len(rows)} rows): {exc}; retrying with smaller chunks",
+            flush=True,
+        )
+
+        midpoint = len(rows) // 2
+        first_succeeded = _upsert_http_with_fallback(
+            session=session,
+            base_url=base_url,
+            headers=headers,
+            rest_table=rest_table,
+            pk=pk,
+            rows=rows[:midpoint],
+            cols=cols,
+            batch_size=batch_size,
+            result=result,
+            batch_num=batch_num,
+            pk_idx=pk_idx,
+            timeout_sec=timeout_sec,
+        )
+        second_succeeded = _upsert_http_with_fallback(
+            session=session,
+            base_url=base_url,
+            headers=headers,
+            rest_table=rest_table,
+            pk=pk,
+            rows=rows[midpoint:],
+            cols=cols,
+            batch_size=batch_size,
+            result=result,
+            batch_num=batch_num,
+            pk_idx=pk_idx,
+            timeout_sec=timeout_sec,
+        )
+        return first_succeeded + second_succeeded
+
+
+def _read_sqlite_rows(
+    sqlite_conn: sqlite3.Connection,
+    sqlite_table: str,
+    cols: tuple[str, ...],
+    bool_cols: frozenset[str],
+) -> list[tuple]:
+    return [
+        _to_pg_row(row, cols, bool_cols)
+        for row in sqlite_conn.execute(f"SELECT {', '.join(cols)} FROM {sqlite_table}")
+    ]
+
+
+def _rows_to_json_objects(rows: list[tuple], cols: tuple[str, ...]) -> list[dict[str, object]]:
+    return [dict(zip(cols, row, strict=True)) for row in rows]
 
 
 def _to_pg_row(row: sqlite3.Row, cols: tuple[str, ...], bool_cols: frozenset[str]) -> tuple:

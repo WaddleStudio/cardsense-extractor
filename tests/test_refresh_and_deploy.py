@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import os
+import sys
+from types import SimpleNamespace
+from unittest.mock import call, patch
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(project_root)
+
+from jobs.refresh_and_deploy import run_sync
+
+
+def _sync_result() -> SimpleNamespace:
+    return SimpleNamespace(
+        runs_upserted=1,
+        versions_upserted=2,
+        current_upserted=3,
+        failures=0,
+        reconnects=0,
+        table_durations={},
+    )
+
+
+def test_run_sync_prefers_pooler_before_direct_url(monkeypatch):
+    pool_url = "postgresql://postgres.demo:secret@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
+    direct_url = "postgresql://postgres:secret@db.demo.supabase.co:5432/postgres"
+    monkeypatch.setenv("SUPABASE_POOL_MODE", pool_url)
+    monkeypatch.setenv("SUPABASE_DATABASE_URL", direct_url)
+
+    with (
+        patch("jobs.refresh_and_deploy.load_dotenv"),
+        patch("extractor.supabase_store.validate_supabase_url") as mock_validate,
+        patch("extractor.supabase_store.get_reconnect_warn_threshold", return_value=3),
+        patch("extractor.supabase_store.sync_sqlite_to_supabase", return_value=_sync_result()) as mock_sync,
+    ):
+        assert run_sync("dummy.db") is True
+
+    assert mock_validate.call_args_list == [call(pool_url), call(direct_url)]
+    assert mock_sync.call_args_list == [call("dummy.db", pool_url)]
+
+
+def test_run_sync_prefers_rest_transport_when_configured(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://demo.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key")
+    monkeypatch.setenv(
+        "SUPABASE_POOL_MODE",
+        "postgresql://postgres.demo:secret@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres",
+    )
+
+    with (
+        patch("jobs.refresh_and_deploy.load_dotenv"),
+        patch("extractor.supabase_store.validate_supabase_project_url") as mock_validate_project_url,
+        patch("extractor.supabase_store.validate_supabase_url") as mock_validate_dsn,
+        patch("extractor.supabase_store.get_http_timeout_seconds", return_value=60),
+        patch("extractor.supabase_store.get_reconnect_warn_threshold", return_value=3),
+        patch("extractor.supabase_store.sync_sqlite_to_supabase_http", return_value=_sync_result()) as mock_http_sync,
+        patch("extractor.supabase_store.sync_sqlite_to_supabase") as mock_pg_sync,
+    ):
+        assert run_sync("dummy.db") is True
+
+    mock_validate_project_url.assert_called_once_with("https://demo.supabase.co")
+    mock_validate_dsn.assert_called_once()
+    assert mock_http_sync.call_args_list == [call("dummy.db", "https://demo.supabase.co", "service-role-key")]
+    mock_pg_sync.assert_not_called()
+
+
+def test_run_sync_falls_back_to_direct_url_when_pooler_fails(monkeypatch):
+    pool_url = "postgresql://postgres.demo:secret@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
+    direct_url = "postgresql://postgres:secret@db.demo.supabase.co:5432/postgres"
+    monkeypatch.setenv("SUPABASE_POOL_MODE", pool_url)
+    monkeypatch.setenv("SUPABASE_DATABASE_URL", direct_url)
+
+    with (
+        patch("jobs.refresh_and_deploy.load_dotenv"),
+        patch("extractor.supabase_store.validate_supabase_url"),
+        patch("extractor.supabase_store.get_reconnect_warn_threshold", return_value=3),
+        patch(
+            "extractor.supabase_store.sync_sqlite_to_supabase",
+            side_effect=[Exception("pooler unavailable"), _sync_result()],
+        ) as mock_sync,
+    ):
+        assert run_sync("dummy.db") is True
+
+    assert mock_sync.call_args_list == [
+        call("dummy.db", pool_url),
+        call("dummy.db", direct_url),
+    ]

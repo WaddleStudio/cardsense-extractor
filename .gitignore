@@ -1,4 +1,4 @@
-# Virtual environment
+# uv-managed environment
 .venv/
 
 # Python

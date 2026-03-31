@@ -8,7 +8,13 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from extractor.supabase_store import SyncResult, sync_sqlite_to_supabase, validate_supabase_url
+from extractor.supabase_store import (
+    SyncResult,
+    sync_sqlite_to_supabase,
+    sync_sqlite_to_supabase_http,
+    validate_supabase_project_url,
+    validate_supabase_url,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +112,17 @@ def mock_pg():
         yield mock_psycopg2, mock_conn, mock_cursor
 
 
+@pytest.fixture()
+def mock_rest():
+    with patch("extractor.supabase_store.requests.Session") as mock_session_cls:
+        mock_session = MagicMock()
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_session.post.return_value = mock_response
+        mock_session_cls.return_value = mock_session
+        yield mock_session_cls, mock_session, mock_response
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -120,6 +137,18 @@ def test_validate_supabase_url_rejects_placeholder_pooler_host():
         validate_supabase_url(
             "postgresql://postgres:secret@aws-0-region.pooler.supabase.com:6543/postgres"
         )
+
+
+def test_validate_supabase_url_rejects_unencoded_reserved_chars_in_credentials():
+    with pytest.raises(ValueError, match="unencoded reserved characters"):
+        validate_supabase_url(
+            "postgresql://postgres.demo:secret??@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
+        )
+
+
+def test_validate_supabase_project_url_requires_https():
+    with pytest.raises(ValueError, match="https://"):
+        validate_supabase_project_url("http://demo.supabase.co")
 
 
 def test_sync_counts_all_three_tables(sqlite_db, mock_pg):
@@ -155,11 +184,35 @@ def test_sync_requires_registration_converted_to_bool(sqlite_db, mock_pg):
     assert isinstance(requires_reg_value, bool)
 
 
-def test_sync_passes_batch_size_to_execute_values(sqlite_db, mock_pg, monkeypatch):
+def test_sync_caps_page_size_by_row_count(sqlite_db, mock_pg, monkeypatch):
     monkeypatch.setenv("SUPABASE_SYNC_BATCH_SIZE", "7")
     mock_psycopg2, mock_conn, mock_cursor = mock_pg
     sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
-    assert mock_psycopg2.extras.execute_values.call_args.kwargs["page_size"] == 7
+    page_sizes = [call.kwargs["page_size"] for call in mock_psycopg2.extras.execute_values.call_args_list]
+    assert page_sizes == [1, 1, 1]
+
+
+def test_sync_http_counts_all_three_tables(sqlite_db, mock_rest):
+    mock_session_cls, mock_session, mock_response = mock_rest
+
+    result = sync_sqlite_to_supabase_http(
+        sqlite_db,
+        "https://demo.supabase.co",
+        "service-role-key",
+    )
+
+    assert result.runs_upserted == 1
+    assert result.versions_upserted == 1
+    assert result.current_upserted == 1
+    assert result.failures == 0
+    assert mock_session.post.call_count == 3
+
+    first_call = mock_session.post.call_args_list[0]
+    assert first_call.kwargs["params"] == {"on_conflict": "run_id"}
+    assert first_call.kwargs["headers"]["apikey"] == "service-role-key"
+
+    versions_call = mock_session.post.call_args_list[1]
+    assert versions_call.kwargs["json"][0]["requires_registration"] is True
 
 
 def test_sync_retries_failed_batch_with_smaller_chunks(sqlite_db, mock_pg, monkeypatch):

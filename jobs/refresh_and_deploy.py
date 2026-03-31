@@ -37,6 +37,7 @@ import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
@@ -159,56 +160,122 @@ def deploy_db(db_path: str) -> bool:
     return True
 
 
-def run_sync(db_path: str) -> bool:
-    """Sync SQLite → Supabase. Returns True on success, False on failure."""
-    load_dotenv()
-    from extractor.supabase_store import (
-        get_reconnect_warn_threshold,
-        sync_sqlite_to_supabase,
-        validate_supabase_url,
-    )
-
+def _iter_supabase_candidates(validate_supabase_url) -> tuple[list[tuple[str, str]], list[str]]:
     candidates = (
-        ("SUPABASE_DATABASE_URL", os.environ.get("SUPABASE_DATABASE_URL")),
         ("SUPABASE_POOL_MODE", os.environ.get("SUPABASE_POOL_MODE")),
+        ("SUPABASE_DATABASE_URL", os.environ.get("SUPABASE_DATABASE_URL")),
     )
 
-    supabase_url = None
-    selected_var = None
+    valid_candidates: list[tuple[str, str]] = []
     config_errors: list[str] = []
+    seen_values: set[str] = set()
     for env_name, value in candidates:
-        if not value:
+        if not value or value in seen_values:
             continue
+        seen_values.add(value)
         try:
             validate_supabase_url(value)
         except ValueError as error:
             config_errors.append(f"{env_name}: {error}")
             continue
-        supabase_url = value
-        selected_var = env_name
-        break
+        valid_candidates.append((env_name, value))
+    return valid_candidates, config_errors
 
-    if not supabase_url:
+
+def _describe_supabase_target(supabase_url: str) -> str:
+    host = urlsplit(supabase_url).hostname or "unknown-host"
+    if ".pooler.supabase.com" in host:
+        return f"{host} (pooler)"
+    if host.startswith("db.") and host.endswith(".supabase.co"):
+        return f"{host} (direct)"
+    return host
+
+
+def _get_supabase_http_candidate(validate_supabase_project_url) -> tuple[tuple[str, str, str] | None, list[str]]:
+    project_url = os.environ.get("SUPABASE_URL")
+    service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not project_url and not service_role_key:
+        return None, []
+
+    config_errors: list[str] = []
+    if not project_url:
+        config_errors.append("SUPABASE_URL: missing HTTPS project URL for REST sync")
+    if not service_role_key:
+        config_errors.append("SUPABASE_SERVICE_ROLE_KEY: missing service-role key for REST sync")
+    if config_errors:
+        return None, config_errors
+
+    try:
+        validate_supabase_project_url(project_url)
+    except ValueError as error:
+        return None, [f"SUPABASE_URL: {error}"]
+    return ("SUPABASE_REST", project_url, service_role_key), []
+
+
+def run_sync(db_path: str) -> bool:
+    """Sync SQLite → Supabase. Returns True on success, False on failure."""
+    load_dotenv()
+    from extractor.supabase_store import (
+        get_reconnect_warn_threshold,
+        get_http_timeout_seconds,
+        sync_sqlite_to_supabase_http,
+        sync_sqlite_to_supabase,
+        validate_supabase_project_url,
+        validate_supabase_url,
+    )
+
+    http_candidate, http_config_errors = _get_supabase_http_candidate(validate_supabase_project_url)
+    candidates, config_errors = _iter_supabase_candidates(validate_supabase_url)
+
+    if not http_candidate and not candidates:
         _console(">>> SKIP Supabase sync: no valid Supabase DSN found")
-        for error in config_errors:
+        for error in http_config_errors + config_errors:
             _console(f">>> CONFIG ERROR: {error}")
         return False
-
-    if selected_var and selected_var != "SUPABASE_DATABASE_URL":
-        _console(f">>> Using {selected_var} for Supabase sync")
 
     _console("\n>>> SYNCING to Supabase...")
     _console(
         ">>> Sync config: "
         f"batch_size={os.environ.get('SUPABASE_SYNC_BATCH_SIZE', '10')} "
-        f"statement_timeout_ms={os.environ.get('SUPABASE_STATEMENT_TIMEOUT_MS', '300000')}"
+        f"statement_timeout_ms={os.environ.get('SUPABASE_STATEMENT_TIMEOUT_MS', '300000')} "
+        f"http_timeout_sec={get_http_timeout_seconds()}"
     )
-    try:
-        result = sync_sqlite_to_supabase(db_path, supabase_url)
-    except Exception as error:
-        _console(f">>> ERROR: Supabase sync failed: {error}")
+
+    errors: list[str] = []
+    if http_candidate:
+        _, project_url, service_role_key = http_candidate
+        rest_host = urlsplit(project_url).hostname or "unknown-host"
+        _console(f">>> Trying SUPABASE_REST: {rest_host} (https)")
+        try:
+            result = sync_sqlite_to_supabase_http(db_path, project_url, service_role_key)
+        except Exception as error:
+            errors.append(f"SUPABASE_REST: {error}")
+            _console(f">>> WARNING: SUPABASE_REST failed: {error}")
+        else:
+            _console(f">>> Supabase sync transport: SUPABASE_REST")
+            return _report_sync_result(result, get_reconnect_warn_threshold())
+
+    for env_name, supabase_url in candidates:
+        _console(
+            f">>> Trying {env_name}: {_describe_supabase_target(supabase_url)}"
+        )
+        try:
+            result = sync_sqlite_to_supabase(db_path, supabase_url)
+            break
+        except Exception as error:
+            errors.append(f"{env_name}: {error}")
+            _console(f">>> WARNING: {env_name} failed: {error}")
+    else:
+        _console(">>> ERROR: Supabase sync failed for all configured DSNs")
+        for error in http_config_errors + config_errors + errors:
+            _console(f">>> CONFIG ERROR: {error}")
         return False
 
+    _console(f">>> Supabase sync transport: {env_name}")
+    return _report_sync_result(result, get_reconnect_warn_threshold())
+
+
+def _report_sync_result(result, reconnect_warn_threshold: int) -> bool:
     _console(f">>> Supabase sync: runs={result.runs_upserted} versions={result.versions_upserted} current={result.current_upserted} failures={result.failures}")
     _console(f">>> Supabase reconnects: {result.reconnects}")
     if result.table_durations:
@@ -219,7 +286,6 @@ def run_sync(db_path: str) -> bool:
                 for table, seconds in result.table_durations.items()
             )
         )
-    reconnect_warn_threshold = get_reconnect_warn_threshold()
     if result.reconnects > reconnect_warn_threshold:
         _console(
             f">>> WARNING: reconnects={result.reconnects} exceeded threshold={reconnect_warn_threshold}"
