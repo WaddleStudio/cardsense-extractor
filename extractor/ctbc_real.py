@@ -170,7 +170,7 @@ PAGE_CONFIG = SectionedPageConfig(
     annual_fee_signal_tokens=("首年免年費", "年費", "正卡"),
     application_requirement_tokens=("年滿18歲", "年滿15歲", "財力證明", "申辦", "所需文件"),
     ignored_offer_title_tokens=(
-        "立即申辦", "立即擁有", "道路救援", "旅遊平安保險", "旅遊平安險",
+        "立即申辦", "立即擁有", "道路救援", "旅遊平安保險", "旅遊平安險", "旅行平安保險",
         "飛行優先禮遇", "貴賓室", "停車", "機場接送",
     ),
 )
@@ -391,8 +391,16 @@ def _extract_annual_fee_amount(summary: str | None) -> int:
 
 def _extract_reward(title: str, text: str) -> Dict[str, object] | None:
     # Filter out condition-threshold percentages before extraction.
-    filtered_text = re.sub(r"(?:團費|消費金額|消費額|金額|費用)\s*\d+(?:\.\d+)?%\s*以上", "", text)
-    filtered_title = re.sub(r"(?:團費|消費金額|消費額|金額|費用)\s*\d+(?:\.\d+)?%\s*以上", "", title)
+    _threshold_pct = r"(?:團費|消費金額|消費額|金額|費用)\s*\d+(?:\.\d+)?%\s*以上"
+    # Also filter "80%團費" (percentage before keyword) — a payment-threshold, not reward.
+    _pct_before_keyword = r"\d+(?:\.\d+)?%\s*(?:團費|交通工具費用|旅遊團費|機票)"
+    # Filter "100%折抵" — a redemption ratio, not a cashback rate.
+    _redemption_ratio = r"\d+(?:\.\d+)?%\s*折抵"
+    # Filter exchange-rate descriptions like "1A金=NT1元" — currency definition, not reward.
+    _exchange_rate = r"\d+\s*A金\s*=\s*NT\$?\s*[\d,]+\s*元"
+    _filter = re.compile(f"{_threshold_pct}|{_pct_before_keyword}|{_redemption_ratio}|{_exchange_rate}")
+    filtered_text = _filter.sub("", text)
+    filtered_title = _filter.sub("", title)
     return extract_reward(filtered_title, filtered_text)
 
 

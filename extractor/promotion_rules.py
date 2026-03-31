@@ -173,8 +173,16 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
                 continue
             if looks_like_threshold_value(left_context, right_context):
                 continue
+            # Skip redemption-ratio patterns: "100%折抵" means currency offsets 100%, not cashback
+            if re.match(r"\s*折抵", right_context) and not any(token in context for token in ["回饋", "加碼"]):
+                continue
             reward_type = "POINTS" if any(token in context for token in ["P幣", "e point", "點數", "里程", "哩"]) else "PERCENT"
             score = score_reward_candidate(fragment, context, reward_type, title_weight, order_bonus)
+            # Penalize unrealistically high cashback percentages (real card rewards rarely exceed 20%)
+            if value >= 50:
+                score -= 20
+            elif value >= 20:
+                score -= 10
             candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
 
         for match in re.finditer(r"([\d,]+)\s*(元|點|日圓)", fragment):

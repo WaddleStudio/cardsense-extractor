@@ -112,6 +112,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
     card_code = _normalize_string(data.get("card_code"))
     category = _normalize_enum(data.get("category"), CATEGORY_ALIASES, default="OTHER")
     explicit_plan_id = _normalize_string(data.get("plan_id"))
+    title_text = _normalize_string(data.get("promotion")) or _normalize_string(data.get("summary"))
 
     normalized = {
         "bankCode": _normalize_string(data.get("bank")),
@@ -139,7 +140,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "status": _normalize_string(data.get("status") or "ACTIVE"),
         "cardStatus": _normalize_string(data.get("status") or "ACTIVE"),
         "annualFee": _normalize_int(data.get("annual_fee"), default=0),
-        "planId": explicit_plan_id or infer_plan_id(card_code, category),
+        "planId": explicit_plan_id or infer_plan_id(card_code, category, title=title_text),
     }
 
     if normalized["channel"] is None:
