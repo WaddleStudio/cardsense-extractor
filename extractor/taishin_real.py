@@ -101,6 +101,24 @@ PAGE_CONFIG = SectionedPageConfig(
 ONLINE_PRIORITY_TOKENS = ("行動支付", "網路消費", "APP", "LINE Pay", "台新Pay", "電子支付", "平台", "網頁", "網站", "Richart", "街口")
 OFFLINE_PRIORITY_TOKENS = ("實體商店", "門市", "店面", "機場接送", "搭乘", "餐廳", "百貨", "飯店", "臨櫃", "實體卡")
 
+# Known card mapping: CG path fragment → (semantic card_code, canonical card_name)
+KNOWN_CARDS: dict[str, tuple[str, str]] = {
+    "cg047/card001": ("TAISHIN_RICHART", "台新Richart卡"),
+    "cg010/card001": ("TAISHIN_PX_MART", "大全聯信用卡"),
+    "cg038/card001": ("TAISHIN_JKOPAY", "街口聯名卡"),
+    "cg009/card001": ("TAISHIN_EVERRICH", "昇恆昌御璽/白金/普卡"),
+    "cg008/card001": ("TAISHIN_SHIN_KONG", "新光三越御璽/鈦金/白金卡"),
+    "cg003/card001": ("TAISHIN_CATHAY_PACIFIC", "國泰航空翱翔鈦金卡/鈦金卡"),
+    "cg019/card001": ("TAISHIN_FRIDAY", "遠傳friDay聯名卡"),
+    "cg042/card001": ("TAISHIN_GOGORO", "Gogoro Rewards 聯名卡"),
+    "cg039/card001": ("TAISHIN_DUAL_CURRENCY", "台新雙幣卡"),
+    "cg013/card0001": ("TAISHIN_ROSE", "玫瑰卡"),
+    "cg012/card0001": ("TAISHIN_SUN", "太陽卡"),
+    "cg045/card001": ("TAISHIN_INFINITE", "卓富無限卡"),
+    "cg023/card002": ("TAISHIN_TSANN_KUEN", "燦坤聯名卡"),
+    "cg014/card0001": ("TAISHIN_SHIN_KONG_WORLD", "新光三越無限/世界卡"),
+}
+
 
 @dataclass
 class CardRecord:
@@ -140,7 +158,7 @@ def list_taishin_cards() -> List[CardRecord]:
         cards.append(
             CardRecord(
                 card_code=_build_card_code(path),
-                card_name=card_name,
+                card_name=_resolve_card_name(path, card_name),
                 detail_url=detail_url,
                 apply_url=None,
                 annual_fee_summary=None,
@@ -160,7 +178,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
     enriched_card = CardRecord(
         card_code=card.card_code,
-        card_name=card.card_name,
+        card_name=_resolve_card_name(card.detail_url, card.card_name),
         detail_url=card.detail_url,
         apply_url=extracted.apply_url,
         annual_fee_summary=extracted.annual_fee_summary,
@@ -232,15 +250,28 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
 
 def _build_card_code(path: str) -> str:
-    # Extract cg and card parts from path like /TSB/personal/credit/intro/overview/cg003/card001/
-    match = re.search(r"(cg\d+)/(card\d+)", path, re.IGNORECASE)
+    # Check known card mapping first
+    match = re.search(r"(cg\d+/card\d+)", path, re.IGNORECASE)
     if match:
-        cg = match.group(1).upper()
-        card = match.group(2).upper()
-        return f"TAISHIN_{cg}_{card}"
+        key = match.group(1).lower()
+        known = KNOWN_CARDS.get(key)
+        if known:
+            return known[0]
+        cg, card = key.split("/")
+        return f"TAISHIN_{cg.upper()}_{card.upper()}"
     slug = path.rstrip("/").split("/")[-1]
     normalized = re.sub(r"[^a-zA-Z0-9]+", "_", slug).strip("_").upper()
     return f"TAISHIN_{normalized}"
+
+
+def _resolve_card_name(path: str, parsed_name: str) -> str:
+    """Return canonical card name from KNOWN_CARDS, falling back to parsed_name."""
+    match = re.search(r"(cg\d+/card\d+)", path, re.IGNORECASE)
+    if match:
+        known = KNOWN_CARDS.get(match.group(1).lower())
+        if known:
+            return known[1]
+    return parsed_name
 
 
 def _normalize_promotion_title(card_name: str, raw_title: str, raw_body: str) -> str:

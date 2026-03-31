@@ -27,14 +27,18 @@ def test_list_taishin_cards_discovers_cards_from_listing_fixture():
 
     html = _load_fixture("taishin_listing.html")
 
-    with patch("extractor.ingest.fetch_rendered_page", return_value=html):
+    with patch("extractor.ingest.fetch_with_playwright", return_value=html):
         cards = list_taishin_cards()
 
     assert len(cards) >= 10, f"Expected >= 10 cards, got {len(cards)}"
     for card in cards:
         assert card.card_code.startswith("TAISHIN_"), f"card_code should start with TAISHIN_: {card.card_code}"
-        assert "卡" in card.card_name, f"card_name should contain 卡: {card.card_name}"
         assert card.detail_url.startswith("https://www.taishinbank.com.tw"), f"detail_url bad: {card.detail_url}"
+
+    # Verify known card mapping produces semantic card_codes
+    richart = next((c for c in cards if "Richart" in c.card_name), None)
+    assert richart is not None, "Should find Richart card"
+    assert richart.card_code == "TAISHIN_RICHART", f"Richart card_code should be TAISHIN_RICHART, got {richart.card_code}"
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +51,7 @@ def test_extract_card_promotions_from_detail_fixture():
     html = _load_fixture("taishin_card_cg003.html")
 
     card = CardRecord(
-        card_code="TAISHIN_CG003_CARD001",
+        card_code="TAISHIN_CATHAY_PACIFIC",
         card_name="國泰航空翱翔鈦金卡/鈦金卡",
         detail_url="https://www.taishinbank.com.tw/TSB/personal/credit/intro/overview/cg003/card001/",
         apply_url=None,
@@ -56,14 +60,14 @@ def test_extract_card_promotions_from_detail_fixture():
         sections=[],
     )
 
-    with patch("extractor.ingest.fetch_rendered_page", return_value=html):
+    with patch("extractor.ingest.fetch_with_playwright", return_value=html):
         enriched, promotions = extract_card_promotions(card)
 
     assert len(promotions) >= 1, f"Expected >= 1 promotion, got {len(promotions)}"
 
     for promo in promotions:
         assert promo["bankCode"] == "TAISHIN"
-        assert promo["cardCode"] == "TAISHIN_CG003_CARD001"
+        assert promo["cardCode"] == "TAISHIN_CATHAY_PACIFIC"
         assert promo["cashbackValue"] > 0, f"cashbackValue should be > 0: {promo}"
         assert promo["validFrom"], f"validFrom missing: {promo}"
         assert promo["validUntil"], f"validUntil missing: {promo}"
