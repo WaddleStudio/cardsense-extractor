@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS promotion_versions (
     extracted_at TEXT NOT NULL,
     confidence REAL NOT NULL,
     status TEXT NOT NULL,
+    plan_id TEXT,
     run_id TEXT,
     raw_payload_json TEXT NOT NULL,
     FOREIGN KEY (run_id) REFERENCES extract_runs(run_id)
@@ -86,6 +87,7 @@ CREATE TABLE IF NOT EXISTS promotion_current (
     extracted_at TEXT NOT NULL,
     confidence REAL NOT NULL,
     status TEXT NOT NULL,
+    plan_id TEXT,
     run_id TEXT,
     raw_payload_json TEXT NOT NULL,
     FOREIGN KEY (promo_version_id) REFERENCES promotion_versions(promo_version_id),

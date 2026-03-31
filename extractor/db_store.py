@@ -24,6 +24,8 @@ def initialize_database(db_path: str) -> sqlite3.Connection:
     _ensure_column(connection, "promotion_current", "recommendation_scope", "TEXT NOT NULL DEFAULT 'RECOMMENDABLE'")
     _ensure_column(connection, "promotion_versions", "eligibility_type", "TEXT NOT NULL DEFAULT 'GENERAL'")
     _ensure_column(connection, "promotion_current", "eligibility_type", "TEXT NOT NULL DEFAULT 'GENERAL'")
+    _ensure_column(connection, "promotion_versions", "plan_id", "TEXT")
+    _ensure_column(connection, "promotion_current", "plan_id", "TEXT")
     return connection
 
 
@@ -101,6 +103,7 @@ def upsert_promotion(connection: sqlite3.Connection, payload: dict[str, Any], ru
         "requires_registration",
         "recommendation_scope",
         "eligibility_type",
+        "plan_id",
         "valid_from",
         "valid_until",
         "conditions_json",
@@ -188,6 +191,7 @@ def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
         "extracted_at": payload["extractedAt"],
         "confidence": payload["confidence"],
         "status": payload["status"],
+        "plan_id": payload.get("planId"),
         "run_id": run_id,
         "raw_payload_json": json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
     }

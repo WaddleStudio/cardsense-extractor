@@ -133,6 +133,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "status": _normalize_string(data.get("status") or "ACTIVE"),
         "cardStatus": _normalize_string(data.get("status") or "ACTIVE"),
         "annualFee": _normalize_int(data.get("annual_fee"), default=0),
+        "planId": _normalize_string(data.get("plan_id")),
     }
 
     if normalized["channel"] is None:

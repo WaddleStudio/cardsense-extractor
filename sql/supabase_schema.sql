@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS promotion_versions (
     extracted_at TEXT NOT NULL,
     confidence REAL NOT NULL,
     status TEXT NOT NULL,
+    plan_id TEXT,
     run_id TEXT REFERENCES extract_runs(run_id),
     raw_payload_json TEXT NOT NULL
 );
@@ -91,6 +92,7 @@ CREATE TABLE IF NOT EXISTS promotion_current (
     extracted_at TEXT NOT NULL,
     confidence REAL NOT NULL,
     status TEXT NOT NULL,
+    plan_id TEXT,
     run_id TEXT REFERENCES extract_runs(run_id),
     raw_payload_json TEXT NOT NULL
 );
