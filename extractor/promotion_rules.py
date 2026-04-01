@@ -34,6 +34,11 @@ NON_REWARD_PROMOTION_TOKENS = (
     "機會",
     "乙組",
     "乙次抽獎",
+    "發票",
+    "載具",
+    "三聯",
+    "統編",
+    "分期零利率"
 )
 
 CAP_VALUE_TOKENS = (
@@ -210,6 +215,9 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
             # "最高" with large values is almost always a cap description, not reward
             if value >= 1000 and any(token in context for token in ["最高", "最多", "累計最高"]):
                 score -= 10
+            # Guardrail: Heavy penalty for prices disguised as fixed rewards (e.g., 優惠價 3150 元)
+            if any(token in context for token in ["優惠價", "原價", "特價", "起"]):
+                continue
             candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
 
     return candidates
@@ -377,6 +385,11 @@ def classify_recommendation_scope(title: str, body: str, category: str | None = 
         "禮遇",
         "服務",
         "借電券",
+        "折扣券",
+        "抵用券",
+        "優惠券",
+        "充電券",
+        "兌換碼",
         "抽獎",
         "贈品價值",
         "活動總數量",
