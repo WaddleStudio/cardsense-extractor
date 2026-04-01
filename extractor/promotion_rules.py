@@ -218,6 +218,9 @@ def extract_reward_candidates(text: str, title_weight: int) -> List[RewardCandid
             # Guardrail: Heavy penalty for prices disguised as fixed rewards (e.g., 優惠價 3150 元)
             if any(token in context for token in ["優惠價", "原價", "特價", "起"]):
                 continue
+            # Guardrail: Skip per-unit rewards (e.g., "每公升折抵2元") — not flat fixed cashback
+            if any(token in context for token in ["每公升", "每次", "每筆", "每件", "每位", "每人", "每杯", "每組"]):
+                continue
             candidates.append(RewardCandidate(reward_type=reward_type, value=value, label=fragment, score=score))
 
     return candidates
