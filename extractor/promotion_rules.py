@@ -522,6 +522,49 @@ def score_signals(text: str, signals: List[tuple[str, int]]) -> int:
     return sum(weight for keyword, weight in signals if keyword in text)
 
 
+SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
+    "ENTERTAINMENT": {
+        "MOVIE":      [("電影", 5), ("影城", 5), ("威秀", 4), ("秀泰", 4), ("國賓", 4), ("影廳", 3)],
+        "THEME_PARK": [("樂園", 5), ("遊樂", 5), ("麗寶", 4), ("六福村", 4), ("劍湖山", 4), ("門票", 3)],
+        "VENUE":      [("KTV", 5), ("好樂迪", 4), ("錢櫃", 4), ("桌遊", 3), ("保齡球", 3)],
+        "STREAMING":  [("Netflix", 5), ("Spotify", 4), ("KKBOX", 4), ("串流", 4), ("Disney+", 4), ("訂閱", 2)],
+    },
+    "DINING": {
+        "DELIVERY":     [("外送", 5), ("UberEats", 5), ("foodpanda", 5), ("熊貓", 4), ("Uber Eats", 5)],
+        "RESTAURANT":   [("指定餐廳", 5), ("合作餐廳", 5), ("特約餐廳", 4), ("指定門市", 3)],
+        "CAFE":         [("星巴克", 5), ("Starbucks", 5), ("咖啡", 3), ("手搖", 4), ("飲料", 2)],
+        "HOTEL_DINING": [("飯店", 4), ("酒店", 4), ("自助餐", 3), ("buffet", 4), ("Buffet", 4)],
+    },
+    "SHOPPING": {
+        "DEPARTMENT":   [("百貨", 5), ("SOGO", 5), ("新光三越", 5), ("遠百", 5), ("週年慶", 4), ("統一時代", 4)],
+        "WAREHOUSE":    [("Costco", 5), ("好市多", 5), ("家樂福", 5), ("大潤發", 5), ("量販", 4)],
+        "ELECTRONICS":  [("3C", 5), ("家電", 4), ("燦坤", 5), ("全國電子", 5), ("Apple Store", 4)],
+    },
+    "ONLINE": {
+        "ECOMMERCE":    [("蝦皮", 5), ("momo", 5), ("PChome", 5), ("博客來", 4), ("Yahoo", 3), ("樂天", 4)],
+        "MOBILE_PAY":   [("Line Pay", 5), ("街口", 5), ("全盈", 4), ("台灣Pay", 4), ("悠遊付", 4)],
+        "SUBSCRIPTION": [("訂閱", 4), ("月費", 3), ("年費", 3), ("自動扣繳", 3)],
+    },
+}
+
+
+def infer_subcategory(
+    title: str,
+    body: str,
+    category: str,
+    subcategory_signals: Dict[str, Dict[str, List[tuple[str, int]]]],
+) -> str:
+    if category not in subcategory_signals:
+        return "GENERAL"
+    text = f"{title} {body}"
+    scores = {
+        sub: score_signals(text, signals)
+        for sub, signals in subcategory_signals[category].items()
+    }
+    best = max(scores, key=scores.get)
+    return best if scores[best] >= 3 else "GENERAL"
+
+
 def build_conditions(
     text: str,
     application_requirements: Iterable[str],

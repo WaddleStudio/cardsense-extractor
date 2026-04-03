@@ -17,6 +17,28 @@ class CategoryEnum(str, Enum):
     OTHER = "OTHER"
 
 
+class SubcategoryEnum(str, Enum):
+    GENERAL = "GENERAL"
+    # ENTERTAINMENT
+    MOVIE = "MOVIE"
+    THEME_PARK = "THEME_PARK"
+    VENUE = "VENUE"
+    STREAMING = "STREAMING"
+    # DINING
+    DELIVERY = "DELIVERY"
+    RESTAURANT = "RESTAURANT"
+    CAFE = "CAFE"
+    HOTEL_DINING = "HOTEL_DINING"
+    # SHOPPING
+    DEPARTMENT = "DEPARTMENT"
+    WAREHOUSE = "WAREHOUSE"
+    ELECTRONICS = "ELECTRONICS"
+    # ONLINE
+    ECOMMERCE = "ECOMMERCE"
+    MOBILE_PAY = "MOBILE_PAY"
+    SUBSCRIPTION = "SUBSCRIPTION"
+
+
 class CashbackTypeEnum(str, Enum):
     PERCENT = "PERCENT"
     FIXED = "FIXED"
@@ -65,6 +87,7 @@ class PromotionNormalized(BaseModel):
     bankCode: str = Field(..., min_length=2, max_length=20)
     bankName: str = Field(..., min_length=2, max_length=100)
     category: CategoryEnum
+    subcategory: SubcategoryEnum = Field(default=SubcategoryEnum.GENERAL)
     channel: Optional[str] = Field(default=None)
     cashbackType: CashbackTypeEnum
     cashbackValue: Decimal = Field(..., ge=Decimal("0.00"), decimal_places=2, max_digits=10)

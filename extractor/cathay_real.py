@@ -20,7 +20,9 @@ from extractor.promotion_rules import (
     extract_reward,
     infer_category,
     infer_channel,
+    infer_subcategory,
     normalize_promotion_title,
+    SUBCATEGORY_SIGNALS,
 )
 
 
@@ -176,6 +178,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             min_amount = extract_min_amount(candidate["body"])
             max_cashback = extract_cap(candidate["body"])
             category = infer_category(clean_title, candidate["body"], CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+            subcategory = infer_subcategory(clean_title, candidate["body"], category, SUBCATEGORY_SIGNALS)
             recommendation_scope = classify_recommendation_scope(clean_title, candidate["body"], category)
             promotions.append(
                 {
@@ -188,6 +191,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                     "bankCode": BANK_CODE,
                     "bankName": BANK_NAME,
                     "category": category,
+                    "subcategory": subcategory,
                     "channel": infer_channel(clean_title, candidate["body"], CHANNEL_SIGNALS),
                     "cashbackType": reward["type"],
                     "cashbackValue": reward["value"],
@@ -291,6 +295,7 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
             tier_title = tier["title"]
             merchants = tier["merchants"]
             category = infer_category(tier_title, merchants, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+            subcategory = infer_subcategory(tier_title, merchants, category, SUBCATEGORY_SIGNALS)
             channel = infer_channel(tier_title, merchants, CHANNEL_SIGNALS)
             title = f"{card.card_name} {plan_name} {tier_title}"
             body = f"{tier_title} 享{rate}%小樹點回饋 {merchants}"
@@ -306,6 +311,7 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
                 body=body,
                 rate=rate,
                 category=category,
+                subcategory=subcategory,
                 channel=channel,
                 valid_from=valid_from,
                 valid_until=valid_until,
@@ -326,6 +332,7 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
         title = f"{card.card_name} {plan_name} 指定通路回饋"
         body = f"{plan_name}方案 指定通路享{default_rate}%小樹點回饋"
         channel = "ONLINE" if default_category == "ONLINE" else "ALL"
+        fallback_subcategory = infer_subcategory(title, body, default_category, SUBCATEGORY_SIGNALS)
 
         promo = _build_plan_promotion(
             card=card,
@@ -333,6 +340,7 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
             body=body,
             rate=default_rate,
             category=default_category,
+            subcategory=fallback_subcategory,
             channel=channel,
             valid_from=valid_from,
             valid_until=valid_until,
@@ -351,6 +359,7 @@ def _build_plan_promotion(
     body: str,
     rate: str,
     category: str,
+    subcategory: str = "GENERAL",
     channel: str,
     valid_from: str,
     valid_until: str,
@@ -367,6 +376,7 @@ def _build_plan_promotion(
         "bankCode": BANK_CODE,
         "bankName": BANK_NAME,
         "category": category,
+        "subcategory": subcategory,
         "channel": channel,
         "cashbackType": "PERCENT",
         "cashbackValue": rate,

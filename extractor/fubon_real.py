@@ -20,7 +20,9 @@ from extractor.promotion_rules import (
     extract_reward,
     infer_category,
     infer_channel,
+    infer_subcategory,
     normalize_promotion_title,
+    SUBCATEGORY_SIGNALS,
 )
 
 
@@ -253,6 +255,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             summary_noise_tokens=SUMMARY_NOISE_TOKENS,
         )
         category = _infer_category(clean_title, clean_body)
+        subcategory = infer_subcategory(clean_title, clean_body, category, SUBCATEGORY_SIGNALS)
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
 
@@ -267,6 +270,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "bankCode": BANK_CODE,
                 "bankName": BANK_NAME,
                 "category": category,
+                "subcategory": subcategory,
                 "channel": _infer_channel(clean_title, clean_body),
                 "cashbackType": reward["type"],
                 "cashbackValue": reward["value"],

@@ -28,7 +28,7 @@ _EXTRACT_RUN_COLS = (
 _PROMOTION_VERSION_COLS = (
     "promo_version_id", "promo_id", "title", "bank_code", "bank_name",
     "card_code", "card_name", "card_status", "annual_fee", "apply_url",
-    "category", "channel", "cashback_type", "cashback_value", "min_amount",
+    "category", "subcategory", "channel", "cashback_type", "cashback_value", "min_amount",
     "max_cashback", "frequency_limit", "requires_registration",
     "recommendation_scope", "eligibility_type", "valid_from", "valid_until",
     "conditions_json", "excluded_conditions_json", "source_url",
@@ -39,7 +39,7 @@ _PROMOTION_VERSION_COLS = (
 _PROMOTION_CURRENT_COLS = (
     "promo_id", "promo_version_id", "title", "bank_code", "bank_name",
     "card_code", "card_name", "card_status", "annual_fee", "apply_url",
-    "category", "channel", "cashback_type", "cashback_value", "min_amount",
+    "category", "subcategory", "channel", "cashback_type", "cashback_value", "min_amount",
     "max_cashback", "frequency_limit", "requires_registration",
     "recommendation_scope", "eligibility_type", "valid_from", "valid_until",
     "conditions_json", "excluded_conditions_json", "source_url",
