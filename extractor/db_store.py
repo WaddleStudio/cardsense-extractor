@@ -22,6 +22,8 @@ def initialize_database(db_path: str) -> sqlite3.Connection:
         connection.executescript(handle.read())
     _ensure_column(connection, "promotion_versions", "title", "TEXT NOT NULL DEFAULT ''")
     _ensure_column(connection, "promotion_current", "title", "TEXT NOT NULL DEFAULT ''")
+    _ensure_column(connection, "promotion_versions", "subcategory", "TEXT NOT NULL DEFAULT 'GENERAL'")
+    _ensure_column(connection, "promotion_current", "subcategory", "TEXT NOT NULL DEFAULT 'GENERAL'")
     _ensure_column(connection, "promotion_versions", "recommendation_scope", "TEXT NOT NULL DEFAULT 'RECOMMENDABLE'")
     _ensure_column(connection, "promotion_current", "recommendation_scope", "TEXT NOT NULL DEFAULT 'RECOMMENDABLE'")
     _ensure_column(connection, "promotion_versions", "eligibility_type", "TEXT NOT NULL DEFAULT 'GENERAL'")
@@ -96,6 +98,7 @@ def upsert_promotion(connection: sqlite3.Connection, payload: dict[str, Any], ru
         "annual_fee",
         "apply_url",
         "category",
+        "subcategory",
         "channel",
         "cashback_type",
         "cashback_value",
@@ -177,6 +180,7 @@ def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
         "annual_fee": payload.get("annualFee", 0),
         "apply_url": payload.get("applyUrl"),
         "category": payload["category"],
+        "subcategory": payload.get("subcategory", "GENERAL"),
         "channel": payload.get("channel"),
         "cashback_type": payload["cashbackType"],
         "cashback_value": payload["cashbackValue"],

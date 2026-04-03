@@ -1,4 +1,11 @@
-from extractor.promotion_rules import build_conditions, classify_recommendation_scope, extract_reward, infer_channel
+from extractor.promotion_rules import (
+    SUBCATEGORY_SIGNALS,
+    build_conditions,
+    classify_recommendation_scope,
+    extract_reward,
+    infer_channel,
+    infer_subcategory,
+)
 
 
 CHANNEL_SIGNALS = {
@@ -114,3 +121,47 @@ def test_extract_reward_prefers_voucher_value_over_threshold_amount_without_imme
     )
 
     assert reward == {"type": "FIXED", "value": 100.0}
+
+
+def test_infer_subcategory_matches_mobile_pay_from_chinese_terms():
+    subcategory = infer_subcategory(
+        "玉山 U Bear 信用卡 行動支付、網路消費",
+        "綁定玉山Wallet電子支付消費，同享TWQR及台灣Pay優惠",
+        "ONLINE",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "MOBILE_PAY"
+
+
+def test_infer_subcategory_matches_hotel_dining_from_hotel_terms():
+    subcategory = infer_subcategory(
+        "世界卡 專屬優惠 台北萬豪酒店",
+        "飯店餐廳與自助餐禮遇，持卡享回饋",
+        "DINING",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "HOTEL_DINING"
+
+
+def test_infer_subcategory_matches_department_from_department_store_terms():
+    subcategory = infer_subcategory(
+        "新光三越百貨刷卡回饋",
+        "百貨週年慶指定通路加碼",
+        "SHOPPING",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "DEPARTMENT"
+
+
+def test_infer_subcategory_matches_ecommerce_from_local_platform_terms():
+    subcategory = infer_subcategory(
+        "momo 網購天天買",
+        "PChome、蝦皮、博客來消費回饋",
+        "ONLINE",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "ECOMMERCE"

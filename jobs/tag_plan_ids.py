@@ -71,6 +71,8 @@ def tag_plan_ids(db_path: str, dry_run: bool = False) -> None:
                 continue
 
             old_plan_id = row["plan_id"]
+            if old_plan_id:
+                continue
             if old_plan_id == new_plan_id:
                 continue
 

@@ -547,6 +547,32 @@ SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
     },
 }
 
+EXTRA_SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
+    "ENTERTAINMENT": {
+        "STREAMING": [("串流", 5), ("影音平台", 4), ("YouTube Premium", 4), ("friDay影音", 4), ("MyVideo", 4), ("愛奇藝", 4)],
+    },
+    "DINING": {
+        "DELIVERY": [("外送", 5), ("外送平台", 5)],
+        "RESTAURANT": [("餐廳", 5), ("饗宴", 4), ("鐵板燒", 4), ("粵菜", 4), ("料理", 3)],
+        "CAFE": [("咖啡", 5), ("星巴克", 5), ("路易莎", 4), ("cama", 4), ("85度C", 4)],
+        "HOTEL_DINING": [("飯店", 5), ("酒店", 5), ("大飯店", 5), ("萬豪", 4), ("喜來登", 4), ("香格里拉", 4), ("國賓", 4), ("自助餐", 4)],
+    },
+    "SHOPPING": {
+        "DEPARTMENT": [("百貨", 5), ("新光三越", 5), ("遠東SOGO", 5), ("遠百", 4), ("微風", 4), ("漢神", 4), ("夢時代", 4), ("統一時代", 4)],
+    },
+    "ONLINE": {
+        "ECOMMERCE": [("網購", 5), ("線上購物", 5), ("蝦皮", 5), ("博客來", 4), ("東森購物", 4), ("Yahoo購物", 4), ("Yahoo奇摩購物", 4)],
+        "MOBILE_PAY": [("LINE Pay", 5), ("街口", 5), ("街口支付", 5), ("行動支付", 5), ("電子支付", 5), ("Apple Pay", 5), ("Google Pay", 5), ("Samsung Pay", 5), ("全支付", 5), ("全盈", 4), ("Pi 拍錢包", 5), ("Pi拍錢包", 5), ("玉山Wallet", 5), ("台灣Pay", 5), ("悠遊付", 4), ("icash Pay", 4), ("TWQR", 4)],
+        "SUBSCRIPTION": [("訂閱", 5), ("串流", 5), ("Netflix", 5), ("Disney+", 5), ("Spotify", 5), ("KKBOX", 5), ("YouTube Premium", 5), ("friDay影音", 4), ("MyVideo", 4), ("愛奇藝", 4)],
+    },
+}
+
+for _category, _subcategory_map in EXTRA_SUBCATEGORY_SIGNALS.items():
+    SUBCATEGORY_SIGNALS.setdefault(_category, {})
+    for _subcategory, _signals in _subcategory_map.items():
+        SUBCATEGORY_SIGNALS[_category].setdefault(_subcategory, [])
+        SUBCATEGORY_SIGNALS[_category][_subcategory].extend(_signals)
+
 
 def infer_subcategory(
     title: str,

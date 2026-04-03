@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from extractor import ingest
+from extractor.benefit_plans import infer_plan_id
 from extractor.html_utils import collect_links, collapse_text, html_to_lines
 from extractor.page_extractors import SectionedPageConfig, extract_sectioned_page
 from extractor.promotion_rules import (
@@ -25,10 +26,74 @@ from extractor.promotion_rules import (
     SUBCATEGORY_SIGNALS,
 )
 
+RICHART_EXCLUDED_ACTIVITY_TOKENS = (
+    "保費",
+    "保險",
+    "分期",
+    "優惠利率",
+    "抽獎",
+    "首刷禮",
+    "首筆",
+    "核卡",
+    "新戶禮",
+    "滿額禮",
+    "行李箱",
+)
+RICHART_CATALOG_ONLY_TOKENS = (
+    "領券",
+    "登錄",
+    "優惠碼",
+    "折扣碼",
+    "限量",
+    "新戶",
+    "抽獎",
+    "保費",
+    "保險",
+    "分期",
+    "首刷禮",
+)
+
 
 CARD_LIST_URL = "https://www.taishinbank.com.tw/TSB/personal/credit/intro/overview/index.html"
 BASE_URL = "https://www.taishinbank.com.tw"
 BANK_CODE = "TAISHIN"
+PROMOTION_HOST_TOKENS = ("mkp.taishinbank.com.tw", "mkpcard.taishinbank.com.tw")
+PROMOTION_PATH_TOKENS = ("/tscccms/promotion/detail/", "/TsCms/marketing/expose/")
+RICHART_GUIDE_URLS = (
+    "https://www.taishinbank.com.tw/TSB/personal/credit/discount/life/",
+    "https://www.taishinbank.com.tw/TSB/personal/digital/E-Payment/Electronic-Payment/introduction/",
+)
+RICHART_KEYWORDS = (
+    "Richart",
+    "台新Richart卡",
+    "Pay著刷",
+    "天天刷",
+    "大筆刷",
+    "好饗刷",
+    "數趣刷",
+    "玩旅刷",
+    "假日刷",
+)
+REGISTRATION_TOKENS = ("登錄", "領券", "領取", "切換")
+RICHART_PLAN_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("Pay著刷", "LINE Pay", "台新Pay", "街口", "電子支付", "行動支付"), "TAISHIN_RICHART_PAY"),
+    (("天天刷", "超商量販", "高鐵", "臺鐵", "台鐵", "量販"), "TAISHIN_RICHART_DAILY"),
+    (("大筆刷", "滿額", "分期"), "TAISHIN_RICHART_BIG"),
+    (("好饗刷", "餐飲", "餐廳", "美食"), "TAISHIN_RICHART_DINING"),
+    (("數趣刷", "影音", "串流", "Netflix", "Spotify", "Disney+", "friDay"), "TAISHIN_RICHART_DIGITAL"),
+    (("玩旅刷", "旅遊", "訂房", "Hotels.com", "Agoda", "Booking", "Klook", "KKday"), "TAISHIN_RICHART_TRAVEL"),
+    (("假日刷", "週末", "周末", "假日"), "TAISHIN_RICHART_WEEKEND"),
+)
+MARKETING_NOISE_TOKENS = (
+    "處理中",
+    "敬請稍候",
+    "行動選單",
+    "關閉視窗",
+    "信用卡刷卡優惠",
+    "旅遊及海外購物",
+    "台新銀行提醒您",
+    "不是台新銀行的網頁",
+)
 BANK_NAME = "台新銀行"
 
 CATEGORY_SIGNALS = {
@@ -219,6 +284,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         subcategory = infer_subcategory(clean_title, clean_body, category, SUBCATEGORY_SIGNALS)
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
+        plan_id = _resolve_richart_plan_id(enriched_card.card_code, category, clean_title, clean_body)
 
         promotions.append(
             {
@@ -247,8 +313,12 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "sourceUrl": enriched_card.detail_url,
                 "summary": summary,
                 "status": "ACTIVE",
+                "planId": plan_id,
             }
         )
+
+    if enriched_card.card_code == "TAISHIN_RICHART":
+        promotions.extend(_extract_richart_bonus_promotions(enriched_card, links))
 
     return enriched_card, _dedupe_promotions(promotions)
 
@@ -291,6 +361,192 @@ def _normalize_promotion_title(card_name: str, raw_title: str, raw_body: str) ->
 
 def _dedupe_promotions(promotions: List[Dict[str, object]]) -> List[Dict[str, object]]:
     return dedupe_promotions(promotions)
+
+
+def _extract_richart_bonus_promotions(card: CardRecord, detail_links: Iterable[Dict[str, str]]) -> List[Dict[str, object]]:
+    pending_urls = list(dict.fromkeys([
+        *_extract_promotion_urls(detail_links),
+        *RICHART_GUIDE_URLS,
+    ]))
+    promotions: List[Dict[str, object]] = []
+    visited: set[str] = set()
+
+    while pending_urls:
+        url = pending_urls.pop(0)
+        if url in visited:
+            continue
+        visited.add(url)
+
+        html = ingest.fetch_with_playwright(url)
+        links = collect_links(html, url)
+
+        if _is_richart_guide_url(url):
+            for promo_url in _extract_promotion_urls(links):
+                if promo_url not in visited:
+                    pending_urls.append(promo_url)
+            continue
+
+        promotion = _extract_marketing_promotion(card, html, url)
+        if promotion is not None:
+            promotions.append(promotion)
+
+    return promotions
+
+
+def _extract_promotion_urls(links: Iterable[Dict[str, str]]) -> List[str]:
+    urls: List[str] = []
+    for link in links:
+        href = link.get("href", "")
+        if any(host in href for host in PROMOTION_HOST_TOKENS) and any(path in href for path in PROMOTION_PATH_TOKENS):
+            urls.append(href)
+    return urls
+
+
+def _is_richart_guide_url(url: str) -> bool:
+    return (
+        "/TSB/personal/credit/discount/life/" in url
+        or "/TSB/personal/digital/E-Payment/Electronic-Payment/introduction/" in url
+    )
+
+
+def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -> Dict[str, object] | None:
+    lines = html_to_lines(html)
+    page_text = clean_offer_text(" ".join(lines))
+    if not any(keyword in page_text for keyword in RICHART_KEYWORDS):
+        return None
+
+    focused_text = _build_marketing_focus_text(lines) or page_text
+    title = _select_marketing_title(lines, focused_text)
+    if _should_skip_richart_marketing(title, focused_text):
+        return None
+
+    plan_id = _resolve_richart_plan_id(card.card_code, _infer_category(title, focused_text), title, focused_text)
+    if plan_id is None:
+        return None
+
+    reward = _extract_reward(title, focused_text)
+    if reward is None:
+        return None
+
+    valid_from, valid_until = extract_date_range(focused_text)
+    if not valid_from or not valid_until:
+        return None
+
+    min_amount = extract_min_amount(focused_text)
+    max_cashback = extract_cap(focused_text)
+    requires_registration = any(token in focused_text for token in REGISTRATION_TOKENS)
+    frequency_limit = extract_frequency_limit(focused_text)
+    category = _infer_category(title, focused_text)
+    subcategory = infer_subcategory(title, focused_text, category, SUBCATEGORY_SIGNALS)
+    recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration)
+    conditions = build_conditions(focused_text, card.application_requirements, requires_registration)
+    summary = build_summary(
+        title,
+        focused_text,
+        valid_from,
+        valid_until,
+        min_amount,
+        max_cashback,
+        requires_registration,
+        summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+    )
+
+    return {
+        "title": f"{card.card_name} {title}",
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "subcategory": subcategory,
+        "channel": _infer_channel(title, focused_text),
+        "cashbackType": reward["type"],
+        "cashbackValue": reward["value"],
+        "minAmount": min_amount,
+        "maxCashback": max_cashback,
+        "frequencyLimit": frequency_limit,
+        "requiresRegistration": requires_registration,
+        "recommendationScope": recommendation_scope,
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": conditions,
+        "excludedConditions": [],
+        "sourceUrl": source_url,
+        "summary": summary,
+        "status": "ACTIVE",
+        "planId": plan_id,
+    }
+
+
+def _select_marketing_title(lines: List[str], page_text: str) -> str:
+    for line in lines[:20]:
+        if len(line) > 80:
+            continue
+        if not any(keyword in line for keyword in RICHART_KEYWORDS):
+            continue
+        if not re.search(r"\d+(?:\.\d+)?%|[\d,]+\s*(?:點|元|Point)", line):
+            continue
+        return line
+
+    for line in lines[:40]:
+        if len(line) <= 60 and any(keyword in line for keyword in RICHART_KEYWORDS):
+            return line
+
+    match = re.search(r"([^。]{0,40}Richart[^。]{0,40})", page_text)
+    if match:
+        return match.group(1).strip()
+    return "Richart優惠"
+
+
+def _build_marketing_focus_text(lines: List[str]) -> str:
+    focused_lines: List[str] = []
+    for line in lines:
+        if len(line) > 160:
+            continue
+        if any(token in line for token in MARKETING_NOISE_TOKENS):
+            continue
+        if any(keyword in line for keyword in RICHART_KEYWORDS):
+            focused_lines.append(line)
+            continue
+        if re.search(r"\d{3,4}/\d{1,2}/\d{1,2}", line):
+            focused_lines.append(line)
+            continue
+        if re.search(r"\d+(?:\.\d+)?%", line) and len(line) <= 120:
+            focused_lines.append(line)
+            continue
+        if any(token in line for token in ("LINE Pay", "台新Pay", "街口", "高鐵", "臺鐵", "台鐵", "餐飲", "影音", "旅遊", "訂房")):
+            focused_lines.append(line)
+
+    return clean_offer_text(" ".join(dict.fromkeys(focused_lines)))
+
+
+def _resolve_richart_plan_id(card_code: str, category: str, title: str, body: str) -> str | None:
+    if card_code != "TAISHIN_RICHART":
+        return infer_plan_id(card_code, category, title=title)
+
+    combined = f"{title} {body}"
+    for keywords, plan_id in RICHART_PLAN_HINTS:
+        if any(keyword in combined for keyword in keywords):
+            return plan_id
+    return infer_plan_id(card_code, category, title=title)
+
+
+def _should_skip_richart_marketing(title: str, text: str) -> bool:
+    combined = f"{title} {text}"
+    return any(token in combined for token in RICHART_EXCLUDED_ACTIVITY_TOKENS)
+
+
+def _resolve_richart_marketing_scope(title: str, text: str, category: str, requires_registration: bool) -> str:
+    combined = f"{title} {text}"
+    if any(token in combined for token in RICHART_CATALOG_ONLY_TOKENS):
+        return "CATALOG_ONLY"
+    scope = classify_recommendation_scope(title, text, category)
+    if requires_registration and scope == "RECOMMENDABLE":
+        return "CATALOG_ONLY"
+    return scope
 
 
 def _extract_annual_fee_amount(summary: str | None) -> int:
