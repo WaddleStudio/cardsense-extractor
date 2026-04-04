@@ -65,11 +65,19 @@ PLAN_NAME_SIGNALS: Final[dict[str, list[tuple[str, str]]]] = {
     ],
 }
 
+PLAN_SUBCATEGORY_HINTS: Final[dict[str, tuple[str, str]]] = {
+    "CATHAY_CUBE_DIGITAL": ("ONLINE", "MOBILE_PAY"),
+    "TAISHIN_RICHART_PAY": ("ONLINE", "MOBILE_PAY"),
+    "TAISHIN_RICHART_DINING": ("DINING", "RESTAURANT"),
+    "TAISHIN_RICHART_DIGITAL": ("ENTERTAINMENT", "STREAMING"),
+}
+
 
 def infer_plan_id(
     card_code: str | None,
     category: str | None,
     title: str | None = None,
+    subcategory: str | None = None,
 ) -> str | None:
     if not card_code:
         return None
@@ -84,7 +92,14 @@ def infer_plan_id(
                 if keyword in title:
                     return plan_id
 
-    # 2. Fall back to category-based mapping.
+    # 2. Use a known subcategory hint when available.
+    if subcategory:
+        normalized_subcategory = subcategory.upper()
+        for plan_id, (_, hinted_subcategory) in PLAN_SUBCATEGORY_HINTS.items():
+            if plan_id.startswith(code) and hinted_subcategory == normalized_subcategory:
+                return plan_id
+
+    # 3. Fall back to category-based mapping.
     if not category:
         return None
 
@@ -93,3 +108,24 @@ def infer_plan_id(
         return None
 
     return category_map.get(category.upper())
+
+
+def apply_plan_subcategory_hint(
+    plan_id: str | None,
+    category: str | None,
+    subcategory: str | None,
+) -> tuple[str | None, str | None]:
+    if not plan_id:
+        return category, subcategory
+
+    hint = PLAN_SUBCATEGORY_HINTS.get(plan_id.upper())
+    if not hint:
+        return category, subcategory
+
+    hinted_category, hinted_subcategory = hint
+    resolved_category = category or hinted_category
+    resolved_subcategory = subcategory
+    if not resolved_subcategory or resolved_subcategory.upper() == "GENERAL":
+        resolved_subcategory = hinted_subcategory
+
+    return resolved_category, resolved_subcategory

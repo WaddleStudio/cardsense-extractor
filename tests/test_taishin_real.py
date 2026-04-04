@@ -214,6 +214,36 @@ def test_resolve_richart_plan_id_prefers_body_signal_over_category_fallback():
     assert plan_id == "TAISHIN_RICHART_TRAVEL"
 
 
+def test_extract_card_promotions_applies_plan_subcategory_hints_for_richart_marketing():
+    from extractor.taishin_real import CardRecord, _extract_marketing_promotion
+
+    html = """
+    <html>
+      <body>
+        <h1>Richart LINE Pay up to 3.8%</h1>
+        <p>2026/1/1~2026/6/30</p>
+        <p>LINE Pay payment reward 3.8% with Richart Pay plan.</p>
+      </body>
+    </html>
+    """
+
+    card = CardRecord(
+        card_code="TAISHIN_RICHART",
+        card_name="Richart Card",
+        detail_url="https://example.com/richart",
+        apply_url=None,
+        annual_fee_summary=None,
+        application_requirements=[],
+        sections=[],
+    )
+
+    promotion = _extract_marketing_promotion(card, html, "https://example.com/promo")
+
+    assert promotion is not None
+    assert promotion["planId"] == "TAISHIN_RICHART_PAY"
+    assert promotion["subcategory"] == "MOBILE_PAY"
+
+
 def test_resolve_richart_plan_id_does_not_affect_other_cards():
     from extractor.taishin_real import _resolve_richart_plan_id
 

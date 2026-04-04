@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable, List
 from urllib.parse import urljoin
 
 from extractor import ingest
+from extractor.benefit_plans import apply_plan_subcategory_hint
 from extractor.html_utils import collapse_text, html_to_lines
 from extractor.promotion_rules import (
     build_conditions,
@@ -296,6 +297,7 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
             merchants = tier["merchants"]
             category = infer_category(tier_title, merchants, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
             subcategory = infer_subcategory(tier_title, merchants, category, SUBCATEGORY_SIGNALS)
+            category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
             channel = infer_channel(tier_title, merchants, CHANNEL_SIGNALS)
             title = f"{card.card_name} {plan_name} {tier_title}"
             body = f"{tier_title} 享{rate}%小樹點回饋 {merchants}"
@@ -333,6 +335,7 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
         body = f"{plan_name}方案 指定通路享{default_rate}%小樹點回饋"
         channel = "ONLINE" if default_category == "ONLINE" else "ALL"
         fallback_subcategory = infer_subcategory(title, body, default_category, SUBCATEGORY_SIGNALS)
+        default_category, fallback_subcategory = apply_plan_subcategory_hint(plan_id, default_category, fallback_subcategory)
 
         promo = _build_plan_promotion(
             card=card,

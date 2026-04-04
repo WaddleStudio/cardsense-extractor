@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List
 
 from extractor import ingest
-from extractor.benefit_plans import infer_plan_id
+from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
 from extractor.html_utils import collect_links, collapse_text, html_to_lines
 from extractor.page_extractors import SectionedPageConfig, extract_sectioned_page
 from extractor.promotion_rules import (
@@ -286,6 +286,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
         plan_id = _resolve_richart_plan_id(enriched_card.card_code, category, clean_title, clean_body)
 
+        category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+
         promotions.append(
             {
                 "title": f"{enriched_card.card_name} {clean_title}",
@@ -438,6 +440,7 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     frequency_limit = extract_frequency_limit(focused_text)
     category = _infer_category(title, focused_text)
     subcategory = infer_subcategory(title, focused_text, category, SUBCATEGORY_SIGNALS)
+    category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
     recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration)
     conditions = build_conditions(focused_text, card.application_requirements, requires_registration)
     summary = build_summary(

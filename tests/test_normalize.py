@@ -47,6 +47,7 @@ def test_normalize_infers_richart_plan_id_when_missing():
     )
 
     assert normalized["planId"] == "TAISHIN_RICHART_DIGITAL"
+    assert normalized["subcategory"] == "STREAMING"
 
 
 def test_normalize_preserves_explicit_plan_id():
@@ -69,3 +70,25 @@ def test_normalize_preserves_explicit_plan_id():
     )
 
     assert normalized["planId"] == "CATHAY_CUBE_JAPAN"
+
+
+def test_normalize_preserves_existing_subcategory_when_present():
+    normalized = normalize_data(
+        {
+            "bank": "TAISHIN",
+            "bank_name": "Taishin",
+            "card_code": "TAISHIN_RICHART",
+            "card_name": "Richart Card",
+            "promotion": "LINE Pay up to 3.8%",
+            "category": "ONLINE",
+            "subcategory": "MOBILE_PAY",
+            "cashback_type": "PERCENT",
+            "cashback_value": "3.8",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-12-31",
+            "annual_fee": "0",
+        }
+    )
+
+    assert normalized["planId"] == "TAISHIN_RICHART_PAY"
+    assert normalized["subcategory"] == "MOBILE_PAY"
