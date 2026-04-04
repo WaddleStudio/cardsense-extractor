@@ -165,3 +165,25 @@ def test_infer_subcategory_matches_ecommerce_from_local_platform_terms():
     )
 
     assert subcategory == "ECOMMERCE"
+
+
+def test_infer_subcategory_matches_ai_tool_terms():
+    subcategory = infer_subcategory(
+        "CUBE 玩數位 AI工具訂閱最高 3%",
+        "ChatGPT、Claude、Cursor、Gemini、Notion、Perplexity",
+        "ONLINE",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "AI_TOOL"
+
+
+def test_infer_subcategory_matches_ev_charging_terms():
+    subcategory = infer_subcategory(
+        "CUBE 集精選 充電停車最高 2%",
+        "U-POWER、EVOASIS、EVALUE、iCharging、uTagGo",
+        "OTHER",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "EV_CHARGING"

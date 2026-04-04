@@ -9,10 +9,10 @@ PLAN_MAPPING: Final[dict[str, dict[str, str]]] = {
         "ONLINE": "CATHAY_CUBE_DIGITAL",
         "ENTERTAINMENT": "CATHAY_CUBE_DIGITAL",
         "SHOPPING": "CATHAY_CUBE_SHOPPING",
-        "GROCERY": "CATHAY_CUBE_SHOPPING",
+        "DINING": "CATHAY_CUBE_SHOPPING",
         "OVERSEAS": "CATHAY_CUBE_TRAVEL",
         "TRANSPORT": "CATHAY_CUBE_TRAVEL",
-        "DINING": "CATHAY_CUBE_ESSENTIALS",
+        "GROCERY": "CATHAY_CUBE_ESSENTIALS",
         "OTHER": "CATHAY_CUBE_ESSENTIALS",
     },
     "ESUN_UNICARD": {
@@ -67,11 +67,20 @@ PLAN_NAME_SIGNALS: Final[dict[str, list[tuple[str, str]]]] = {
 
 PLAN_SUBCATEGORY_HINTS: Final[dict[str, dict[str, str]]] = {
     "CATHAY_CUBE_DIGITAL": {
-        "ONLINE": "MOBILE_PAY",
+        "ONLINE": "ECOMMERCE",
         "ENTERTAINMENT": "STREAMING",
     },
     "CATHAY_CUBE_SHOPPING": {
+        "DINING": "RESTAURANT",
         "SHOPPING": "DEPARTMENT",
+    },
+    "CATHAY_CUBE_TRAVEL": {
+        "TRANSPORT": "RIDESHARE",
+        "OVERSEAS": "OVERSEAS_IN_STORE",
+    },
+    "CATHAY_CUBE_ESSENTIALS": {
+        "GROCERY": "SUPERMARKET",
+        "OTHER": "EV_CHARGING",
     },
     "CATHAY_CUBE_BIRTHDAY": {
         "DINING": "RESTAURANT",

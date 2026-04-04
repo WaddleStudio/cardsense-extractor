@@ -1,0 +1,7 @@
+interface:
+  display_name: "CardSense Promo Review"
+  short_description: "Review a bank rewards page for CardSense schema, extractor, and DB compatibility."
+  default_prompt: "Use $cardsense-bank-promo-review to review a bank credit-card rewards page and assess CardSense compatibility."
+
+policy:
+  allow_implicit_invocation: true

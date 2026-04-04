@@ -116,6 +116,50 @@ def test_normalize_applies_category_specific_cube_shopping_hint():
     assert normalized["subcategory"] == "DEPARTMENT"
 
 
+def test_normalize_maps_cube_dining_to_shopping_plan():
+    normalized = normalize_data(
+        {
+            "bank": "CATHAY",
+            "bank_name": "Cathay",
+            "card_code": "CATHAY_CUBE",
+            "card_name": "CUBE Credit Card",
+            "promotion": "國內餐飲最高 3% 回饋",
+            "category": "DINING",
+            "cashback_type": "PERCENT",
+            "cashback_value": "3",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-06-30",
+            "annual_fee": "0",
+            "source_url": "https://example.com/cube-dining",
+        }
+    )
+
+    assert normalized["planId"] == "CATHAY_CUBE_SHOPPING"
+    assert normalized["subcategory"] == "RESTAURANT"
+
+
+def test_normalize_maps_cube_grocery_to_essentials_plan():
+    normalized = normalize_data(
+        {
+            "bank": "CATHAY",
+            "bank_name": "Cathay",
+            "card_code": "CATHAY_CUBE",
+            "card_name": "CUBE Credit Card",
+            "promotion": "量販超市最高 2% 回饋",
+            "category": "GROCERY",
+            "cashback_type": "PERCENT",
+            "cashback_value": "2",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-06-30",
+            "annual_fee": "0",
+            "source_url": "https://example.com/cube-grocery",
+        }
+    )
+
+    assert normalized["planId"] == "CATHAY_CUBE_ESSENTIALS"
+    assert normalized["subcategory"] == "SUPERMARKET"
+
+
 def test_infer_eligibility_type_detects_business_card_names():
     assert infer_eligibility_type("玉山商務御璽卡 - 玉山銀行") == "BUSINESS"
 
