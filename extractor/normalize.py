@@ -95,7 +95,7 @@ def _clean_card_name(raw_name: str | None) -> str | None:
     return name
 
 
-def _infer_eligibility_type(card_name: str | None) -> str:
+def infer_eligibility_type(card_name: str | None) -> str:
     if not card_name:
         return "GENERAL"
     for kw in _PROFESSION_KEYWORDS:
@@ -132,7 +132,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "frequencyLimit": _normalize_enum(data.get("frequency_limit"), FREQUENCY_LIMIT_ALIASES, default="NONE"),
         "requiresRegistration": _normalize_bool(data.get("requires_registration"), default=False),
         "recommendationScope": _normalize_string(data.get("recommendation_scope")) or "RECOMMENDABLE",
-        "eligibilityType": _infer_eligibility_type(_normalize_string(data.get("card_name"))),
+        "eligibilityType": infer_eligibility_type(_normalize_string(data.get("card_name"))),
         "validFrom": _normalize_string(data.get("valid_from")),
         "validUntil": _normalize_string(data.get("valid_until")),
         "conditions": _normalize_conditions(_split_list_field(data.get("conditions"))),

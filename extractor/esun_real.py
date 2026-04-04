@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from extractor import ingest
+from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
 from extractor.html_utils import collect_links, collapse_text, html_to_lines
+from extractor.normalize import infer_eligibility_type
 from extractor.page_extractors import SectionedPageConfig, extract_sectioned_page
 from extractor.promotion_rules import (
     build_conditions,
@@ -164,6 +166,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     )
 
     promotions: List[Dict[str, object]] = []
+    eligibility_type = infer_eligibility_type(enriched_card.card_name)
     for block in extracted.offer_blocks:
         clean_title = _normalize_promotion_title(enriched_card.card_name, block.title, block.body)
         clean_body = clean_offer_text(block.body)
@@ -192,6 +195,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         )
         category = _infer_category(clean_title, clean_body)
         subcategory = infer_subcategory(clean_title, clean_body, category, SUBCATEGORY_SIGNALS)
+        plan_id = infer_plan_id(enriched_card.card_code, category, title=clean_title, subcategory=subcategory)
+        category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
 
@@ -215,6 +220,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "frequencyLimit": frequency_limit,
                 "requiresRegistration": requires_registration,
                 "recommendationScope": recommendation_scope,
+                "eligibilityType": eligibility_type,
                 "validFrom": valid_from,
                 "validUntil": valid_until,
                 "conditions": conditions,
@@ -222,6 +228,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "sourceUrl": enriched_card.detail_url,
                 "summary": summary,
                 "status": "ACTIVE",
+                "planId": plan_id,
             }
         )
 

@@ -65,11 +65,35 @@ PLAN_NAME_SIGNALS: Final[dict[str, list[tuple[str, str]]]] = {
     ],
 }
 
-PLAN_SUBCATEGORY_HINTS: Final[dict[str, tuple[str, str]]] = {
-    "CATHAY_CUBE_DIGITAL": ("ONLINE", "MOBILE_PAY"),
-    "TAISHIN_RICHART_PAY": ("ONLINE", "MOBILE_PAY"),
-    "TAISHIN_RICHART_DINING": ("DINING", "RESTAURANT"),
-    "TAISHIN_RICHART_DIGITAL": ("ENTERTAINMENT", "STREAMING"),
+PLAN_SUBCATEGORY_HINTS: Final[dict[str, dict[str, str]]] = {
+    "CATHAY_CUBE_DIGITAL": {
+        "ONLINE": "MOBILE_PAY",
+        "ENTERTAINMENT": "STREAMING",
+    },
+    "CATHAY_CUBE_SHOPPING": {
+        "SHOPPING": "DEPARTMENT",
+    },
+    "CATHAY_CUBE_BIRTHDAY": {
+        "DINING": "RESTAURANT",
+        "SHOPPING": "DEPARTMENT",
+    },
+    "TAISHIN_RICHART_PAY": {
+        "ONLINE": "MOBILE_PAY",
+    },
+    "TAISHIN_RICHART_DINING": {
+        "DINING": "RESTAURANT",
+    },
+    "TAISHIN_RICHART_DIGITAL": {
+        "ENTERTAINMENT": "STREAMING",
+    },
+    "ESUN_UNICARD_FLEXIBLE": {
+        "ONLINE": "MOBILE_PAY",
+        "ENTERTAINMENT": "STREAMING",
+    },
+    "ESUN_UNICARD_SIMPLE": {
+        "DINING": "RESTAURANT",
+        "SHOPPING": "DEPARTMENT",
+    },
 }
 
 
@@ -95,8 +119,8 @@ def infer_plan_id(
     # 2. Use a known subcategory hint when available.
     if subcategory:
         normalized_subcategory = subcategory.upper()
-        for plan_id, (_, hinted_subcategory) in PLAN_SUBCATEGORY_HINTS.items():
-            if plan_id.startswith(code) and hinted_subcategory == normalized_subcategory:
+        for plan_id, category_hints in PLAN_SUBCATEGORY_HINTS.items():
+            if plan_id.startswith(code) and normalized_subcategory in category_hints.values():
                 return plan_id
 
     # 3. Fall back to category-based mapping.
@@ -118,14 +142,18 @@ def apply_plan_subcategory_hint(
     if not plan_id:
         return category, subcategory
 
-    hint = PLAN_SUBCATEGORY_HINTS.get(plan_id.upper())
-    if not hint:
+    category_hints = PLAN_SUBCATEGORY_HINTS.get(plan_id.upper())
+    if not category_hints:
         return category, subcategory
 
-    hinted_category, hinted_subcategory = hint
-    resolved_category = category or hinted_category
+    resolved_category = category
+    if resolved_category is None and len(category_hints) == 1:
+        resolved_category = next(iter(category_hints))
+
     resolved_subcategory = subcategory
-    if not resolved_subcategory or resolved_subcategory.upper() == "GENERAL":
-        resolved_subcategory = hinted_subcategory
+    if resolved_category:
+        hinted_subcategory = category_hints.get(resolved_category.upper())
+        if hinted_subcategory and (not resolved_subcategory or resolved_subcategory.upper() == "GENERAL"):
+            resolved_subcategory = hinted_subcategory
 
     return resolved_category, resolved_subcategory

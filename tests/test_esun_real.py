@@ -95,3 +95,19 @@ def test_infer_channel_prefers_online_for_digital_payment_offer():
     )
 
     assert channel == "ONLINE"
+
+
+def test_unicard_online_offer_can_infer_plan_and_subcategory_hint():
+    from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
+
+    plan_id = infer_plan_id(
+        "ESUN_UNICARD",
+        "ONLINE",
+        title="LINE Pay 加碼 3%",
+        subcategory="GENERAL",
+    )
+    category, subcategory = apply_plan_subcategory_hint(plan_id, "ONLINE", "GENERAL")
+
+    assert plan_id == "ESUN_UNICARD_FLEXIBLE"
+    assert category == "ONLINE"
+    assert subcategory == "MOBILE_PAY"

@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 from extractor import ingest
 from extractor.benefit_plans import apply_plan_subcategory_hint
 from extractor.html_utils import collapse_text, html_to_lines
+from extractor.normalize import infer_eligibility_type
 from extractor.promotion_rules import (
     build_conditions,
     build_summary,
@@ -147,6 +148,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     )
 
     promotions: List[Dict[str, object]] = []
+    eligibility_type = infer_eligibility_type(enriched_card.card_name)
     for component in components:
         component_type = _component_type(component)
         if not any(
@@ -201,6 +203,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                     "frequencyLimit": extract_frequency_limit(candidate["body"]),
                     "requiresRegistration": requires_registration,
                     "recommendationScope": recommendation_scope,
+                    "eligibilityType": eligibility_type,
                     "validFrom": valid_from,
                     "validUntil": valid_until,
                     "conditions": build_conditions(candidate["body"], enriched_card.application_requirements, requires_registration),
@@ -388,6 +391,7 @@ def _build_plan_promotion(
         "frequencyLimit": "NONE",
         "requiresRegistration": False,
         "recommendationScope": "RECOMMENDABLE",
+        "eligibilityType": infer_eligibility_type(card.card_name),
         "validFrom": valid_from,
         "validUntil": valid_until,
         "conditions": [{"type": "TEXT", "value": f"需切換至「{plan_name}」方案", "label": f"需切換至「{plan_name}」方案"}],

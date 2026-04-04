@@ -7,6 +7,7 @@ from typing import Dict, Iterable, List
 from extractor import ingest
 from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
 from extractor.html_utils import collect_links, collapse_text, html_to_lines
+from extractor.normalize import infer_eligibility_type
 from extractor.page_extractors import SectionedPageConfig, extract_sectioned_page
 from extractor.promotion_rules import (
     build_conditions,
@@ -254,6 +255,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     )
 
     promotions: List[Dict[str, object]] = []
+    eligibility_type = infer_eligibility_type(enriched_card.card_name)
     for block in extracted.offer_blocks:
         clean_title = _normalize_promotion_title(enriched_card.card_name, block.title, block.body)
         clean_body = clean_offer_text(block.body)
@@ -308,6 +310,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "frequencyLimit": frequency_limit,
                 "requiresRegistration": requires_registration,
                 "recommendationScope": recommendation_scope,
+                "eligibilityType": eligibility_type,
                 "validFrom": valid_from,
                 "validUntil": valid_until,
                 "conditions": conditions,
@@ -473,6 +476,7 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
         "frequencyLimit": frequency_limit,
         "requiresRegistration": requires_registration,
         "recommendationScope": recommendation_scope,
+        "eligibilityType": infer_eligibility_type(card.card_name),
         "validFrom": valid_from,
         "validUntil": valid_until,
         "conditions": conditions,

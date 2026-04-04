@@ -4,7 +4,7 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
-from extractor.normalize import normalize_data
+from extractor.normalize import infer_eligibility_type, normalize_data
 
 
 def test_normalize_infers_plan_id_for_benefit_plan_cards():
@@ -26,6 +26,7 @@ def test_normalize_infers_plan_id_for_benefit_plan_cards():
     )
 
     assert normalized["planId"] == "ESUN_UNICARD_FLEXIBLE"
+    assert normalized["subcategory"] == "MOBILE_PAY"
 
 
 def test_normalize_infers_richart_plan_id_when_missing():
@@ -92,3 +93,32 @@ def test_normalize_preserves_existing_subcategory_when_present():
 
     assert normalized["planId"] == "TAISHIN_RICHART_PAY"
     assert normalized["subcategory"] == "MOBILE_PAY"
+
+
+def test_normalize_applies_category_specific_cube_shopping_hint():
+    normalized = normalize_data(
+        {
+            "bank": "CATHAY",
+            "bank_name": "Cathay",
+            "card_code": "CATHAY_CUBE",
+            "card_name": "CUBE Credit Card",
+            "promotion": "樂饗購 指定通路回饋",
+            "category": "SHOPPING",
+            "cashback_type": "PERCENT",
+            "cashback_value": "3",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-12-31",
+            "annual_fee": "0",
+        }
+    )
+
+    assert normalized["planId"] == "CATHAY_CUBE_SHOPPING"
+    assert normalized["subcategory"] == "DEPARTMENT"
+
+
+def test_infer_eligibility_type_detects_business_card_names():
+    assert infer_eligibility_type("玉山商務御璽卡 - 玉山銀行") == "BUSINESS"
+
+
+def test_infer_eligibility_type_detects_profession_specific_card_names():
+    assert infer_eligibility_type("中國信託醫師尊榮卡") == "PROFESSION_SPECIFIC"
