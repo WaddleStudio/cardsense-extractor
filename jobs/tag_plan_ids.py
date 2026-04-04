@@ -10,9 +10,9 @@ It is idempotent — re-running it will update existing tags.
 Plan mapping logic:
   CATHAY_CUBE:
     ONLINE, ENTERTAINMENT        → CATHAY_CUBE_DIGITAL   (玩數位)
-    SHOPPING, GROCERY            → CATHAY_CUBE_SHOPPING  (樂饗購)
+    SHOPPING, DINING             → CATHAY_CUBE_SHOPPING  (樂饗購)
     OVERSEAS, TRANSPORT          → CATHAY_CUBE_TRAVEL    (趣旅行)
-    DINING, OTHER                → CATHAY_CUBE_ESSENTIALS(集精選)
+    GROCERY, OTHER               → CATHAY_CUBE_ESSENTIALS(集精選)
 
   ESUN_UNICARD:
     ONLINE, ENTERTAINMENT        → ESUN_UNICARD_FLEXIBLE (任意選)
@@ -56,7 +56,7 @@ def tag_plan_ids(db_path: str, dry_run: bool = False) -> None:
 
     for card_code, category_map in PLAN_MAPPING.items():
         rows = conn.execute(
-            "SELECT promo_id, promo_version_id, category, plan_id FROM promotion_current WHERE card_code = ?",
+            "SELECT promo_id, promo_version_id, category, plan_id, recommendation_scope, title FROM promotion_current WHERE card_code = ?",
             (card_code,),
         ).fetchall()
 
@@ -74,6 +74,11 @@ def tag_plan_ids(db_path: str, dry_run: bool = False) -> None:
             if old_plan_id:
                 continue
             if old_plan_id == new_plan_id:
+                continue
+            if (row["recommendation_scope"] or "").upper() != "RECOMMENDABLE":
+                continue
+            title = row["title"] or ""
+            if any(token in title for token in ("首刷", "新戶", "申辦", "贈禮", "卡友贈禮")):
                 continue
 
             action = "would tag" if dry_run else "tagged"

@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from extractor.supabase_store import (
+    SyncFilter,
     SyncResult,
     sync_sqlite_to_supabase,
     sync_sqlite_to_supabase_http,
@@ -44,7 +45,8 @@ def sqlite_db():
             title TEXT NOT NULL DEFAULT '', bank_code TEXT NOT NULL,
             bank_name TEXT NOT NULL, card_code TEXT NOT NULL, card_name TEXT NOT NULL,
             card_status TEXT, annual_fee INTEGER, apply_url TEXT,
-            category TEXT NOT NULL, channel TEXT, cashback_type TEXT NOT NULL,
+            category TEXT NOT NULL, subcategory TEXT NOT NULL DEFAULT 'GENERAL',
+            channel TEXT, cashback_type TEXT NOT NULL,
             cashback_value NUMERIC NOT NULL, min_amount INTEGER DEFAULT 0,
             max_cashback INTEGER, frequency_limit TEXT,
             requires_registration INTEGER NOT NULL DEFAULT 0,
@@ -59,7 +61,7 @@ def sqlite_db():
         );
         INSERT INTO promotion_versions VALUES
             ('ver1','promo1','Test Promo','TEST','Test Bank','TEST_CARD','Test Card',
-             'ACTIVE',0,NULL,'ONLINE',NULL,'PERCENT',3.0,0,NULL,NULL,
+             'ACTIVE',0,NULL,'ONLINE','GENERAL',NULL,'PERCENT',3.0,0,NULL,NULL,
              1,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
              '[]','[]','https://example.com','abc123','summary','1.0',
              '2026-01-01T00:00:00',0.9,'ACTIVE','TEST_PLAN','run1','{}');
@@ -69,7 +71,8 @@ def sqlite_db():
             title TEXT NOT NULL DEFAULT '', bank_code TEXT NOT NULL,
             bank_name TEXT NOT NULL, card_code TEXT NOT NULL, card_name TEXT NOT NULL,
             card_status TEXT, annual_fee INTEGER, apply_url TEXT,
-            category TEXT NOT NULL, channel TEXT, cashback_type TEXT NOT NULL,
+            category TEXT NOT NULL, subcategory TEXT NOT NULL DEFAULT 'GENERAL',
+            channel TEXT, cashback_type TEXT NOT NULL,
             cashback_value NUMERIC NOT NULL, min_amount INTEGER DEFAULT 0,
             max_cashback INTEGER, frequency_limit TEXT,
             requires_registration INTEGER NOT NULL DEFAULT 0,
@@ -84,7 +87,7 @@ def sqlite_db():
         );
         INSERT INTO promotion_current VALUES
             ('promo1','ver1','Test Promo','TEST','Test Bank','TEST_CARD','Test Card',
-             'ACTIVE',0,NULL,'ONLINE',NULL,'PERCENT',3.0,0,NULL,NULL,
+             'ACTIVE',0,NULL,'ONLINE','GENERAL',NULL,'PERCENT',3.0,0,NULL,NULL,
              1,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
              '[]','[]','https://example.com','abc123','summary','1.0',
              '2026-01-01T00:00:00',0.9,'ACTIVE','TEST_PLAN','run1','{}');
@@ -179,8 +182,8 @@ def test_sync_requires_registration_converted_to_bool(sqlite_db, mock_pg):
     rows = versions_call[0][2]  # positional arg: list of row tuples
     assert len(rows) == 1
     row = rows[0]
-    # requires_registration is at index 17 in the promotion_versions column order
-    requires_reg_value = row[17]
+    # requires_registration is at index 18 in the promotion_versions column order
+    requires_reg_value = row[18]
     assert requires_reg_value is True
     assert isinstance(requires_reg_value, bool)
 
@@ -231,11 +234,11 @@ def test_sync_includes_plan_id_in_postgres_upserts(sqlite_db, mock_pg):
 
     versions_call = mock_psycopg2.extras.execute_values.call_args_list[1]
     version_rows = versions_call[0][2]
-    assert version_rows[0][31] == "TEST_PLAN"
+    assert version_rows[0][32] == "TEST_PLAN"
 
     current_call = mock_psycopg2.extras.execute_values.call_args_list[2]
     current_rows = current_call[0][2]
-    assert current_rows[0][31] == "TEST_PLAN"
+    assert current_rows[0][32] == "TEST_PLAN"
 
 
 def test_sync_retries_failed_batch_with_smaller_chunks(sqlite_db, mock_pg, monkeypatch):
@@ -287,7 +290,7 @@ def test_sync_requires_registration_zero_becomes_false(sqlite_db, mock_pg):
     all_calls = mock_psycopg2.extras.execute_values.call_args_list
     versions_call = all_calls[1]
     rows = versions_call[0][2]
-    requires_reg_value = rows[0][17]
+    requires_reg_value = rows[0][18]
     assert requires_reg_value is False
     assert isinstance(requires_reg_value, bool)
 
@@ -342,4 +345,66 @@ def test_sync_marks_discontinued_card_name_as_inactive(sqlite_db, mock_pg):
     version_rows = versions_call[0][2]
     assert version_rows[0][6] == 'KOKO icash聯名卡(已停發)'
     assert version_rows[0][7] == 'DISCONTINUED'
-    assert version_rows[0][30] == 'INACTIVE'
+    assert version_rows[0][31] == 'INACTIVE'
+
+
+def test_sync_can_limit_scope_to_single_card_for_postgres(sqlite_db, mock_pg):
+    conn = sqlite3.connect(sqlite_db)
+    conn.execute(
+        """
+        INSERT INTO promotion_versions VALUES
+        ('ver2','promo2','Other Promo','TEST','Test Bank','OTHER_CARD','Other Card',
+         'ACTIVE',0,NULL,'ONLINE','GENERAL',NULL,'PERCENT',1.0,0,NULL,NULL,
+         0,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
+         '[]','[]','https://example.com/other','def456','summary','1.0',
+         '2026-01-01T00:00:00',0.9,'ACTIVE',NULL,'run1','{}')
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO promotion_current VALUES
+        ('promo2','ver2','Other Promo','TEST','Test Bank','OTHER_CARD','Other Card',
+         'ACTIVE',0,NULL,'ONLINE','GENERAL',NULL,'PERCENT',1.0,0,NULL,NULL,
+         0,'RECOMMENDABLE','GENERAL','2026-01-01','2026-12-31',
+         '[]','[]','https://example.com/other','def456','summary','1.0',
+         '2026-01-01T00:00:00',0.9,'ACTIVE',NULL,'run1','{}')
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+    result = sync_sqlite_to_supabase(
+        sqlite_db,
+        "postgresql://fake/db",
+        SyncFilter(card_code="TEST_CARD"),
+    )
+
+    assert result.versions_upserted == 1
+    assert result.current_upserted == 1
+    versions_rows = mock_psycopg2.extras.execute_values.call_args_list[1][0][2]
+    current_rows = mock_psycopg2.extras.execute_values.call_args_list[2][0][2]
+    assert {row[5] for row in versions_rows} == {"TEST_CARD"}
+    assert {row[5] for row in current_rows} == {"TEST_CARD"}
+    mock_cursor.execute.assert_any_call(
+        "DELETE FROM promotion_current WHERE card_code = %s",
+        ["TEST_CARD"],
+    )
+
+
+def test_sync_http_can_limit_scope_to_single_card(sqlite_db, mock_rest):
+    mock_session_cls, mock_session, mock_response = mock_rest
+
+    result = sync_sqlite_to_supabase_http(
+        sqlite_db,
+        "https://demo.supabase.co",
+        "service-role-key",
+        SyncFilter(bank_code="CATHAY", card_code="CATHAY_CUBE"),
+    )
+
+    assert result.current_upserted == 0
+    delete_call = mock_session.delete.call_args_list[0]
+    assert delete_call.kwargs["params"] == {
+        "bank_code": "eq.CATHAY",
+        "card_code": "eq.CATHAY_CUBE",
+    }

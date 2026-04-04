@@ -9,6 +9,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
 from jobs.refresh_and_deploy import find_latest_jsonl, run_sync
+from extractor.supabase_store import SyncFilter
 
 
 def _sync_result() -> SimpleNamespace:
@@ -37,7 +38,7 @@ def test_run_sync_prefers_pooler_before_direct_url(monkeypatch):
         assert run_sync("dummy.db") is True
 
     assert mock_validate.call_args_list == [call(pool_url), call(direct_url)]
-    assert mock_sync.call_args_list == [call("dummy.db", pool_url)]
+    assert mock_sync.call_args_list == [call("dummy.db", pool_url, SyncFilter())]
 
 
 def test_run_sync_prefers_rest_transport_when_configured(monkeypatch):
@@ -61,7 +62,7 @@ def test_run_sync_prefers_rest_transport_when_configured(monkeypatch):
 
     mock_validate_project_url.assert_called_once_with("https://demo.supabase.co")
     mock_validate_dsn.assert_called_once()
-    assert mock_http_sync.call_args_list == [call("dummy.db", "https://demo.supabase.co", "service-role-key")]
+    assert mock_http_sync.call_args_list == [call("dummy.db", "https://demo.supabase.co", "service-role-key", SyncFilter())]
     mock_pg_sync.assert_not_called()
 
 
@@ -83,8 +84,28 @@ def test_run_sync_falls_back_to_direct_url_when_pooler_fails(monkeypatch):
         assert run_sync("dummy.db") is True
 
     assert mock_sync.call_args_list == [
-        call("dummy.db", pool_url),
-        call("dummy.db", direct_url),
+        call("dummy.db", pool_url, SyncFilter()),
+        call("dummy.db", direct_url, SyncFilter()),
+    ]
+
+
+def test_run_sync_passes_scope_filter(monkeypatch):
+    monkeypatch.setenv("SUPABASE_POOL_MODE", "postgresql://postgres.demo:secret@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres")
+
+    with (
+        patch("jobs.refresh_and_deploy.load_dotenv"),
+        patch("extractor.supabase_store.validate_supabase_url"),
+        patch("extractor.supabase_store.get_reconnect_warn_threshold", return_value=3),
+        patch("extractor.supabase_store.sync_sqlite_to_supabase", return_value=_sync_result()) as mock_sync,
+    ):
+        assert run_sync("dummy.db", sync_bank="cathay", sync_card="cathay_cube") is True
+
+    assert mock_sync.call_args_list == [
+        call(
+            "dummy.db",
+            "postgresql://postgres.demo:secret@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres",
+            SyncFilter(bank_code="CATHAY", card_code="CATHAY_CUBE"),
+        )
     ]
 
 

@@ -68,6 +68,271 @@ CUBE_PLAN_CONFIG: dict[str, tuple[str, str, str]] = {
     "日本賞": ("CATHAY_CUBE_JAPAN", "3.5", "OVERSEAS"),
 }
 
+CUBE_PLAN_VARIANTS: dict[str, list[dict[str, str]]] = {
+    "玩數位": [
+        {
+            "title_suffix": "指定通路回饋",
+            "category": "ONLINE",
+            "subcategory": "GENERAL",
+            "channel": "ONLINE",
+            "body": "網購、數位訂閱與 AI 工具等指定通路",
+        },
+        {
+            "title_suffix": "AI工具訂閱",
+            "category": "ONLINE",
+            "subcategory": "AI_TOOL",
+            "channel": "ONLINE",
+            "body": "ChatGPT、Canva、Claude、Cursor、Duolingo、Gamma、Gemini、Notion、Perplexity、Speak",
+        },
+        {
+            "title_suffix": "串流影音平台",
+            "category": "ENTERTAINMENT",
+            "subcategory": "STREAMING",
+            "channel": "ONLINE",
+            "body": "Apple 媒體服務、Google Play、Disney+、Netflix、Spotify、YouTube Premium、Max",
+        },
+        {
+            "title_suffix": "網購平台",
+            "category": "ONLINE",
+            "subcategory": "ECOMMERCE",
+            "channel": "ONLINE",
+            "body": "蝦皮購物、momo購物網、PChome 24h購物、小樹購",
+        },
+        {
+            "title_suffix": "國際電商",
+            "category": "ONLINE",
+            "subcategory": "INTERNATIONAL_ECOMMERCE",
+            "channel": "ONLINE",
+            "body": "Coupang 酷澎(台灣)、淘寶、天貓",
+        },
+    ],
+    "樂饗購": [
+        {
+            "title_suffix": "指定通路回饋",
+            "category": "SHOPPING",
+            "subcategory": "GENERAL",
+            "channel": "ALL",
+            "body": "百貨購物、美食餐廳、外送平台與藥妝等指定通路",
+        },
+        {
+            "title_suffix": "國內餐飲",
+            "category": "DINING",
+            "subcategory": "GENERAL",
+            "channel": "OFFLINE",
+            "body": "國內餐飲與麥當勞等指定餐飲通路",
+        },
+        {
+            "title_suffix": "外送平台",
+            "category": "DINING",
+            "subcategory": "DELIVERY",
+            "channel": "ONLINE",
+            "body": "Uber Eats、foodpanda",
+        },
+        {
+            "title_suffix": "百貨購物",
+            "category": "SHOPPING",
+            "subcategory": "DEPARTMENT",
+            "channel": "OFFLINE",
+            "body": "遠東SOGO、新光三越、遠東百貨、台北101、BELLAVITA、微風廣場、誠品生活、京站、夢時代、漢神百貨等指定百貨",
+        },
+        {
+            "title_suffix": "藥妝通路",
+            "category": "SHOPPING",
+            "subcategory": "DRUGSTORE",
+            "channel": "OFFLINE",
+            "body": "康是美、屈臣氏",
+        },
+    ],
+    "趣旅行": [
+        {
+            "title_suffix": "指定通路回饋",
+            "category": "OVERSEAS",
+            "subcategory": "GENERAL",
+            "channel": "ALL",
+            "body": "海外消費、交通、航空、飯店、旅遊平台與旅行社等指定通路",
+        },
+        {
+            "title_suffix": "指定交通",
+            "category": "TRANSPORT",
+            "subcategory": "GENERAL",
+            "channel": "ALL",
+            "body": "Apple 錢包指定交通卡、Uber、Grab、台灣高鐵、yoxi、台灣大車隊、iRent、和運租車、格上租車",
+        },
+        {
+            "title_suffix": "叫車租車",
+            "category": "TRANSPORT",
+            "subcategory": "RIDESHARE",
+            "channel": "ALL",
+            "body": "Uber、Grab、yoxi、台灣大車隊、iRent、和運租車、格上租車",
+        },
+        {
+            "title_suffix": "指定航空公司",
+            "category": "TRANSPORT",
+            "subcategory": "AIRLINE",
+            "channel": "ALL",
+            "body": "中華航空、長榮航空、星宇航空、台灣虎航、國泰航空、樂桃航空、阿聯酋航空、酷航、捷星航空、日本航空、ANA全日空、亞洲航空、聯合航空、新加坡航空、越捷航空、大韓航空、達美航空、土耳其航空、卡達航空、法國航空",
+        },
+        {
+            "title_suffix": "海外實體消費",
+            "category": "OVERSEAS",
+            "subcategory": "OVERSEAS_IN_STORE",
+            "channel": "OFFLINE",
+            "body": "海外實體消費(含國外餐飲、飯店到店付款等)",
+        },
+        {
+            "title_suffix": "旅遊訂房平台",
+            "category": "OVERSEAS",
+            "subcategory": "TRAVEL_PLATFORM",
+            "channel": "ONLINE",
+            "body": "KKday、Klook、Agoda、Airbnb、Booking.com、Trip.com、ezTravel易遊網",
+        },
+    ],
+    "集精選": [
+        {
+            "title_suffix": "指定通路回饋",
+            "category": "OTHER",
+            "subcategory": "GENERAL",
+            "channel": "ALL",
+            "body": "超商超市、加油、充電停車與生活家居等指定通路",
+        },
+        {
+            "title_suffix": "量販超市",
+            "category": "GROCERY",
+            "subcategory": "SUPERMARKET",
+            "channel": "OFFLINE",
+            "body": "家樂福、LOPIA台灣、全聯福利中心實體門市",
+        },
+        {
+            "title_suffix": "超商通路",
+            "category": "GROCERY",
+            "subcategory": "CONVENIENCE_STORE",
+            "channel": "OFFLINE",
+            "body": "7-ELEVEN實體門市、全家便利商店實體門市",
+        },
+        {
+            "title_suffix": "充電通路",
+            "category": "OTHER",
+            "subcategory": "EV_CHARGING",
+            "channel": "ALL",
+            "body": "U-POWER、EVOASIS、EVALUE、TAIL、iCharging",
+        },
+        {
+            "title_suffix": "停車通路",
+            "category": "OTHER",
+            "subcategory": "PARKING",
+            "channel": "ALL",
+            "body": "車麻吉、uTagGo",
+        },
+        {
+            "title_suffix": "生活家居",
+            "category": "OTHER",
+            "subcategory": "HOME_LIVING",
+            "channel": "OFFLINE",
+            "body": "IKEA宜家家居",
+        },
+    ],
+}
+
+CUBE_VARIANT_CONDITIONS: dict[tuple[str, str], list[dict[str, str]]] = {
+    ("玩數位", "AI_TOOL"): [
+        {"type": "MERCHANT", "value": "CHATGPT", "label": "ChatGPT"},
+        {"type": "MERCHANT", "value": "CANVA", "label": "Canva"},
+        {"type": "MERCHANT", "value": "CLAUDE", "label": "Claude"},
+        {"type": "MERCHANT", "value": "CURSOR", "label": "Cursor"},
+        {"type": "MERCHANT", "value": "DUOLINGO", "label": "Duolingo"},
+        {"type": "MERCHANT", "value": "GAMMA", "label": "Gamma"},
+        {"type": "MERCHANT", "value": "GEMINI", "label": "Gemini"},
+        {"type": "MERCHANT", "value": "NOTION", "label": "Notion"},
+        {"type": "MERCHANT", "value": "PERPLEXITY", "label": "Perplexity"},
+        {"type": "MERCHANT", "value": "SPEAK", "label": "Speak"},
+    ],
+    ("玩數位", "STREAMING"): [
+        {"type": "MERCHANT", "value": "APPLE_MEDIA_SERVICES", "label": "Apple 媒體服務"},
+        {"type": "MERCHANT", "value": "GOOGLE_PLAY", "label": "Google Play"},
+        {"type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
+        {"type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
+        {"type": "MERCHANT", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
+        {"type": "MERCHANT", "value": "MAX", "label": "Max"},
+    ],
+    ("玩數位", "ECOMMERCE"): [
+        {"type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮購物"},
+        {"type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo購物網"},
+        {"type": "ECOMMERCE_PLATFORM", "value": "PCHOME_24H", "label": "PChome 24h購物"},
+        {"type": "ECOMMERCE_PLATFORM", "value": "CUBE_SHOP", "label": "小樹購"},
+    ],
+    ("玩數位", "INTERNATIONAL_ECOMMERCE"): [
+        {"type": "ECOMMERCE_PLATFORM", "value": "COUPANG", "label": "Coupang 酷澎"},
+        {"type": "ECOMMERCE_PLATFORM", "value": "TAOBAO", "label": "淘寶"},
+        {"type": "ECOMMERCE_PLATFORM", "value": "TMALL", "label": "天貓"},
+    ],
+    ("樂饗購", "DELIVERY"): [
+        {"type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
+        {"type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+    ],
+    ("樂饗購", "DEPARTMENT"): [
+        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "遠東SOGO百貨"},
+        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"type": "RETAIL_CHAIN", "value": "BREEZE", "label": "微風廣場"},
+        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+        {"type": "RETAIL_CHAIN", "value": "TAIPEI_101", "label": "台北101"},
+    ],
+    ("樂饗購", "DRUGSTORE"): [
+        {"type": "RETAIL_CHAIN", "value": "COSMED", "label": "康是美"},
+        {"type": "RETAIL_CHAIN", "value": "WATSONS", "label": "屈臣氏"},
+    ],
+    ("趣旅行", "RIDESHARE"): [
+        {"type": "MERCHANT", "value": "UBER", "label": "Uber"},
+        {"type": "MERCHANT", "value": "GRAB", "label": "Grab"},
+        {"type": "MERCHANT", "value": "YOXI", "label": "yoxi"},
+        {"type": "MERCHANT", "value": "TAIWAN_TAXI", "label": "台灣大車隊"},
+        {"type": "MERCHANT", "value": "IRENT", "label": "iRent"},
+    ],
+    ("趣旅行", "AIRLINE"): [
+        {"type": "MERCHANT", "value": "CHINA_AIRLINES", "label": "中華航空"},
+        {"type": "MERCHANT", "value": "CAL", "label": "華航"},
+        {"type": "MERCHANT", "value": "EVA_AIR", "label": "長榮航空"},
+        {"type": "MERCHANT", "value": "STARLUX", "label": "星宇航空"},
+        {"type": "MERCHANT", "value": "CATHAY_PACIFIC", "label": "國泰航空"},
+        {"type": "MERCHANT", "value": "JAPAN_AIRLINES", "label": "日本航空"},
+        {"type": "MERCHANT", "value": "ANA", "label": "ANA 全日空"},
+        {"type": "MERCHANT", "value": "SINGAPORE_AIRLINES", "label": "新加坡航空"},
+    ],
+    ("趣旅行", "TRAVEL_PLATFORM"): [
+        {"type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
+        {"type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
+        {"type": "MERCHANT", "value": "AGODA", "label": "Agoda"},
+        {"type": "MERCHANT", "value": "AIRBNB", "label": "Airbnb"},
+        {"type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
+        {"type": "MERCHANT", "value": "TRIP_COM", "label": "Trip.com"},
+        {"type": "MERCHANT", "value": "EZTRAVEL", "label": "ezTravel"},
+    ],
+    ("集精選", "SUPERMARKET"): [
+        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
+        {"type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
+        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯福利中心"},
+        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
+    ],
+    ("集精選", "CONVENIENCE_STORE"): [
+        {"type": "RETAIL_CHAIN", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"type": "RETAIL_CHAIN", "value": "FAMILYMART", "label": "全家便利商店"},
+    ],
+    ("集精選", "EV_CHARGING"): [
+        {"type": "MERCHANT", "value": "U_POWER", "label": "U-POWER"},
+        {"type": "MERCHANT", "value": "EVOASIS", "label": "EVOASIS"},
+        {"type": "MERCHANT", "value": "EVALUE", "label": "EVALUE"},
+        {"type": "MERCHANT", "value": "TAIL", "label": "TAIL"},
+        {"type": "MERCHANT", "value": "ICHARGING", "label": "iCharging"},
+    ],
+    ("集精選", "PARKING"): [
+        {"type": "MERCHANT", "value": "CHEMAJI", "label": "車麻吉"},
+        {"type": "MERCHANT", "value": "UTAGGO", "label": "uTagGo"},
+    ],
+    ("集精選", "HOME_LIVING"): [
+        {"type": "RETAIL_CHAIN", "value": "IKEA", "label": "IKEA"},
+    ],
+}
+
 
 @dataclass
 class CardRecord:
@@ -298,19 +563,40 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
             rate = tier["rate"]
             tier_title = tier["title"]
             merchants = tier["merchants"]
-            category = infer_category(tier_title, merchants, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
-            subcategory = infer_subcategory(tier_title, merchants, category, SUBCATEGORY_SIGNALS)
-            category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
-            channel = infer_channel(tier_title, merchants, CHANNEL_SIGNALS)
-            title = f"{card.card_name} {plan_name} {tier_title}"
-            body = f"{tier_title} 享{rate}%小樹點回饋 {merchants}"
             valid_from = dates[0] if dates else None
             valid_until = dates[1] if dates else None
 
             if not valid_from or not valid_until:
                 continue
 
-            promo = _build_plan_promotion(
+            variants = CUBE_PLAN_VARIANTS.get(plan_name)
+            if variants:
+                for variant in variants:
+                    promo = _build_plan_promotion_with_conditions(
+                        card=card,
+                        title=f"{card.card_name} {plan_name} {variant['title_suffix']}",
+                        body=f"{variant['body']}；{tier_title} 享{rate}%小樹點回饋",
+                        rate=rate,
+                        category=variant["category"],
+                        subcategory=variant["subcategory"],
+                        channel=variant["channel"],
+                        valid_from=valid_from,
+                        valid_until=valid_until,
+                        plan_id=plan_id,
+                        plan_name=plan_name,
+                        extra_conditions=_build_variant_conditions(plan_name, variant["subcategory"]),
+                    )
+                    promotions.append(promo)
+                continue
+
+            category = infer_category(tier_title, merchants, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+            subcategory = infer_subcategory(tier_title, merchants, category, SUBCATEGORY_SIGNALS)
+            category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+            channel = infer_channel(tier_title, merchants, CHANNEL_SIGNALS)
+            title = f"{card.card_name} {plan_name} {tier_title}"
+            body = f"{tier_title} 享{rate}%小樹點回饋 {merchants}"
+
+            promo = _build_plan_promotion_with_conditions(
                 card=card,
                 title=title,
                 body=body,
@@ -334,13 +620,33 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
             continue
 
         valid_from, valid_until = dates
+        variants = CUBE_PLAN_VARIANTS.get(plan_name)
+        if variants:
+            for variant in variants:
+                promo = _build_plan_promotion_with_conditions(
+                    card=card,
+                    title=f"{card.card_name} {plan_name} {variant['title_suffix']}",
+                    body=f"{variant['body']}；指定通路享{default_rate}%小樹點回饋",
+                    rate=default_rate,
+                    category=variant["category"],
+                    subcategory=variant["subcategory"],
+                    channel=variant["channel"],
+                    valid_from=valid_from,
+                    valid_until=valid_until,
+                    plan_id=plan_id,
+                    plan_name=plan_name,
+                    extra_conditions=_build_variant_conditions(plan_name, variant["subcategory"]),
+                )
+                promotions.append(promo)
+            continue
+
         title = f"{card.card_name} {plan_name} 指定通路回饋"
         body = f"{plan_name}方案 指定通路享{default_rate}%小樹點回饋"
         channel = "ONLINE" if default_category == "ONLINE" else "ALL"
         fallback_subcategory = infer_subcategory(title, body, default_category, SUBCATEGORY_SIGNALS)
         default_category, fallback_subcategory = apply_plan_subcategory_hint(plan_id, default_category, fallback_subcategory)
 
-        promo = _build_plan_promotion(
+        promo = _build_plan_promotion_with_conditions(
             card=card,
             title=title,
             body=body,
@@ -371,7 +677,13 @@ def _build_plan_promotion(
     valid_until: str,
     plan_id: str | None,
     plan_name: str,
+    extra_conditions: list[dict[str, str]] | None = None,
 ) -> Dict[str, object]:
+    conditions = [
+        {"type": "TEXT", "value": f"需切換至「{plan_name}」方案", "label": f"需切換至「{plan_name}」方案"}
+    ]
+    if extra_conditions:
+        conditions.extend(extra_conditions)
     return {
         "title": title,
         "cardCode": card.card_code,
@@ -401,6 +713,62 @@ def _build_plan_promotion(
         "status": "ACTIVE",
         "planId": plan_id,
     }
+
+
+def _build_plan_promotion_with_conditions(
+    *,
+    card: CardRecord,
+    title: str,
+    body: str,
+    rate: str,
+    category: str,
+    subcategory: str = "GENERAL",
+    channel: str,
+    valid_from: str,
+    valid_until: str,
+    plan_id: str | None,
+    plan_name: str,
+    extra_conditions: list[dict[str, str]] | None = None,
+) -> Dict[str, object]:
+    conditions = [
+        {"type": "TEXT", "value": f"需切換至「{plan_name}」方案", "label": f"需切換至「{plan_name}」方案"}
+    ]
+    if extra_conditions:
+        conditions.extend(extra_conditions)
+
+    return {
+        "title": title,
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "subcategory": subcategory,
+        "channel": channel,
+        "cashbackType": "PERCENT",
+        "cashbackValue": rate,
+        "minAmount": 0,
+        "maxCashback": None,
+        "frequencyLimit": "NONE",
+        "requiresRegistration": False,
+        "recommendationScope": "RECOMMENDABLE",
+        "eligibilityType": infer_eligibility_type(card.card_name),
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": conditions,
+        "excludedConditions": [],
+        "sourceUrl": card.detail_url,
+        "summary": f"{title}；{rate}% 小樹點回饋；期間 {valid_from}~{valid_until}",
+        "status": "ACTIVE",
+        "planId": plan_id,
+    }
+
+
+def _build_variant_conditions(plan_name: str, subcategory: str) -> list[dict[str, str]]:
+    return [dict(condition) for condition in CUBE_VARIANT_CONDITIONS.get((plan_name, subcategory), [])]
 
 
 def _normalize_date(date_str: str) -> str | None:

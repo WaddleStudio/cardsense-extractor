@@ -77,6 +77,10 @@ def parse_args() -> argparse.Namespace:
                         help="Copy DB to cardsense-api/data/ after sync (local dev only)")
     parser.add_argument("--db", default=DEFAULT_DB_PATH,
                         help="SQLite DB path")
+    parser.add_argument("--sync-bank", default=None,
+                        help="Limit Supabase sync to a single bank_code")
+    parser.add_argument("--sync-card", default=None,
+                        help="Limit Supabase sync to a single card_code")
     return parser.parse_args()
 
 
@@ -228,16 +232,21 @@ def _get_supabase_http_candidate(validate_supabase_project_url) -> tuple[tuple[s
     return ("SUPABASE_REST", project_url, service_role_key), []
 
 
-def run_sync(db_path: str) -> bool:
+def run_sync(db_path: str, sync_bank: str | None = None, sync_card: str | None = None) -> bool:
     """Sync SQLite → Supabase. Returns True on success, False on failure."""
     load_dotenv()
     from extractor.supabase_store import (
+        SyncFilter,
         get_reconnect_warn_threshold,
         get_http_timeout_seconds,
         sync_sqlite_to_supabase_http,
         sync_sqlite_to_supabase,
         validate_supabase_project_url,
         validate_supabase_url,
+    )
+    sync_filter = SyncFilter(
+        bank_code=sync_bank.upper() if sync_bank else None,
+        card_code=sync_card.upper() if sync_card else None,
     )
 
     http_candidate, http_config_errors = _get_supabase_http_candidate(validate_supabase_project_url)
@@ -256,6 +265,13 @@ def run_sync(db_path: str) -> bool:
         f"statement_timeout_ms={os.environ.get('SUPABASE_STATEMENT_TIMEOUT_MS', '300000')} "
         f"http_timeout_sec={get_http_timeout_seconds()}"
     )
+    if sync_filter.has_filter():
+        scope_parts = []
+        if sync_filter.bank_code:
+            scope_parts.append(f"bank={sync_filter.bank_code}")
+        if sync_filter.card_code:
+            scope_parts.append(f"card={sync_filter.card_code}")
+        _console(f">>> Sync scope: {' '.join(scope_parts)}")
 
     errors: list[str] = []
     if http_candidate:
@@ -263,7 +279,7 @@ def run_sync(db_path: str) -> bool:
         rest_host = urlsplit(project_url).hostname or "unknown-host"
         _console(f">>> Trying SUPABASE_REST: {rest_host} (https)")
         try:
-            result = sync_sqlite_to_supabase_http(db_path, project_url, service_role_key)
+            result = sync_sqlite_to_supabase_http(db_path, project_url, service_role_key, sync_filter)
         except Exception as error:
             errors.append(f"SUPABASE_REST: {error}")
             _console(f">>> WARNING: SUPABASE_REST failed: {error}")
@@ -276,7 +292,7 @@ def run_sync(db_path: str) -> bool:
             f">>> Trying {env_name}: {_describe_supabase_target(supabase_url)}"
         )
         try:
-            result = sync_sqlite_to_supabase(db_path, supabase_url)
+            result = sync_sqlite_to_supabase(db_path, supabase_url, sync_filter)
             break
         except Exception as error:
             errors.append(f"{env_name}: {error}")
@@ -377,7 +393,7 @@ def main() -> int:
 
     # Supabase sync (default when SUPABASE_DATABASE_URL is set)
     if not args.no_supabase:
-        synced = run_sync(args.db)
+        synced = run_sync(args.db, sync_bank=args.sync_bank, sync_card=args.sync_card)
         if synced:
             _console("\n>>> NEXT STEPS:")
             _console("  Railway will auto-deploy from Supabase data (no git push needed)")

@@ -62,6 +62,15 @@ class SyncResult:
             self.table_durations = {}
 
 
+@dataclass(frozen=True)
+class SyncFilter:
+    bank_code: str | None = None
+    card_code: str | None = None
+
+    def has_filter(self) -> bool:
+        return bool(self.bank_code or self.card_code)
+
+
 def validate_supabase_url(supabase_url: str) -> None:
     """Reject placeholder or malformed Postgres DSNs before psycopg2 connects."""
     if "://" not in supabase_url:
@@ -102,7 +111,11 @@ def validate_supabase_project_url(supabase_project_url: str) -> None:
         raise ValueError("Supabase project URL is missing a hostname")
 
 
-def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResult:
+def sync_sqlite_to_supabase(
+    sqlite_db_path: str,
+    supabase_url: str,
+    sync_filter: SyncFilter | None = None,
+) -> SyncResult:
     """Read all three tables from SQLite and upsert into Supabase PostgreSQL.
 
     Tables are synced in foreign-key order:
@@ -114,6 +127,7 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
     Rows are upserted in batches to avoid Supabase statement timeouts.
     """
     validate_supabase_url(supabase_url)
+    sync_filter = sync_filter or SyncFilter()
     result = SyncResult()
     sqlite_conn = sqlite3.connect(sqlite_db_path)
     sqlite_conn.row_factory = sqlite3.Row
@@ -130,6 +144,7 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
                 bool_cols=frozenset(),
                 counter_attr="runs_upserted",
                 result=result,
+                sync_filter=sync_filter,
             )
             result.table_durations["extract_runs"] = time.perf_counter() - table_start
 
@@ -143,11 +158,12 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
                 bool_cols=frozenset({"requires_registration"}),
                 counter_attr="versions_upserted",
                 result=result,
+                sync_filter=sync_filter,
             )
             result.table_durations["promotion_versions"] = time.perf_counter() - table_start
 
             table_start = time.perf_counter()
-            _clear_table_pg(pg_conn, "promotion_current")
+            _clear_table_pg(pg_conn, "promotion_current", sync_filter)
             pg_conn, _ = _sync_table(
                 sqlite_conn, pg_conn, supabase_url,
                 sqlite_table="promotion_current",
@@ -159,6 +175,7 @@ def sync_sqlite_to_supabase(sqlite_db_path: str, supabase_url: str) -> SyncResul
                 result=result,
                 required_parent_keys=synced_version_ids,
                 parent_key_col="promo_version_id",
+                sync_filter=sync_filter,
             )
             result.table_durations["promotion_current"] = time.perf_counter() - table_start
         finally:
@@ -173,12 +190,14 @@ def sync_sqlite_to_supabase_http(
     sqlite_db_path: str,
     supabase_project_url: str,
     service_role_key: str,
+    sync_filter: SyncFilter | None = None,
 ) -> SyncResult:
     """Sync all three SQLite tables to Supabase via the REST API over HTTPS."""
     validate_supabase_project_url(supabase_project_url)
     if not service_role_key:
         raise ValueError("Supabase service role key is required for REST sync")
 
+    sync_filter = sync_filter or SyncFilter()
     result = SyncResult()
     sqlite_conn = sqlite3.connect(sqlite_db_path)
     sqlite_conn.row_factory = sqlite3.Row
@@ -208,6 +227,7 @@ def sync_sqlite_to_supabase_http(
             counter_attr="runs_upserted",
             result=result,
             timeout_sec=timeout_sec,
+            sync_filter=sync_filter,
         )
         result.table_durations["extract_runs"] = time.perf_counter() - table_start
 
@@ -227,6 +247,7 @@ def sync_sqlite_to_supabase_http(
             timeout_sec=timeout_sec,
             required_parent_keys=synced_run_ids,
             parent_key_col="run_id",
+            sync_filter=sync_filter,
         )
         result.table_durations["promotion_versions"] = time.perf_counter() - table_start
 
@@ -237,6 +258,7 @@ def sync_sqlite_to_supabase_http(
             headers=headers,
             rest_table="promotion_current",
             timeout_sec=timeout_sec,
+            sync_filter=sync_filter,
         )
         _sync_table_http(
             sqlite_conn,
@@ -253,6 +275,7 @@ def sync_sqlite_to_supabase_http(
             timeout_sec=timeout_sec,
             required_parent_keys=synced_version_ids,
             parent_key_col="promo_version_id",
+            sync_filter=sync_filter,
         )
         result.table_durations["promotion_current"] = time.perf_counter() - table_start
     finally:
@@ -315,10 +338,11 @@ def _sync_table(
     result: SyncResult,
     required_parent_keys: set[str] | None = None,
     parent_key_col: str | None = None,
+    sync_filter: SyncFilter | None = None,
 ):
     """Upsert rows in batches. Returns pg_conn plus synced primary keys."""
     batch_size = _get_batch_size()
-    rows = _read_sqlite_rows(sqlite_conn, sqlite_table, cols, bool_cols)
+    rows = _read_sqlite_rows(sqlite_conn, sqlite_table, cols, bool_cols, sync_filter)
     if required_parent_keys is not None and parent_key_col is not None:
         parent_idx = cols.index(parent_key_col)
         filtered_rows = [row for row in rows if row[parent_idx] in required_parent_keys]
@@ -375,10 +399,11 @@ def _sync_table_http(
     timeout_sec: int,
     required_parent_keys: set[str] | None = None,
     parent_key_col: str | None = None,
+    sync_filter: SyncFilter | None = None,
 ) -> set[str]:
     """Upsert rows into Supabase REST in batches and return synced primary keys."""
     batch_size = _get_batch_size()
-    rows = _read_sqlite_rows(sqlite_conn, sqlite_table, cols, bool_cols)
+    rows = _read_sqlite_rows(sqlite_conn, sqlite_table, cols, bool_cols, sync_filter)
     if required_parent_keys is not None and parent_key_col is not None:
         parent_idx = cols.index(parent_key_col)
         filtered_rows = [row for row in rows if row[parent_idx] in required_parent_keys]
@@ -435,9 +460,13 @@ def _build_upsert_sql(pg_table: str, cols: tuple[str, ...], pk: str) -> str:
     """
 
 
-def _clear_table_pg(pg_conn, pg_table: str) -> None:
+def _clear_table_pg(pg_conn, pg_table: str, sync_filter: SyncFilter | None = None) -> None:
     with pg_conn.cursor() as cursor:
-        cursor.execute(f"DELETE FROM {pg_table}")
+        if sync_filter and sync_filter.has_filter():
+            where_sql, params = _build_postgres_filter_clause(sync_filter)
+            cursor.execute(f"DELETE FROM {pg_table} WHERE {where_sql}", params)
+        else:
+            cursor.execute(f"DELETE FROM {pg_table}")
     pg_conn.commit()
 
 
@@ -448,10 +477,15 @@ def _clear_table_http(
     headers: dict[str, str],
     rest_table: str,
     timeout_sec: int,
+    sync_filter: SyncFilter | None = None,
 ) -> None:
+    if sync_filter and sync_filter.has_filter():
+        params = _build_rest_filter_params(sync_filter)
+    else:
+        params = {rest_table.split("_")[0]: "not.is.null"} if rest_table == "extract_runs" else {"promo_id": "not.is.null"}
     response = session.delete(
         f"{base_url}/rest/v1/{rest_table}",
-        params={rest_table.split("_")[0]: "not.is.null"} if rest_table == "extract_runs" else {"promo_id": "not.is.null"},
+        params=params,
         headers={**headers, "Prefer": "return=minimal"},
         timeout=timeout_sec,
     )
@@ -606,11 +640,73 @@ def _read_sqlite_rows(
     sqlite_table: str,
     cols: tuple[str, ...],
     bool_cols: frozenset[str],
+    sync_filter: SyncFilter | None = None,
 ) -> list[tuple]:
+    query, params = _build_sqlite_select(sqlite_table, cols, sync_filter or SyncFilter())
     return [
         _to_pg_row(row, cols, bool_cols)
-        for row in sqlite_conn.execute(f"SELECT {', '.join(cols)} FROM {sqlite_table}")
+        for row in sqlite_conn.execute(query, params)
     ]
+
+
+def _build_sqlite_select(
+    sqlite_table: str,
+    cols: tuple[str, ...],
+    sync_filter: SyncFilter,
+) -> tuple[str, list[str]]:
+    col_sql = ", ".join(cols)
+    if not sync_filter.has_filter():
+        return f"SELECT {col_sql} FROM {sqlite_table}", []
+
+    if sqlite_table in {"promotion_versions", "promotion_current"}:
+        where_sql, params = _build_sqlite_filter_clause(sync_filter)
+        return f"SELECT {col_sql} FROM {sqlite_table} WHERE {where_sql}", params
+
+    if sqlite_table == "extract_runs":
+        where_sql, params = _build_sqlite_filter_clause(sync_filter, table_alias="promotion_versions")
+        query = (
+            f"SELECT {col_sql} FROM extract_runs "
+            f"WHERE run_id IN ("
+            f"SELECT DISTINCT run_id FROM promotion_versions WHERE run_id IS NOT NULL AND {where_sql}"
+            f")"
+        )
+        return query, params
+
+    return f"SELECT {col_sql} FROM {sqlite_table}", []
+
+
+def _build_sqlite_filter_clause(sync_filter: SyncFilter, table_alias: str | None = None) -> tuple[str, list[str]]:
+    prefix = f"{table_alias}." if table_alias else ""
+    clauses: list[str] = []
+    params: list[str] = []
+    if sync_filter.bank_code:
+        clauses.append(f"{prefix}bank_code = ?")
+        params.append(sync_filter.bank_code)
+    if sync_filter.card_code:
+        clauses.append(f"{prefix}card_code = ?")
+        params.append(sync_filter.card_code)
+    return " AND ".join(clauses), params
+
+
+def _build_postgres_filter_clause(sync_filter: SyncFilter) -> tuple[str, list[str]]:
+    clauses: list[str] = []
+    params: list[str] = []
+    if sync_filter.bank_code:
+        clauses.append("bank_code = %s")
+        params.append(sync_filter.bank_code)
+    if sync_filter.card_code:
+        clauses.append("card_code = %s")
+        params.append(sync_filter.card_code)
+    return " AND ".join(clauses), params
+
+
+def _build_rest_filter_params(sync_filter: SyncFilter) -> dict[str, str]:
+    params: dict[str, str] = {}
+    if sync_filter.bank_code:
+        params["bank_code"] = f"eq.{sync_filter.bank_code}"
+    if sync_filter.card_code:
+        params["card_code"] = f"eq.{sync_filter.card_code}"
+    return params
 
 
 def _rows_to_json_objects(rows: list[tuple], cols: tuple[str, ...]) -> list[dict[str, object]]:
