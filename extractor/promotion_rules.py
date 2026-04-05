@@ -787,6 +787,8 @@ PAYMENT_PLATFORM_VALUE_ALIASES: Dict[str, tuple[str, str]] = {
     "IPASS_MONEY": ("IPASS_MONEY", "iPASS MONEY"),
     "ICASH_PAY": ("ICASH_PAY", "icash Pay"),
     "TWQR": ("TWQR", "TWQR"),
+    "HAPPY_GO_PAY": ("HAPPY_GO_PAY", "HAPPY GO Pay"),
+    "HAMI_PAY": ("HAMI_PAY", "Hami Pay"),
 }
 
 PAYMENT_SIGNAL_TOKENS: Dict[str, tuple[str, ...]] = {
@@ -807,6 +809,8 @@ PAYMENT_SIGNAL_TOKENS: Dict[str, tuple[str, ...]] = {
         "iPASS MONEY",
         "icash Pay",
         "TWQR",
+        "HAPPY GO Pay",
+        "Hami Pay",
     ),
     "LINE_PAY": ("LINE Pay",),
     "APPLE_PAY": ("Apple Pay",),
@@ -820,6 +824,8 @@ PAYMENT_SIGNAL_TOKENS: Dict[str, tuple[str, ...]] = {
     "IPASS_MONEY": ("iPASS MONEY",),
     "ICASH_PAY": ("icash Pay",),
     "TWQR": ("TWQR",),
+    "HAPPY_GO_PAY": ("HAPPY GO Pay", "HAPPY GO PAY"),
+    "HAMI_PAY": ("Hami Pay",),
 }
 
 PAYMENT_NEGATION_TOKENS: tuple[str, ...] = (

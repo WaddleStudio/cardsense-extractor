@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 from extractor import ingest
 from extractor.html_utils import collect_links, collapse_text, html_to_lines
@@ -317,6 +317,17 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
         conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
+        category, subcategory, channel, recommendation_scope, conditions = _refine_ctbc_promotion(
+            card_code=enriched_card.card_code,
+            title=clean_title,
+            body=clean_body,
+            category=category,
+            subcategory=subcategory,
+            channel=_infer_channel(clean_title, clean_body),
+            recommendation_scope=recommendation_scope,
+            requires_registration=requires_registration,
+            conditions=conditions,
+        )
 
         promotions.append(
             {
@@ -330,7 +341,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "bankName": BANK_NAME,
                 "category": category,
                 "subcategory": subcategory,
-                "channel": _infer_channel(clean_title, clean_body),
+                "channel": channel,
                 "cashbackType": reward["type"],
                 "cashbackValue": reward["value"],
                 "minAmount": min_amount,
@@ -430,3 +441,122 @@ def _infer_channel(title: str, body: str) -> str:
     if any(token in text for token in OFFLINE_PRIORITY_TOKENS) and not any(token in text for token in ONLINE_PRIORITY_TOKENS):
         return "OFFLINE"
     return infer_channel(title, body, CHANNEL_SIGNALS)
+
+
+def _refine_ctbc_promotion(
+    *,
+    card_code: str,
+    title: str,
+    body: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    recommendation_scope: str,
+    requires_registration: bool,
+    conditions: Sequence[Dict[str, str]],
+) -> tuple[str, str, str, str, List[Dict[str, str]]]:
+    text = collapse_text(f"{title} {body}")
+    refined_conditions = [dict(condition) for condition in conditions]
+
+    if "指定網購平台最高5%回饋" in text and "蝦皮購物" in text and "momo購物網" in text:
+        category = "ONLINE"
+        subcategory = "ECOMMERCE"
+        channel = "ONLINE"
+        refined_conditions = _replace_payment_conditions(
+            refined_conditions,
+            [
+                {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
+                {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
+                {"type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+            ],
+        )
+        refined_conditions = _merge_conditions(
+            refined_conditions,
+            [
+                {"type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮購物"},
+                {"type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo"},
+                {"type": "ECOMMERCE_PLATFORM", "value": "COUPANG", "label": "Coupang"},
+                {"type": "ECOMMERCE_PLATFORM", "value": "TAOBAO", "label": "淘寶"},
+            ],
+        )
+
+    if "店內消費最高3%" in text and "成功綁定支付" in text:
+        category = "SHOPPING"
+        subcategory = "DEPARTMENT"
+        channel = "OFFLINE"
+        refined_conditions = _replace_payment_conditions(
+            refined_conditions,
+            [
+                {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
+                {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
+                {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
+                {"type": "PAYMENT_PLATFORM", "value": "HAPPY_GO_PAY", "label": "HAPPY GO Pay"},
+            ],
+        )
+        refined_conditions = _merge_conditions(
+            refined_conditions,
+            [{"type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"}],
+        )
+
+    if "Hami Pay掃碼支付" in text and "始符合回饋資格" in text:
+        refined_conditions = _merge_conditions(
+            refined_conditions,
+            [{"type": "PAYMENT_PLATFORM", "value": "HAMI_PAY", "label": "Hami Pay"}],
+        )
+
+    if "遠東SOGO百貨即享券專區" in text and "核卡後 30天內" in text:
+        refined_conditions = _replace_payment_conditions(refined_conditions, [])
+
+    if requires_registration and recommendation_scope == "RECOMMENDABLE" and _is_registration_heavy_catalog_offer(text):
+        recommendation_scope = "CATALOG_ONLY"
+
+    # One more pass after CTBC-specific reshaping so persisted payment rows stay narrow.
+    refined_conditions = sanitize_payment_conditions(title, body, refined_conditions)
+    return category, subcategory, channel, recommendation_scope, refined_conditions
+
+
+def _is_registration_heavy_catalog_offer(text: str) -> bool:
+    if "需登錄" not in text and "完成登錄" not in text:
+        return False
+    return any(
+        token in text
+        for token in (
+            "每月限量",
+            "每戶加碼上限",
+            "每戶每月回饋上限",
+            "每人限回饋一次",
+            "限量",
+            "限回饋",
+            "刷卡金回饋",
+        )
+    )
+
+
+def _replace_payment_conditions(
+    conditions: Sequence[Dict[str, str]],
+    replacements: Sequence[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    kept = [
+        dict(condition)
+        for condition in conditions
+        if str(condition.get("type", "")).upper() not in {"PAYMENT_PLATFORM", "PAYMENT_METHOD"}
+    ]
+    return _merge_conditions(kept, replacements)
+
+
+def _merge_conditions(
+    conditions: Sequence[Dict[str, str]],
+    additions: Sequence[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    merged: List[Dict[str, str]] = [dict(condition) for condition in conditions]
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    for condition in additions:
+        key = (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        if key in seen:
+            continue
+        merged.append(dict(condition))
+        seen.add(key)
+    return merged

@@ -144,11 +144,30 @@ def fetch_with_playwright(url: str, timeout: int = 60) -> str:
             if _has_stealth:
                 await stealth_async(page)
             await page.goto(url, wait_until="networkidle", timeout=timeout * 1000)
-            content = await page.content()
+            content = await _get_stable_page_content(page)
             await browser.close()
             return content
 
     return asyncio.run(_fetch())
+
+
+async def _get_stable_page_content(page, attempts: int = 4, settle_ms: int = 800) -> str:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            await page.wait_for_timeout(settle_ms)
+            await page.wait_for_load_state("domcontentloaded", timeout=5000)
+            return await page.content()
+        except Exception as error:
+            last_error = error
+            # Some CTBC pages redirect again after networkidle; give them a brief
+            # chance to settle before retrying the DOM snapshot.
+            if attempt == attempts - 1:
+                break
+            await page.wait_for_timeout(settle_ms * (attempt + 1))
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Unable to capture stable page content")
 
 
 def fetch_with_cloudscraper(url: str, timeout: int = 30) -> str:
