@@ -7,7 +7,7 @@ from typing import Dict, List
 from extractor import ingest
 from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
 from extractor.html_utils import collect_links, collapse_text, html_to_lines
-from extractor.normalize import infer_eligibility_type
+from extractor.normalize import clean_card_name, infer_eligibility_type
 from extractor.page_extractors import SectionedPageConfig, extract_sectioned_page
 from extractor.promotion_rules import (
     build_conditions,
@@ -130,7 +130,7 @@ def list_esun_cards() -> List[CardRecord]:
         text = link["text"]
         if not text:
             continue
-        card_name = _extract_card_name_from_link_text(text)
+        card_name = clean_card_name(_extract_card_name_from_link_text(text))
         if not card_name:
             continue
 
@@ -157,7 +157,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
     enriched_card = CardRecord(
         card_code=card.card_code,
-        card_name=extracted.card_name or card.card_name,
+        card_name=clean_card_name(extracted.card_name or card.card_name),
         detail_url=card.detail_url,
         apply_url=extracted.apply_url,
         annual_fee_summary=extracted.annual_fee_summary,
@@ -247,6 +247,8 @@ def _extract_card_name_from_link_text(text: str) -> str:
             if 2 <= len(candidate) <= 30:
                 return candidate
     return cleaned[:30].strip()
+
+
 
 
 def _build_card_code(url: str) -> str:

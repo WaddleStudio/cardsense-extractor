@@ -159,7 +159,20 @@ def run_import(jsonl_path: str, db_path: str) -> int:
         notes=f"refresh_and_deploy: {os.path.basename(jsonl_path)}",
     )
     connection.close()
+    clean_stored_card_names(db_path)
     return imported
+
+
+def clean_stored_card_names(db_path: str) -> None:
+    from jobs.clean_card_names_in_db import clean_database
+
+    stats = clean_database(Path(db_path).resolve())
+    _console(
+        ">>> Cleaned stored card names: "
+        f"rows={stats['rows_updated']} "
+        f"title_updates={stats['title_updates']} "
+        f"payload_updates={stats['payload_updates']}"
+    )
 
 
 def deploy_db(db_path: str) -> bool:

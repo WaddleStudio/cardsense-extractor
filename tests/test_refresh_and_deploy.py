@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import call, patch
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
-from jobs.refresh_and_deploy import find_latest_jsonl, run_sync
+from jobs.refresh_and_deploy import clean_stored_card_names, find_latest_jsonl, run_sync
 from extractor.supabase_store import SyncFilter
 
 
@@ -129,3 +130,10 @@ def test_find_latest_jsonl_prefers_timestamped_output_over_full_latest_alias(tmp
     monkeypatch.setattr("jobs.refresh_and_deploy.project_root", str(tmp_path))
 
     assert find_latest_jsonl("ESUN") == str(newest)
+
+
+def test_clean_stored_card_names_delegates_to_db_cleaner():
+    with patch("jobs.clean_card_names_in_db.clean_database", return_value={"rows_updated": 3, "title_updates": 2, "payload_updates": 1}) as mock_clean:
+        clean_stored_card_names("dummy.db")
+
+    mock_clean.assert_called_once_with(Path(os.path.abspath("dummy.db")))

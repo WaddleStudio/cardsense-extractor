@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 from extractor import ingest
 from extractor.benefit_plans import apply_plan_subcategory_hint
 from extractor.html_utils import collapse_text, html_to_lines
-from extractor.normalize import infer_eligibility_type
+from extractor.normalize import clean_card_name, infer_eligibility_type
 from extractor.promotion_rules import (
     build_conditions,
     build_summary,
@@ -359,7 +359,7 @@ def list_cathay_cards() -> List[CardRecord]:
             detail_url = _normalize_url(entry.get("ctaLink") or entry.get("cardLink") or entry.get("cardBtnLink"), CARD_LIST_URL)
             if not detail_url or "/credit-card/cards/" not in detail_url:
                 continue
-            card_name = collapse_text(str(entry.get("cardName") or entry.get("itemName") or entry.get("title") or ""))
+            card_name = clean_card_name(collapse_text(str(entry.get("cardName") or entry.get("itemName") or entry.get("title") or "")))
             if not card_name:
                 continue
             dedupe_key = (card_name, detail_url)
@@ -387,7 +387,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     model = _fetch_json(detail_model_url)
     components = list(_iter_components(model))
 
-    detail_card_name = _extract_detail_card_name(components) or card.card_name
+    detail_card_name = clean_card_name(_extract_detail_card_name(components) or card.card_name)
     apply_url = card.apply_url
     annual_fee_summary = card.annual_fee_summary
     application_requirements = list(card.application_requirements)

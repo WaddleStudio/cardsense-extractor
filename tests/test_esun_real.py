@@ -5,6 +5,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
 from extractor.esun_real import _dedupe_promotions, _extract_reward, _infer_channel, _normalize_promotion_title
+from extractor.normalize import clean_card_name
 
 
 def test_extract_reward_prefers_fixed_when_title_is_fixed_offer():
@@ -111,3 +112,7 @@ def test_unicard_online_offer_can_infer_plan_and_subcategory_hint():
     assert plan_id == "ESUN_UNICARD_FLEXIBLE"
     assert category == "ONLINE"
     assert subcategory == "MOBILE_PAY"
+
+
+def test_clean_card_name_trims_unicard_page_selling_points():
+    assert clean_card_name("玉山Unicard LINE Pay、韓國、新光三越、蝦皮購") == "玉山Unicard"

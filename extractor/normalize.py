@@ -40,59 +40,63 @@ FREQUENCY_LIMIT_ALIASES = {
 }
 
 _PROFESSION_KEYWORDS = (
-    "醫師", "牙醫", "中醫", "藥師", "會計師", "建築師", "律師",
-    "教師", "護理師", "獸醫", "公會會員",
+    "醫師",
+    "醫護",
+    "藥師",
+    "教師",
+    "軍警",
+    "公教",
+    "律師",
+    "會計師",
+    "醫事",
 )
 
 _BUSINESS_KEYWORDS = (
-    "商務卡", "商務御璽", "商務鈦金", "企業卡",
+    "商務",
+    "公司卡",
+    "採購卡",
+    "企業",
+)
+
+_CARD_NAME_STATUS_SUFFIX_PATTERNS = (
+    re.compile(r"\s*-\s*.+銀行\s*$"),
+    re.compile(r"\s*[|｜].+$"),
+    re.compile(r"\s*[，,]\s*已停發.*$"),
+    re.compile(r"\s*《[^》]*(?:停止申辦|停止發行)[^》]*》\s*$"),
+    re.compile(r"\s*[（(][^）)]*停發[^）)]*[）)]\s*$"),
+    re.compile(r"\s+卡友必備APP.*$"),
+)
+
+_CARD_NAME_CORE_PATTERN = re.compile(
+    r"^(.{2,80}?(?:"
+    r"簽帳金融卡|信用卡|聯名卡|認同卡|御璽卡|鈦金卡|白金卡|無限卡|世界卡|晶緻卡|"
+    r"商務卡|金融卡|悠遊卡|Debit卡|Unicard|UniCard|Only卡|卡"
+    r"))(?=\s|$|[，,（(《【])"
 )
 
 
-_CARD_NAME_SUFFIXES = re.compile(
-    r"\s*("
-    r" - .+銀行"           # " - 玉山銀行"
-    r"|[|｜].+"            # "|2026年一起去日本旅遊吧!"
-    r"|\s+公會會員專屬申辦"  # " 公會會員專屬申辦"
-    r")\s*$"
-)
-
-# Card name endings: 卡, 金融卡, 專區. After the last such token, everything is noise.
-_CARD_NAME_BOUNDARY = re.compile(
-    r"((?:信用|聯名|認同|金融|簽帳金融|採購|御璽|鈦金|白金|無限|世界)?卡(?!友)|專區|Unicard|UniCard)"
-)
-
-
-def _clean_card_name(raw_name: str | None) -> str | None:
-    """Strip promotional text and bank-name suffixes from card names."""
+def clean_card_name(raw_name: str | None) -> str | None:
+    """Strip promotional text, bank suffixes, and issuance-status suffixes."""
     if not raw_name:
         return raw_name
 
     name = raw_name.strip()
 
-    # Step 1: Remove known suffix patterns
-    name = _CARD_NAME_SUFFIXES.sub("", name).strip()
+    for pattern in _CARD_NAME_STATUS_SUFFIX_PATTERNS:
+        name = pattern.sub("", name).strip()
 
-    # Step 2: Truncate after the last card-type token (卡/專區)
-    matches = list(_CARD_NAME_BOUNDARY.finditer(name))
-    if matches:
-        last_match = matches[-1]
-        name = name[:last_match.end()].strip()
-    else:
-        # No card-type token found; trim at first CJK enumeration (、) with multiple items
-        enum_match = re.search(r"[\u4e00-\u9fff]、[\u4e00-\u9fff]", name)
-        if enum_match:
-            # Walk back to the space before the enumeration starts
-            before = name[:enum_match.start()]
-            space_idx = before.rfind(" ")
-            if space_idx > 2:
-                name = name[:space_idx].strip()
+    match = _CARD_NAME_CORE_PATTERN.match(name)
+    if match:
+        name = match.group(1).strip()
 
-    # Step 3: If cleaning made it too short or empty, fall back to raw
     if len(name) < 3:
         return raw_name.strip()
 
     return name
+
+
+def _clean_card_name(raw_name: str | None) -> str | None:
+    return clean_card_name(raw_name)
 
 
 def infer_eligibility_type(card_name: str | None) -> str:
@@ -121,7 +125,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "bankCode": _normalize_string(data.get("bank")),
         "bankName": _normalize_string(data.get("bank_name")),
         "cardCode": card_code,
-        "cardName": _clean_card_name(_normalize_string(data.get("card_name"))),
+        "cardName": clean_card_name(_normalize_string(data.get("card_name"))),
         "category": category,
         "subcategory": subcategory,
         "channel": _normalize_enum(data.get("channel"), CHANNEL_ALIASES, default=None),
@@ -205,7 +209,7 @@ def _split_list_field(value: Any) -> List[str]:
 def _infer_channel(category: str | None, conditions: List[Dict[str, str]]) -> str:
     if category == "ONLINE":
         return "ONLINE"
-    if any("外幣" in condition.get("label", "") or "海外" in condition.get("label", "") for condition in conditions):
+    if any("憭馳" in condition.get("label", "") or "瘚瑕?" in condition.get("label", "") for condition in conditions):
         return "ONLINE"
     return "ALL"
 
@@ -215,7 +219,7 @@ def _normalize_conditions(values: List[str]) -> List[Dict[str, str]]:
     for value in values:
         if value.startswith("LOCATION_ONLY:"):
             location = value.split(":", 1)[1].strip().upper()
-            conditions.append({"type": "LOCATION_ONLY", "value": location, "label": f"限 {location} 適用"})
+            conditions.append({"type": "LOCATION_ONLY", "value": location, "label": f"??{location} ?拍"})
             continue
 
         conditions.append({"type": "TEXT", "value": value.upper().replace(" ", "_"), "label": value})
@@ -228,11 +232,11 @@ def _normalize_excluded_conditions(values: List[str]) -> List[Dict[str, str]]:
     for value in values:
         if value.startswith("LOCATION:"):
             location = value.split(":", 1)[1].strip().upper()
-            conditions.append({"type": "LOCATION_EXCLUDE", "value": location, "label": f"排除 {location}"})
+            conditions.append({"type": "LOCATION_EXCLUDE", "value": location, "label": f"? {location}"})
             continue
         if value.startswith("CATEGORY:"):
             category = value.split(":", 1)[1].strip().upper()
-            conditions.append({"type": "CATEGORY_EXCLUDE", "value": category, "label": f"排除 {category}"})
+            conditions.append({"type": "CATEGORY_EXCLUDE", "value": category, "label": f"? {category}"})
             continue
 
         conditions.append({"type": "TEXT", "value": value.upper().replace(" ", "_"), "label": value})

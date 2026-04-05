@@ -10,6 +10,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
 from extractor import db_store
+from jobs.clean_card_names_in_db import clean_database
 
 
 def parse_args() -> argparse.Namespace:
@@ -72,6 +73,14 @@ def run(input_path: str, db_path: str, run_id: str | None, source: str) -> int:
         )
     finally:
         connection.close()
+
+    stats = clean_database(Path(db_path).resolve())
+    print(
+        ">>> Cleaned stored card names: "
+        f"rows={stats['rows_updated']} "
+        f"title_updates={stats['title_updates']} "
+        f"payload_updates={stats['payload_updates']}"
+    )
 
     print(f">>> SQLite DB: {db_path}")
     print(f">>> Extract run ID: {created_run_id}")
