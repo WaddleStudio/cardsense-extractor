@@ -268,6 +268,17 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
         conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
+        channel = _infer_channel(clean_title, clean_body)
+        category, subcategory, channel, recommendation_scope, conditions = _apply_card_specific_overrides(
+            enriched_card.card_code,
+            clean_title,
+            clean_body,
+            category,
+            subcategory,
+            channel,
+            recommendation_scope,
+            conditions,
+        )
 
         promotions.append(
             {
@@ -281,7 +292,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 "bankName": BANK_NAME,
                 "category": category,
                 "subcategory": subcategory,
-                "channel": _infer_channel(clean_title, clean_body),
+                "channel": channel,
                 "cashbackType": reward["type"],
                 "cashbackValue": reward["value"],
                 "minAmount": min_amount,
@@ -367,7 +378,13 @@ def _extract_reward(title: str, text: str) -> Dict[str, object] | None:
     # Patterns like "團費80%以上" or "消費金額80%以上" are spending conditions, not rewards.
     filtered_text = re.sub(r"(?:團費|消費金額|消費額|金額|費用)\s*\d+(?:\.\d+)?%\s*以上", "", text)
     filtered_title = re.sub(r"(?:團費|消費金額|消費額|金額|費用)\s*\d+(?:\.\d+)?%\s*以上", "", title)
-    return extract_reward(filtered_title, filtered_text)
+    reward = extract_reward(filtered_title, filtered_text)
+    if reward and reward.get("value", 0) > 0:
+        return reward
+    fixed_match = re.search(r"(?:回饋|上限)\s*([\d,]+)\s*元刷卡金", filtered_text)
+    if fixed_match:
+        return {"type": "FIXED", "value": float(fixed_match.group(1).replace(",", ""))}
+    return extract_reward("", filtered_text)
 
 
 def _infer_category(title: str, body: str) -> str:
@@ -381,3 +398,125 @@ def _infer_channel(title: str, body: str) -> str:
     if any(token in text for token in OFFLINE_PRIORITY_TOKENS) and not any(token in text for token in ONLINE_PRIORITY_TOKENS):
         return "OFFLINE"
     return infer_channel(title, body, CHANNEL_SIGNALS)
+
+
+def _apply_card_specific_overrides(
+    card_code: str,
+    title: str,
+    body: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    recommendation_scope: str,
+    conditions: List[Dict[str, str]],
+) -> tuple[str, str, str, str, List[Dict[str, str]]]:
+    text = f"{title} {body}"
+    merged_conditions = [dict(condition) for condition in conditions]
+
+    if _should_drop_exclusion_only_payment_conditions(title, body):
+        merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM"})
+
+    if "高鐵除外" in text and category == "TRANSPORT" and subcategory == "PUBLIC_TRANSIT":
+        merged_conditions = _drop_condition_types(merged_conditions, {"MERCHANT"})
+
+    if any(token in text for token in ("即享券適用範圍", "即享券適用通路")) and any(
+        token in text for token in ("推薦", "新戶", "專屬連結")
+    ):
+        merged_conditions = _drop_condition_types(
+            merged_conditions,
+            {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM"},
+        )
+        return ("OTHER", "GENERAL", "ALL", recommendation_scope, merged_conditions)
+
+    if any(token in text for token in ("刷卡賺紅利", "紅利點數", "一般消費享", "保費享", "紅利變現金折抵")) and any(
+        token in text for token in ("一般消費定義", "數位通路消費定義限制", "不包含指定網路平台交易")
+    ):
+        return ("OTHER", "GENERAL", "ALL", recommendation_scope, merged_conditions)
+
+    if card_code == "FUBON_MOMO":
+        if "指定跨境線上" in title:
+            merged_conditions = [
+                condition
+                for condition in merged_conditions
+                if not (
+                    str(condition.get("type", "")).upper() == "ECOMMERCE_PLATFORM"
+                    and str(condition.get("value", "")).upper() == "MOMO"
+                )
+            ]
+            return (category, "GENERAL", "ONLINE", recommendation_scope, merged_conditions)
+
+        if "店外滿額" in title and "店內最高" in title:
+            merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM"})
+            return ("ONLINE", "GENERAL", "ALL", "CATALOG_ONLY", merged_conditions)
+
+    if card_code == "FUBON_OMIYAGE":
+        if any(token in text for token in ("日本三大交通卡", "Suica", "PASMO", "ICOCA")) and "Apple Pay" in text:
+            merged_conditions = _merge_conditions(
+                _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM", "MERCHANT"}),
+                [
+                    {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
+                    {"type": "MERCHANT", "value": "SUICA", "label": "Suica"},
+                    {"type": "MERCHANT", "value": "PASMO", "label": "PASMO"},
+                    {"type": "MERCHANT", "value": "ICOCA", "label": "ICOCA"},
+                ],
+            )
+            return ("TRANSPORT", "PUBLIC_TRANSIT", "ONLINE", recommendation_scope, merged_conditions)
+
+        if "活動餐廳：" in text or "指定餐廳" in title:
+            merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM"})
+            return ("DINING", "GENERAL", "OFFLINE", "CATALOG_ONLY", merged_conditions)
+
+    return category, subcategory, channel, recommendation_scope, merged_conditions
+
+
+def _should_drop_exclusion_only_payment_conditions(title: str, body: str) -> bool:
+    text = f"{title} {body}"
+    exclusion_tokens = (
+        "一般消費定義",
+        "數位通路消費定義限制",
+        "不包含指定網路平台交易",
+        "便利商店消費",
+        "第三方支付平台",
+        "視同店外一般消費",
+        "不計入活動門檻",
+        "不列入活動資格",
+    )
+    positive_tokens = (
+        "日本三大交通卡",
+        "Apple Pay綁定J卡",
+        "綁定國際行動支付",
+        "使用Apple Pay",
+        "使用 LINE Pay",
+        "限以Apple Pay",
+        "限以 LINE Pay",
+    )
+    return any(token in text for token in exclusion_tokens) and not any(token in text for token in positive_tokens)
+
+
+def _drop_condition_types(
+    conditions: List[Dict[str, str]],
+    condition_types: set[str],
+) -> List[Dict[str, str]]:
+    return [
+        dict(condition)
+        for condition in conditions
+        if str(condition.get("type", "")).upper() not in condition_types
+    ]
+
+
+def _merge_conditions(
+    base_conditions: List[Dict[str, str]],
+    extra_conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    merged = [dict(condition) for condition in base_conditions]
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    for condition in extra_conditions:
+        key = (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        if key in seen:
+            continue
+        merged.append(dict(condition))
+        seen.add(key)
+    return merged
