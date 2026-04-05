@@ -92,6 +92,39 @@ RICHART_PLAN_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("影音", "串流", "Netflix", "Spotify", "Disney+", "friDay"), "TAISHIN_RICHART_DIGITAL"),
     (("週末", "周末", "假日"), "TAISHIN_RICHART_WEEKEND"),
 )
+RICHART_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
+    ("TAISHIN_RICHART_PAY", "MOBILE_PAY"): (
+        {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
+        {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "JKOPay"},
+        {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
+        {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
+    ),
+    ("TAISHIN_RICHART_DAILY", "SUPERMARKET"): (
+        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "PX Mart"},
+        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "Carrefour"},
+        {"type": "RETAIL_CHAIN", "value": "RT_MART", "label": "RT-Mart"},
+    ),
+    ("TAISHIN_RICHART_BIG", "DEPARTMENT"): (
+        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "Shin Kong Mitsukoshi"},
+        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"},
+        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "Far Eastern"},
+    ),
+    ("TAISHIN_RICHART_DIGITAL", "STREAMING"): (
+        {"type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
+        {"type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
+        {"type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"type": "MERCHANT", "value": "FRIDAY_VIDEO", "label": "friDay Video"},
+    ),
+    ("TAISHIN_RICHART_TRAVEL", "TRAVEL_PLATFORM"): (
+        {"type": "MERCHANT", "value": "AGODA", "label": "Agoda"},
+        {"type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
+        {"type": "MERCHANT", "value": "HOTELS_COM", "label": "Hotels.com"},
+        {"type": "MERCHANT", "value": "TRIP_COM", "label": "Trip.com"},
+        {"type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
+        {"type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
+        {"type": "MERCHANT", "value": "ASIAYO", "label": "AsiaYo"},
+    ),
+}
 MARKETING_NOISE_TOKENS = (
     "處理中",
     "敬請稍候",
@@ -292,10 +325,10 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         category = _infer_category(clean_title, clean_body)
         subcategory = infer_subcategory(clean_title, clean_body, category, SUBCATEGORY_SIGNALS)
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
-        conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
         plan_id = _resolve_richart_plan_id(enriched_card.card_code, category, clean_title, clean_body)
-
+        conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
         category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+        conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
 
         promotions.append(
             {
@@ -453,6 +486,7 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
     recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration)
     conditions = build_conditions(focused_text, card.application_requirements, requires_registration)
+    conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
     summary = build_summary(
         title,
         focused_text,
@@ -546,6 +580,32 @@ def _resolve_richart_plan_id(card_code: str, category: str, title: str, body: st
         if any(keyword in combined for keyword in keywords):
             return plan_id
     return infer_plan_id(card_code, category, title=title)
+
+
+def _append_richart_plan_conditions(
+    plan_id: str | None,
+    subcategory: str | None,
+    conditions: List[Dict[str, object]],
+) -> List[Dict[str, object]]:
+    if not plan_id or not subcategory:
+        return conditions
+
+    extra_conditions = RICHART_PLAN_CONDITIONS.get((plan_id, subcategory.upper()))
+    if not extra_conditions:
+        return conditions
+
+    merged = list(conditions)
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    for condition in extra_conditions:
+        key = (condition["type"].upper(), condition["value"].upper())
+        if key in seen:
+            continue
+        merged.append(dict(condition))
+        seen.add(key)
+    return merged
 
 
 def _should_skip_richart_marketing(title: str, text: str) -> bool:

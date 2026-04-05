@@ -53,6 +53,47 @@ UNICARD_TRANSPORT_CLUSTERS = (
     ),
 )
 
+UNICARD_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
+    ("ESUN_UNICARD_FLEXIBLE", "MOBILE_PAY"): (
+        {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
+        {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "街口支付"},
+        {"type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+    ),
+    ("ESUN_UNICARD_FLEXIBLE", "STREAMING"): (
+        {"type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
+        {"type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
+        {"type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"type": "MERCHANT", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
+    ),
+    ("ESUN_UNICARD_SIMPLE", "SUPERMARKET"): (
+        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
+        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
+        {"type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
+    ),
+    ("ESUN_UNICARD_SIMPLE", "DEPARTMENT"): (
+        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "遠東SOGO"},
+        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+    ),
+    ("ESUN_UNICARD_SIMPLE", "GAS_STATION"): (
+        {"type": "RETAIL_CHAIN", "value": "CPC", "label": "台灣中油"},
+        {"type": "RETAIL_CHAIN", "value": "NATIONWIDE_GAS", "label": "全國加油"},
+        {"type": "RETAIL_CHAIN", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
+        {"type": "RETAIL_CHAIN", "value": "TAIA", "label": "台亞"},
+        {"type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "福懋"},
+    ),
+    ("ESUN_UNICARD_UP", "SUPERMARKET"): (
+        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
+        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
+        {"type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
+    ),
+    ("ESUN_UNICARD_UP", "DEPARTMENT"): (
+        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "遠東SOGO"},
+        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+    ),
+}
+
 CATEGORY_SIGNALS = {
     "OVERSEAS": [("日本", 4), ("韓國", 4), ("海外", 4), ("外幣", 3), ("航空", 3), ("旅遊", 3), ("旅行", 3), ("飯店", 3), ("住宿", 3), ("機場", 2), ("日圓", 2), ("韓圓", 2)],
     "ONLINE": [("Booking", 3), ("Agoda", 3), ("Hotels.com", 3), ("Expedia", 3), ("Klook", 3), ("KKday", 3), ("PChome", 4), ("蝦皮", 4), ("網購", 4), ("LINE Pay", 3), ("Uber Eats", 3), ("網頁", 2), ("網站", 2), ("平台", 1), ("APP", 1)],
@@ -220,6 +261,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
+        conditions = _append_unicard_plan_conditions(plan_id, subcategory, conditions)
 
         base_promotion = {
             "title": f"{enriched_card.card_name} {clean_title}",
@@ -342,3 +384,29 @@ def _expand_card_specific_promotions(
         return expanded
 
     return [promotion]
+
+
+def _append_unicard_plan_conditions(
+    plan_id: str | None,
+    subcategory: str | None,
+    conditions: List[Dict[str, object]],
+) -> List[Dict[str, object]]:
+    if not plan_id or not subcategory:
+        return conditions
+
+    extra_conditions = UNICARD_PLAN_CONDITIONS.get((plan_id, subcategory.upper()))
+    if not extra_conditions:
+        return conditions
+
+    merged = list(conditions)
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    for condition in extra_conditions:
+        key = (condition["type"].upper(), condition["value"].upper())
+        if key in seen:
+            continue
+        merged.append(dict(condition))
+        seen.add(key)
+    return merged

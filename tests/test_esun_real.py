@@ -115,6 +115,33 @@ def test_unicard_online_offer_can_infer_plan_and_subcategory_hint():
     assert subcategory == "MOBILE_PAY"
 
 
+def test_unicard_plan_hint_appends_merchant_conditions_for_mobile_pay():
+    from extractor.esun_real import _append_unicard_plan_conditions
+
+    conditions = _append_unicard_plan_conditions("ESUN_UNICARD_FLEXIBLE", "MOBILE_PAY", [])
+
+    assert any(
+        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
+        for condition in conditions
+    )
+    assert any(
+        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "ESUN_WALLET"
+        for condition in conditions
+    )
+
+
+def test_unicard_plan_hint_appends_streaming_merchants_after_subcategory_resolution():
+    from extractor.esun_real import _append_unicard_plan_conditions
+
+    conditions = _append_unicard_plan_conditions("ESUN_UNICARD_FLEXIBLE", "STREAMING", [])
+
+    assert any(condition["type"] == "MERCHANT" and condition["value"] == "NETFLIX" for condition in conditions)
+    assert any(
+        condition["type"] == "MERCHANT" and condition["value"] == "YOUTUBE_PREMIUM"
+        for condition in conditions
+    )
+
+
 def test_unicard_theme_park_offer_infers_entertainment_theme_park():
     from extractor.esun_real import _infer_category
 

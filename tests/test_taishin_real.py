@@ -255,6 +255,31 @@ def test_extract_card_promotions_applies_plan_subcategory_hints_for_richart_mark
     assert promotion is not None
     assert promotion["planId"] == "TAISHIN_RICHART_PAY"
     assert promotion["subcategory"] == "MOBILE_PAY"
+    assert any(
+        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
+        for condition in promotion["conditions"]
+    )
+
+
+def test_richart_plan_hint_appends_travel_platform_merchants():
+    from extractor.taishin_real import _append_richart_plan_conditions
+
+    conditions = _append_richart_plan_conditions("TAISHIN_RICHART_TRAVEL", "TRAVEL_PLATFORM", [])
+
+    assert any(condition["type"] == "MERCHANT" and condition["value"] == "AGODA" for condition in conditions)
+    assert any(condition["type"] == "MERCHANT" and condition["value"] == "TRIP_COM" for condition in conditions)
+
+
+def test_richart_plan_hint_appends_streaming_merchants():
+    from extractor.taishin_real import _append_richart_plan_conditions
+
+    conditions = _append_richart_plan_conditions("TAISHIN_RICHART_DIGITAL", "STREAMING", [])
+
+    assert any(condition["type"] == "MERCHANT" and condition["value"] == "NETFLIX" for condition in conditions)
+    assert any(
+        condition["type"] == "MERCHANT" and condition["value"] == "DISNEY_PLUS"
+        for condition in conditions
+    )
 
 
 def test_resolve_richart_plan_id_does_not_affect_other_cards():
