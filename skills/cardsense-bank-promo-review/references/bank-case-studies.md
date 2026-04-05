@@ -6,39 +6,57 @@ Use these as anchor examples when reviewing future cards.
 
 ### Why it matters
 
-CUBE is a clean example of a benefit-plan switching card with:
+CUBE is the clearest CardSense example of a benefit-plan switching card that now spans:
 
-- clear plan catalog
-- high merchant diversity
-- tiered reward levels
-- some campaign-heavy noise around the base plans
+- plan catalog metadata
+- corrected `category -> planId` mapping
+- expanded subcategory coverage
+- merchant-aware cluster promotions
+- runtime tier handling
+- scoped Supabase rollout
 
-### What CardSense handles well
+### What CardSense now handles well
 
 - plan catalog metadata
 - `category -> planId` mapping
-- subcategory refinement for digital, travel, and essentials scenarios
+- subcategory refinement such as `AI_TOOL`, `DRUGSTORE`, `RIDESHARE`, `EV_CHARGING`
+- merchant-aware cluster promos via structured `conditions`
+- conservative tier fallback with explicit `LEVEL_2` / `LEVEL_3` runtime input
+- card-scoped Supabase sync for `CATHAY_CUBE`
+
+### Current implementation pattern
+
+Use:
+
+- cluster promo plus merchant conditions
+
+Examples:
+
+- `AI_TOOL` promo with merchants like `CHATGPT`, `CLAUDE`, `CANVA`
+- `SUPERMARKET` promo with chains like `PXMART`, `CARREFOUR`
+- `AIRLINE` promo with merchants like `CHINA_AIRLINES`, `EVA_AIR`
 
 ### Main caution
 
-`Level 1 / 2 / 3` means the same plan can produce different rates depending on user status.
+`Level 1 / Level 2 / Level 3` means the same plan can produce different rates depending on user state.
 
 Safe default:
 
-- use conservative base/default logic unless runtime tier is known
+- use `LEVEL_1` unless runtime tier is explicitly provided
 
-### Good review output
+### Frontend lesson
 
-- update `benefit-plans.json`
-- correct `PLAN_MAPPING`
-- add `subcategory` coverage such as `AI_TOOL`, `DRUGSTORE`, `RIDESHARE`, `EV_CHARGING`
-- keep coupon boosts separate
+If the backend now supports merchant-aware and tier-aware recommendation, frontend should usually add:
+
+- `merchantName` input or merchant chips
+- tier selector
+- clearer condition badges
 
 ## E.SUN Unicard
 
 ### Why it matters
 
-Unicard is the best example of a card whose plan catalog fits the current model, but whose runtime recommendation can exceed current engine capabilities.
+Unicard is the strongest example of a card whose plan catalog fits the current model, but whose runtime recommendation can exceed current engine capabilities.
 
 ### Important traits
 
@@ -53,7 +71,7 @@ Unicard is the best example of a card whose plan catalog fits the current model,
 
 - plan catalog metadata
 - broad promotion display
-- some category/subcategory routing
+- some category and subcategory routing
 
 ### Main caution
 
@@ -61,9 +79,9 @@ CardSense currently lacks a native way to model:
 
 - month-end final plan state
 - merchant-slot configuration
-- unlock/subscription state as runtime input
+- unlock or subscription state as runtime input
 
-Safe verdict:
+### Safe verdict
 
 - often `compatible with approximation`
 - or base promotions `CATALOG_ONLY` until runtime state is modeled
@@ -72,16 +90,16 @@ Safe verdict:
 
 ### Why it matters
 
-Richart is the best example of a card where payment rail, MCC, merchant-recognition, and campaign wording all influence whether a reward is actually obtainable.
+Richart is the best example of a card where payment rail, MCC, merchant recognition, and campaign wording all influence whether a reward is actually obtainable.
 
 ### Important traits
 
 - many named plans
 - short-term campaign overlays
-- wallet/payment-rail dependence
+- wallet or payment-rail dependence
 - domestic vs overseas recognition rules
-- airline/direct-booking restrictions
-- restaurant/MCC-like semantics
+- airline or direct-booking restrictions
+- restaurant or MCC-like semantics
 
 ### What CardSense handles well
 
@@ -98,7 +116,7 @@ A rule may look deterministic in marketing copy while actually depending on:
 - merchant route
 - issuer-defined classification
 
-Safe verdict:
+### Safe verdict
 
 - plan catalog is usually compatible
 - many detailed bonuses need approximation or `CATALOG_ONLY`
@@ -107,7 +125,7 @@ Safe verdict:
 
 When a new bank card resembles:
 
-- `CUBE`: think `tiered plan`
+- `CUBE`: think `tiered plan + merchant-aware cluster promo + scoped rollout`
 - `Unicard`: think `runtime plan-state`
 - `Richart`: think `rail / classification / routing sensitivity`
 

@@ -5,15 +5,25 @@ description: Review a bank credit-card rewards page for the CardSense project, a
 
 # CardSense Bank Promo Review
 
-Use this skill when working inside the CardSense workspace and the task is to review a bank card's rewards/benefit-plan page, extract reusable structure, or decide what should be changed in CardSense contracts, extractor logic, and SQLite-imported promotion data.
+Use this skill when working inside the CardSense workspace and the task is to review a bank card's rewards or benefit-plan page, extract reusable structure, or decide what should change in CardSense contracts, extractor logic, API runtime logic, frontend integration, and imported promotion data.
 
 This skill is optimized for:
 
 - benefit-plan switching cards such as `CATHAY_CUBE`, `ESUN_UNICARD`, and `TAISHIN_RICHART`
-- comparing official bank pages with CardSense schemas and runtime behavior
+- comparing official bank pages with current CardSense schemas and runtime behavior
 - deciding whether a rule is `RECOMMENDABLE`, `CATALOG_ONLY`, or `FUTURE_SCOPE`
 - updating plan metadata, `category -> planId` mappings, and subcategory coverage
-- preparing importer-friendly JSONL or curated data patches
+- preparing extractor-native or importer-friendly data updates
+- validating safe SQLite and Supabase rollout scope for a specific bank or card
+
+## Core Principles
+
+- Official bank pages and PDFs are the source of truth.
+- Secondary sources can help discover missing merchant lists or hidden structure, but must not become production truth without official confirmation.
+- Keep `category` stable whenever possible and prefer refining `subcategory`.
+- Favor conservative recommendation defaults when runtime state is unknown.
+- Prefer extractor-native output over curated merge files once the desired shape is understood.
+- When syncing online data, use scoped sync for the intended `bank_code` or `card_code` when possible.
 
 ## Outcome
 
@@ -24,7 +34,7 @@ Produce these outputs when applicable:
 2. A data-model gap list:
    what the current CardSense schema or engine cannot represent safely
 3. Concrete implementation changes:
-   `benefit-plans.json`, extractor mapping, taxonomy/subcategory updates, curated JSONL, DB import, and validation
+   `benefit-plans.json`, extractor mapping, taxonomy/subcategory updates, runtime/API/frontend implications, DB import, scoped sync plan, and validation steps
 
 ## Workflow
 
@@ -61,6 +71,7 @@ Break the source into these layers:
   - month-end selected plan
   - plan subscription state
   - merchant slot choices
+  - tier qualification state
   - registration state
   - spend progress / caps / milestone progress
 
@@ -73,6 +84,8 @@ Assess compatibility against:
 - `cardsense-extractor/extractor/benefit_plans.py`
 - `cardsense-extractor/models/promotion.py`
 - `cardsense-api/src/main/java/com/cardsense/api/service/DecisionEngine.java`
+- `cardsense-web/src/components/RecommendationForm.tsx`
+- `cardsense-web/src/components/RecommendationResults.tsx`
 
 Use this rule of thumb:
 
@@ -95,9 +108,29 @@ Prefer:
 Common pattern:
 
 - `category` is the product/API spine
-- `subcategory` captures bank-specific merchant/program detail
+- `subcategory` captures bank-specific merchant or program detail
 
-### 5. Plan-mapping policy
+### 5. Merchant modeling policy
+
+Prefer this progression:
+
+1. stable cluster promo
+2. cluster-specific `subcategory`
+3. structured merchant conditions inside the promo
+
+Do not immediately explode one merchant into one promo row unless:
+
+- the bank page clearly treats each merchant as a standalone rule
+- or the cluster form is too coarse for recommendation correctness
+
+A good default is:
+
+- one promo for `AI_TOOL`
+- one promo for `SUPERMARKET`
+- one promo for `AIRLINE`
+- with `conditions` carrying merchants such as `CHATGPT`, `PXMART`, `CHINA_AIRLINES`
+
+### 6. Plan-mapping policy
 
 For benefit-plan cards:
 
@@ -107,7 +140,7 @@ For benefit-plan cards:
 
 If a bank page says dining belongs to a different plan than current mapping, prefer fixing mapping rather than hiding the mismatch in summary text.
 
-### 6. Scope policy
+### 7. Scope policy
 
 Classify each extracted rule into one of:
 
@@ -122,30 +155,78 @@ Prefer `CATALOG_ONLY` when:
 - the plan is resolved at month-end rather than per-transaction
 - the rule depends on payment-rail or MCC details CardSense cannot yet calculate safely
 
-### 7. Implementation order
+### 8. Tier policy
+
+For tiered switching cards such as `CATHAY_CUBE`:
+
+- treat unknown runtime tier conservatively
+- default recommendation to the safest base tier
+- require explicit request/runtime state to unlock higher-tier calculation
+
+Current CardSense policy:
+
+- `CATHAY_CUBE` defaults to `LEVEL_1`
+- `LEVEL_2` and `LEVEL_3` should be explicit runtime input
+
+### 9. Implementation order
 
 When asked to make changes, use this order:
 
 1. update `benefit-plans.json`
 2. update `benefit_plans.py`
 3. expand `subcategory` enum/signals only if needed
-4. add or refine tests
-5. generate curated JSONL only when extractor-native output is not yet precise enough
+4. update extractor-native card-specific parsing
+5. add or refine tests
 6. import to SQLite and validate results
+7. perform scoped Supabase sync if rollout is intended
+8. update frontend when new runtime inputs or result explanations are now meaningful
 
-### 8. Validation
+Use curated JSONL only when extractor-native output is still too coarse and you need a short-lived validation step.
+
+### 10. Validation
 
 At minimum, validate:
 
-- extractor tests related to normalize and subcategory inference
+- extractor tests related to normalize, subcategory inference, and card-specific parsing
+- API tests if runtime logic changed
 - benefit-plan repository tests if plan metadata changed
+- frontend build if request or result behavior changed
 - SQLite rows for the affected `card_code`
 
 Useful checks:
 
 - count total promotions for the card in `promotion_current`
 - count plan-bound promotions
-- inspect `category`, `subcategory`, `plan_id`, and `cashback_value`
+- inspect `category`, `subcategory`, `plan_id`, `cashback_value`, and `conditions_json`
+- spot-check merchant-aware conditions for representative rows
+- verify non-target cards are not affected by scoped sync
+
+### 11. Safe sync policy
+
+Before syncing to Supabase, explicitly check whether the sync path is:
+
+- whole-table
+- bank-scoped
+- or card-scoped
+
+If the intended rollout is only for one card, prefer scoped sync.
+
+Example:
+
+- `--sync-bank CATHAY --sync-card CATHAY_CUBE`
+
+This matters when the same bank has many other cards already loaded in SQLite.
+
+### 12. Frontend follow-up policy
+
+When recommendation quality improves because of new runtime inputs or condition structure, check whether frontend should also change.
+
+Typical follow-ups:
+
+- add `merchantName` input or merchant chips
+- add tier selector for tiered cards
+- surface condition badges in recommendation results
+- surface active plan hints more clearly
 
 If you need a step-by-step review template, read:
 - [references/review-checklist.md](references/review-checklist.md)
@@ -156,13 +237,15 @@ If you want concrete examples and known edge cases for current CardSense target 
 If you want a fixed review deliverable format, use:
 - [references/review-output-template.md](references/review-output-template.md)
 
-## Bank-specific review heuristics
+## Bank-specific heuristics
 
 ### Cathay CUBE
 
 - watch for `Level 1 / Level 2 / Level 3` tiered rates
 - default recommendation should be conservative when runtime tier is unknown
-- many “extra” offers belong in coupon/campaign layers, not base recommendation
+- prefer merchant-aware cluster promos over immediately splitting into one promo per merchant
+- use scoped sync when rolling out only `CATHAY_CUBE`
+- frontend likely needs `merchantName`, `CUBE tier`, and visible condition badges
 
 ### E.SUN Unicard
 
@@ -173,59 +256,8 @@ If you want a fixed review deliverable format, use:
 ### Taishin Richart
 
 - distinguish benefit plans from short-term plan-specific campaigns
-- watch payment rail / wallet / MCC / domestic-vs-overseas rules
+- watch payment rail, wallet, MCC, and domestic-vs-overseas rules
 - do not over-promote rules that depend on transaction recognition details CardSense cannot yet model
-
-## Implementation patterns
-
-### When to update only plan metadata
-
-Do this when the bank page only clarifies:
-
-- plan names
-- dates
-- plan descriptions
-- switch cadence
-- subscription requirement
-
-Typical file:
-
-- `cardsense-api/src/main/resources/benefit-plans.json`
-
-### When to update mapping and taxonomy
-
-Do this when the source shows the current CardSense mapping is semantically wrong, for example:
-
-- dining should map to a different plan
-- grocery should no longer map to shopping
-- a recurring merchant cluster needs a new `subcategory`
-
-Typical files:
-
-- `cardsense-extractor/extractor/benefit_plans.py`
-- `cardsense-extractor/extractor/promotion_rules.py`
-- `cardsense-extractor/models/promotion.py`
-
-### When to use curated JSONL
-
-Use curated JSONL only when:
-
-- extractor-native parsing is still too coarse
-- you need to validate a product direction quickly
-- you can keep the curated additions narrowly scoped and clearly sourced
-
-Do not treat curated JSONL as the preferred steady-state solution.
-Prefer replacing it later with extractor-native output.
-
-### When to ask for schema/runtime changes
-
-Escalate schema/runtime gaps when recommendation correctness depends on:
-
-- month-end final plan state
-- merchant-slot selection
-- task unlock status
-- tier state not present in request payload
-- payment rail, MCC, transaction country, or billing currency that CardSense cannot currently express
 
 ## Deliverable format
 
@@ -234,9 +266,8 @@ When reporting findings, prefer:
 1. compatibility verdict
 2. blocking schema/runtime gaps
 3. safe implementation path
-4. optional follow-up improvements
-
-When possible, structure the written output using the review template so repeated reviews are comparable across banks and cards.
+4. validation and rollout scope
+5. optional frontend and follow-up improvements
 
 ## Skill maintenance
 

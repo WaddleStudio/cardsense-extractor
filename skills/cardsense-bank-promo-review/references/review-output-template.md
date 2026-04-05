@@ -27,11 +27,11 @@ Use this template when reviewing a new bank card or benefit-plan page for CardSe
 - Exclusive group:
 - Subscription or unlock requirement:
 - Main validity period:
-- Temporary/seasonal plans:
+- Temporary or seasonal plans:
 
 ## 4. Base Reward Structure
 
-- Default/base reward:
+- Default or base reward:
 - Higher-tier reward logic:
 - Tier or qualification requirements:
 - Main reward caps:
@@ -42,7 +42,7 @@ Use this template when reviewing a new bank card or benefit-plan page for CardSe
 
 - Recommended top-level categories:
 - Recommended subcategories:
-- Category/subcategory mismatches found:
+- Category or subcategory mismatches found:
 - Need new category enum: `yes/no`
 - Need only subcategory expansion: `yes/no`
 
@@ -53,7 +53,14 @@ Use this template when reviewing a new bank card or benefit-plan page for CardSe
 - Proposed `PLAN_NAME_SIGNALS` updates:
 - Proposed `PLAN_SUBCATEGORY_HINTS` updates:
 
-## 7. Promotion Scope Split
+## 7. Merchant Modeling Fit
+
+- Cluster promos sufficient: `yes/no`
+- Merchant-level conditions needed: `yes/no`
+- Example merchant conditions:
+- Need one-merchant-one-promo rows: `yes/no`
+
+## 8. Promotion Scope Split
 
 ### Recommendable
 
@@ -67,7 +74,7 @@ Use this template when reviewing a new bank card or benefit-plan page for CardSe
 
 - List rules blocked by schema/runtime gaps here
 
-## 8. Blocking Schema / Runtime Gaps
+## 9. Blocking Schema / Runtime Gaps
 
 - Missing runtime state:
 - Missing request fields:
@@ -75,30 +82,40 @@ Use this template when reviewing a new bank card or benefit-plan page for CardSe
 - Engine behavior mismatch:
 - Needed schema changes:
 
-## 9. Data Source Trust Notes
+## 10. Frontend / UX Follow-up
+
+- Need merchant input or merchant chips: `yes/no`
+- Need tier selector: `yes/no`
+- Need clearer condition badges: `yes/no`
+- Need active-plan UX changes: `yes/no`
+
+## 11. Data Source Trust Notes
 
 - Official facts confirmed:
 - Secondary-source-only facts:
 - Facts that still require official confirmation:
 
-## 10. Implementation Plan
+## 12. Implementation Plan
 
 - Update `benefit-plans.json`: `yes/no`
 - Update `benefit_plans.py`: `yes/no`
-- Expand `subcategory` enum/signals: `yes/no`
+- Expand `subcategory` enum or signals: `yes/no`
+- Update card-specific extractor parser: `yes/no`
 - Use curated JSONL temporarily: `yes/no`
 - Re-run extractor for this bank: `yes/no`
 - Import to SQLite: `yes/no`
+- Scoped Supabase sync needed: `yes/no`
 
-## 11. Validation Plan
+## 13. Validation Plan
 
 - Tests to run:
 - DB checks to run:
+- Sync-safety checks to run:
 - Manual spot checks:
 
-## 12. Suggested Follow-up
+## 14. Suggested Follow-up
 
-- Product/UI follow-up:
+- Product or UI follow-up:
 - Schema follow-up:
 - Extractor follow-up:
-- API/runtime follow-up:
+- API or runtime follow-up:

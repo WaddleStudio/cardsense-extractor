@@ -24,6 +24,14 @@ Use this checklist when reviewing a benefit-plan card.
 - plan binding proposed
 - exclusions captured
 - caps / frequency / registration captured
+- tiered-rate behavior identified if present
+
+## Merchant modeling
+
+- decide whether cluster promo is sufficient
+- decide whether merchant-level conditions are needed
+- representative merchants captured in structured `conditions`
+- avoid one-merchant-one-promo rows unless clearly necessary
 
 ## Compatibility review
 
@@ -31,19 +39,24 @@ Use this checklist when reviewing a benefit-plan card.
 - current schema can represent base promotions
 - runtime state missing items listed explicitly
 - recommendation safety assessed
+- frontend implications noted if runtime state or condition richness changed
 
 ## Implementation
 
 - `benefit-plans.json` update needed or not
 - `benefit_plans.py` update needed or not
 - subcategory expansion needed or not
+- extractor-native card parser changes needed or not
 - curated JSONL needed or not
 - SQLite import plan decided
+- Supabase rollout scope decided
 
 ## Validation
 
 - extractor tests run
 - repository tests run when benefit plans changed
+- API tests run when runtime logic changed
+- frontend build run when request/result UI changed
 - DB row counts checked
-- affected `plan_id` and `subcategory` values spot-checked
-
+- affected `plan_id`, `subcategory`, and `conditions_json` values spot-checked
+- scoped sync safety checked if only one card should roll out
