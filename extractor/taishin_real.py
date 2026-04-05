@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Sequence
 
 from extractor import ingest
 from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
@@ -387,9 +387,12 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             }
         )
 
+    promotions.extend(_extract_card_feature_promotions(enriched_card, lines))
+
     if enriched_card.card_code == "TAISHIN_RICHART":
         promotions.extend(_extract_richart_bonus_promotions(enriched_card, links))
 
+    promotions = _postprocess_taishin_promotions(enriched_card, promotions)
     return enriched_card, _dedupe_promotions(promotions)
 
 
@@ -431,6 +434,383 @@ def _normalize_promotion_title(card_name: str, raw_title: str, raw_body: str) ->
 
 def _dedupe_promotions(promotions: List[Dict[str, object]]) -> List[Dict[str, object]]:
     return dedupe_promotions(promotions)
+
+
+def _extract_card_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    builders = {
+        "TAISHIN_JKOPAY": _extract_jkopay_feature_promotions,
+        "TAISHIN_PX_MART": _extract_px_mart_feature_promotions,
+        "TAISHIN_FRIDAY": _extract_friday_feature_promotions,
+        "TAISHIN_GOGORO": _extract_gogoro_feature_promotions,
+        "TAISHIN_DUAL_CURRENCY": _extract_dual_currency_feature_promotions,
+    }
+    builder = builders.get(card.card_code)
+    if builder is None:
+        return []
+    return builder(card, lines)
+
+
+def _postprocess_taishin_promotions(card: CardRecord, promotions: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    normalized: List[Dict[str, object]] = []
+    for promo in promotions:
+        title = str(promo.get("title", ""))
+        summary = str(promo.get("summary", ""))
+        combined = f"{title} {summary}"
+
+        if card.card_code == "TAISHIN_FRIDAY" and "電信費最高3%" in combined and "活動已結束" in combined:
+            continue
+
+        if _is_installment_offer(combined):
+            promo["recommendationScope"] = "CATALOG_ONLY"
+            promo["category"] = "OTHER"
+            promo["subcategory"] = "GENERAL"
+            promo["channel"] = "ALL"
+
+        if card.card_code in {"TAISHIN_ROSE", "TAISHIN_SUN"} and (
+            "指定套餐方案" in combined or "自由選方案" in combined
+        ):
+            promo["recommendationScope"] = "CATALOG_ONLY"
+            promo["category"] = "OTHER"
+            promo["subcategory"] = "GENERAL"
+            promo["channel"] = "ALL"
+
+        if card.card_code == "TAISHIN_DUAL_CURRENCY" and "輪子：5.5cm" in combined:
+            continue
+
+        normalized.append(promo)
+
+    return normalized
+
+
+def _is_installment_offer(text: str) -> bool:
+    return all(token in text for token in ("分期", "優惠利率")) or "卡片分期" in text or "單筆分期" in text
+
+
+def _extract_jkopay_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    promotions: List[Dict[str, object]] = []
+    selected_body = _collect_line_window(
+        lines,
+        "街口豬富卡2026年權益 : 精選通路最高3.5%街口幣",
+        stop_tokens=("【活動已結束】旅遊/娛樂/交通/百貨/藥妝/外送/餐飲最高3.5%",),
+    )
+    if selected_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="精選通路最高3.5%街口幣",
+                body=selected_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="CATALOG_ONLY",
+                valid_from="2026-01-01",
+                valid_until="2026-12-31",
+            )
+        )
+
+    billpay_body = _collect_line_window(
+        lines,
+        "【街口APP繳費 最高 2.15 %】",
+        stop_tokens=("【一般消費享 1 %街口幣 無上限】",),
+    )
+    if billpay_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="街口APP繳費最高2.15%",
+                body=billpay_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ONLINE",
+                recommendation_scope="CATALOG_ONLY",
+                valid_from="2026-01-01",
+                valid_until="2026-12-31",
+                extra_conditions=[
+                    {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "街口支付"},
+                    {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+                ],
+            )
+        )
+
+    general_body = _collect_line_window(
+        lines,
+        "【一般消費享 1 %街口幣 無上限】",
+        stop_tokens=("(1)精選通路最高3.5%優惠說明如下，其中精選加碼合計每月上限10,000元街口幣",),
+    )
+    if general_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="一般消費1%街口幣無上限",
+                body=general_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="RECOMMENDABLE",
+                valid_from="2026-01-01",
+                valid_until="2026-12-31",
+            )
+        )
+
+    return promotions
+
+
+def _extract_px_mart_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    promotions: List[Dict[str, object]] = []
+    feature_body = _collect_line_window(
+        lines,
+        "大全聯JCB卡最高8.5% 福利點限時送",
+        stop_tokens=("卡片分期享 0.88%限時優利",),
+    )
+    if feature_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="大全聯店內消費最高1.2%",
+                body=feature_body,
+                category="GROCERY",
+                subcategory="SUPERMARKET",
+                channel="OFFLINE",
+                recommendation_scope="RECOMMENDABLE",
+                extra_conditions=[
+                    {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "大全聯"},
+                ],
+                valid_from="2026-04-01",
+                valid_until="2026-06-30",
+            )
+        )
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="全支付店外消費最高1.5%",
+                body=feature_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="RECOMMENDABLE",
+                extra_conditions=[
+                    {"type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
+                    {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+                ],
+                valid_from="2026-04-01",
+                valid_until="2026-06-30",
+            )
+        )
+
+    return promotions
+
+
+def _extract_friday_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    promotions: List[Dict[str, object]] = []
+    telecom_body = _collect_line_window(
+        lines,
+        "電信帳單代扣繳最高3%、指定通路會員日最高8%",
+        stop_tokens=("八大專屬訂房網，享最高14%優惠",),
+    )
+    if telecom_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="遠傳電信帳單代扣繳最高3%",
+                body=telecom_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="RECOMMENDABLE",
+            )
+        )
+
+    dining_body = _collect_line_window(
+        lines,
+        "餐飲多一盤、享最高15%優惠",
+        stop_tokens=("申請條件",),
+    )
+    if dining_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="餐飲多一盤最高15%優惠",
+                body=dining_body,
+                category="DINING",
+                subcategory="RESTAURANT",
+                channel="OFFLINE",
+                recommendation_scope="CATALOG_ONLY",
+                extra_conditions=[
+                    {"type": "MERCHANT", "value": "WOWPRIME", "label": "王品集團"},
+                    {"type": "MERCHANT", "value": "TOFU_RESTAURANTS", "label": "豆府餐飲集團"},
+                    {"type": "MERCHANT", "value": "VOLTERRA_GROUP", "label": "瓦城泰統集團"},
+                    {"type": "MERCHANT", "value": "SABOTEN", "label": "勝博殿"},
+                    {"type": "MERCHANT", "value": "COLD_STONE", "label": "COLD STONE"},
+                ],
+            )
+        )
+
+    return promotions
+
+
+def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    promotions: List[Dict[str, object]] = []
+    battery_body = _collect_line_window(
+        lines,
+        "1. 電池資費最高享 4% 回饋無上限",
+        stop_tokens=("保了再上| Gogoro門市維修保養及配件、Gogoro 網路商店回饋",),
+    )
+    if battery_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="電池資費最高4%回饋無上限",
+                body=battery_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="CATALOG_ONLY",
+                extra_conditions=[
+                    {"type": "MERCHANT", "value": "GOGORO", "label": "Gogoro"},
+                ],
+            )
+        )
+
+    maintenance_body = _collect_line_window(
+        lines,
+        "保了再上｜Gogoro門市維修保養及配件優惠",
+        stop_tokens=("注意事項｜Gogoro門市維修保養及配件、Gogoro 網路商店回饋",),
+    )
+    if maintenance_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="Gogoro門市維修保養及配件最高4%",
+                body=maintenance_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="CATALOG_ONLY",
+                extra_conditions=[
+                    {"type": "MERCHANT", "value": "GOGORO", "label": "Gogoro"},
+                ],
+            )
+        )
+
+    warranty_body = _collect_line_window(
+        lines,
+        "加購延長保固享 40% 無上限",
+        stop_tokens=("注意事項｜Gogoro門市維修保養及配件、Gogoro 網路商店回饋",),
+    )
+    if warranty_body:
+        promotions.append(
+            _build_manual_promotion(
+                card,
+                title="加購延長保固40%回饋無上限",
+                body=warranty_body,
+                category="OTHER",
+                subcategory="GENERAL",
+                channel="ALL",
+                recommendation_scope="CATALOG_ONLY",
+                extra_conditions=[
+                    {"type": "MERCHANT", "value": "GOGORO", "label": "Gogoro"},
+                ],
+                valid_from="2026-02-01",
+                valid_until="2026-06-30",
+            )
+        )
+
+    return promotions
+
+
+def _extract_dual_currency_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    return []
+
+
+def _collect_line_window(
+    lines: Sequence[str],
+    start_token: str,
+    *,
+    stop_tokens: Sequence[str],
+    max_lines: int = 48,
+) -> str:
+    start_index = next((index for index, line in enumerate(lines) if start_token in line), None)
+    if start_index is None:
+        return ""
+
+    collected: List[str] = []
+    for line in lines[start_index:start_index + max_lines]:
+        if collected and any(token in line for token in stop_tokens):
+            break
+        if not line.strip():
+            continue
+        collected.append(line.strip())
+    return clean_offer_text(" ".join(collected))
+
+
+def _build_manual_promotion(
+    card: CardRecord,
+    *,
+    title: str,
+    body: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    recommendation_scope: str,
+    extra_conditions: Sequence[Dict[str, str]] = (),
+    valid_from: str | None = None,
+    valid_until: str | None = None,
+    reward: Dict[str, object] | None = None,
+) -> Dict[str, object]:
+    resolved_reward = reward or _extract_reward(title, body)
+    if resolved_reward is None:
+        resolved_reward = {"type": "FIXED", "value": 0}
+
+    parsed_valid_from, parsed_valid_until = extract_date_range(body)
+    valid_from = valid_from or parsed_valid_from or "2026-01-01"
+    valid_until = valid_until or parsed_valid_until or "2026-12-31"
+    min_amount = extract_min_amount(body)
+    max_cashback = extract_cap(body)
+    requires_registration = any(token in body for token in REGISTRATION_TOKENS)
+    frequency_limit = extract_frequency_limit(body)
+    conditions = build_conditions(body, card.application_requirements, requires_registration)
+    conditions.extend(dict(condition) for condition in extra_conditions)
+    conditions = sanitize_payment_conditions(title, body, conditions)
+    summary = build_summary(
+        title,
+        body,
+        valid_from,
+        valid_until,
+        min_amount,
+        max_cashback,
+        requires_registration,
+        summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+    )
+
+    return {
+        "title": f"{card.card_name} {title}",
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "subcategory": subcategory,
+        "channel": channel,
+        "cashbackType": resolved_reward["type"],
+        "cashbackValue": resolved_reward["value"],
+        "minAmount": min_amount,
+        "maxCashback": max_cashback,
+        "frequencyLimit": frequency_limit,
+        "requiresRegistration": requires_registration,
+        "recommendationScope": recommendation_scope,
+        "eligibilityType": infer_eligibility_type(card.card_name),
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": conditions,
+        "excludedConditions": [],
+        "sourceUrl": card.detail_url,
+        "summary": summary,
+        "status": "ACTIVE",
+        "planId": None,
+    }
 
 
 def _extract_richart_bonus_promotions(card: CardRecord, detail_links: Iterable[Dict[str, str]]) -> List[Dict[str, object]]:

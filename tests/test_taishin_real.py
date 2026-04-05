@@ -320,3 +320,134 @@ def test_resolve_richart_plan_id_does_not_affect_other_cards():
     )
 
     assert plan_id is None
+
+
+def test_postprocess_taishin_promotions_downgrades_installment_offers():
+    from extractor.taishin_real import CardRecord, _postprocess_taishin_promotions
+
+    card = CardRecord(
+        card_code="TAISHIN_JKOPAY",
+        card_name="街口聯名卡",
+        detail_url="https://example.com/jko",
+        apply_url=None,
+        annual_fee_summary=None,
+        application_requirements=[],
+        sections=[],
+    )
+
+    promotions = _postprocess_taishin_promotions(
+        card,
+        [
+            {
+                "title": "街口聯名卡 新卡專屬 單筆分期享 1.88% 限時優利",
+                "summary": "活動期間內單筆分期 1.88% 優惠利率",
+                "category": "OTHER",
+                "subcategory": "GENERAL",
+                "channel": "ALL",
+                "recommendationScope": "RECOMMENDABLE",
+            }
+        ],
+    )
+
+    assert promotions[0]["recommendationScope"] == "CATALOG_ONLY"
+    assert promotions[0]["channel"] == "ALL"
+
+
+def test_postprocess_taishin_promotions_downgrades_rose_plan_rows_to_catalog_only():
+    from extractor.taishin_real import CardRecord, _postprocess_taishin_promotions
+
+    card = CardRecord(
+        card_code="TAISHIN_ROSE",
+        card_name="玫瑰卡",
+        detail_url="https://example.com/rose",
+        apply_url=None,
+        annual_fee_summary=None,
+        application_requirements=[],
+        sections=[],
+    )
+
+    promotions = _postprocess_taishin_promotions(
+        card,
+        [
+            {
+                "title": "玫瑰卡 NEW！指定套餐方案",
+                "summary": "百貨｜餐廳｜電信｜保費最高 1.2%",
+                "category": "DINING",
+                "subcategory": "RESTAURANT",
+                "channel": "OFFLINE",
+                "recommendationScope": "FUTURE_SCOPE",
+            }
+        ],
+    )
+
+    assert promotions[0]["recommendationScope"] == "CATALOG_ONLY"
+    assert promotions[0]["category"] == "OTHER"
+    assert promotions[0]["subcategory"] == "GENERAL"
+
+
+def test_extract_px_mart_feature_promotions_adds_store_and_full_pay_rows():
+    from extractor.taishin_real import CardRecord, _extract_px_mart_feature_promotions
+
+    card = CardRecord(
+        card_code="TAISHIN_PX_MART",
+        card_name="大全聯信用卡",
+        detail_url="https://example.com/px",
+        apply_url=None,
+        annual_fee_summary=None,
+        application_requirements=[],
+        sections=[],
+    )
+
+    lines = [
+        "大全聯JCB卡最高8.5% 福利點限時送",
+        "2026/4/1-6/30 大全聯JCB卡限時加碼活動又來囉！不限新舊戶，申辦亦可享福利點加碼送！",
+        "【大全聯限定】 搭配卡友日抵用券 最高 8.5 %",
+        "大全聯店內最高回饋8.5%",
+        "【全支付店外】最高1.5%，一般吃喝玩買真好用",
+        "*大全聯信用卡福利卡號於開卡後3個日曆日生效，生效後須連結 綁定 PX Pay 方享回饋資格，未綁定則無回饋",
+        "卡片分期享 0.88%限時優利",
+    ]
+
+    promotions = _extract_px_mart_feature_promotions(card, lines)
+
+    assert len(promotions) == 2
+    store_promo = next(promo for promo in promotions if "大全聯店內消費" in promo["title"])
+    full_pay_promo = next(promo for promo in promotions if "全支付店外消費" in promo["title"])
+
+    assert store_promo["subcategory"] == "SUPERMARKET"
+    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "PXMART" for condition in store_promo["conditions"])
+    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "全支付" for condition in full_pay_promo["conditions"])
+
+
+def test_extract_jkopay_feature_promotions_does_not_force_payment_for_generic_app_copy():
+    from extractor.taishin_real import CardRecord, _extract_jkopay_feature_promotions
+
+    card = CardRecord(
+        card_code="TAISHIN_JKOPAY",
+        card_name="街口聯名卡",
+        detail_url="https://example.com/jko",
+        apply_url=None,
+        annual_fee_summary=None,
+        application_requirements=[],
+        sections=[],
+    )
+
+    lines = [
+        "街口豬富卡2026年權益 : 精選通路最高3.5%街口幣",
+        "精選通路，不限交易形式(實體卡(含線上輸入卡號)、於街口支付/LINE Pay/Apple pay綁定等皆適用)，享最高 3.5 %!",
+        "【活動已結束】旅遊/娛樂/交通/百貨/藥妝/外送/餐飲最高3.5%",
+        "【街口APP繳費 最高 2.15 %】",
+        "基本回饋：街口APP繳費享基本 0.15 %回饋無上限",
+        "滿額升級：當月街口APP繳費交易滿NT$1,000，升級再享2%回饋",
+        "【一般消費享 1 %街口幣 無上限】",
+        "一般消費，不限交易形式(實體卡(含線上輸入卡號)、於街口支付/LINE Pay/Apple pay綁定等皆適用)，享 1 %街口幣無上限",
+        "(1)精選通路最高3.5%優惠說明如下，其中精選加碼合計每月上限10,000元街口幣",
+    ]
+
+    promotions = _extract_jkopay_feature_promotions(card, lines)
+
+    bill_pay = next(promo for promo in promotions if "街口APP繳費" in promo["title"])
+    selected = next(promo for promo in promotions if "精選通路最高3.5%" in promo["title"])
+
+    assert not any(condition["type"] == "PAYMENT_PLATFORM" for condition in bill_pay["conditions"])
+    assert not any(condition["type"] == "PAYMENT_PLATFORM" for condition in selected["conditions"])
