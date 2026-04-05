@@ -2,6 +2,11 @@ import re
 from typing import Any, Dict, List
 
 from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
+from extractor.promotion_rules import (
+    append_inferred_payment_method_conditions,
+    append_inferred_subcategory_conditions,
+    canonicalize_subcategory,
+)
 
 
 CATEGORY_ALIASES = {
@@ -119,7 +124,22 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
     title_text = _normalize_string(data.get("promotion")) or _normalize_string(data.get("summary"))
     subcategory = _normalize_string(data.get("subcategory")) or "GENERAL"
     plan_id = explicit_plan_id or infer_plan_id(card_code, category, title=title_text, subcategory=subcategory)
-    category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+    category, subcategory = apply_plan_subcategory_hint(
+        plan_id,
+        category,
+        subcategory,
+        title=title_text,
+    )
+    normalized_conditions = _normalize_conditions(_split_list_field(data.get("conditions")))
+    normalized_conditions = append_inferred_subcategory_conditions(
+        title_text or "",
+        title_text or "",
+        category,
+        subcategory,
+        normalized_conditions,
+    )
+    normalized_conditions = append_inferred_payment_method_conditions(category, subcategory, normalized_conditions)
+    subcategory = canonicalize_subcategory(category, subcategory, normalized_conditions)
 
     normalized = {
         "bankCode": _normalize_string(data.get("bank")),
@@ -139,7 +159,7 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "eligibilityType": infer_eligibility_type(_normalize_string(data.get("card_name"))),
         "validFrom": _normalize_string(data.get("valid_from")),
         "validUntil": _normalize_string(data.get("valid_until")),
-        "conditions": _normalize_conditions(_split_list_field(data.get("conditions"))),
+        "conditions": normalized_conditions,
         "excludedConditions": _normalize_excluded_conditions(_split_list_field(data.get("excluded_conditions"))),
         "sourceUrl": _normalize_string(data.get("source_url")),
         "applyUrl": _normalize_string(data.get("apply_url")),

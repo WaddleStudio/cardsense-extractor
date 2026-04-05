@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from extractor.promotion_rules import SUBCATEGORY_SIGNALS, score_signals
+
 
 # cardCode -> { category -> planId }  (fallback when title has no plan-name signal)
 PLAN_MAPPING: Final[dict[str, dict[str, str]]] = {
@@ -164,6 +166,9 @@ def apply_plan_subcategory_hint(
     plan_id: str | None,
     category: str | None,
     subcategory: str | None,
+    *,
+    title: str | None = None,
+    body: str | None = None,
 ) -> tuple[str | None, str | None]:
     if not plan_id:
         return category, subcategory
@@ -180,6 +185,17 @@ def apply_plan_subcategory_hint(
     if resolved_category:
         hinted_subcategory = category_hints.get(resolved_category.upper())
         if hinted_subcategory and (not resolved_subcategory or resolved_subcategory.upper() == "GENERAL"):
+            evidence_text = (title or "").strip()
+            if not evidence_text:
+                return resolved_category, resolved_subcategory
+
+            hint_signals = (
+                SUBCATEGORY_SIGNALS
+                .get(resolved_category.upper(), {})
+                .get(hinted_subcategory.upper(), [])
+            )
+            if score_signals(evidence_text, hint_signals) < 3:
+                return resolved_category, resolved_subcategory
             resolved_subcategory = hinted_subcategory
 
     return resolved_category, resolved_subcategory

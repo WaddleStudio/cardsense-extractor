@@ -24,6 +24,9 @@ from extractor.promotion_rules import (
     infer_channel,
     infer_subcategory,
     normalize_promotion_title,
+    append_inferred_subcategory_conditions,
+    append_inferred_payment_method_conditions,
+    canonicalize_subcategory,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -327,8 +330,17 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         plan_id = _resolve_richart_plan_id(enriched_card.card_code, category, clean_title, clean_body)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
-        category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+        conditions = append_inferred_subcategory_conditions(clean_title, clean_body, category, subcategory, conditions)
+        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
+        category, subcategory = apply_plan_subcategory_hint(
+            plan_id,
+            category,
+            subcategory,
+            title=clean_title,
+            body=clean_body,
+        )
         conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
+        subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         promotions.append(
             {
@@ -483,10 +495,19 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     frequency_limit = extract_frequency_limit(focused_text)
     category = _infer_category(title, focused_text)
     subcategory = infer_subcategory(title, focused_text, category, SUBCATEGORY_SIGNALS)
-    category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+    category, subcategory = apply_plan_subcategory_hint(
+        plan_id,
+        category,
+        subcategory,
+        title=title,
+        body=focused_text,
+    )
     recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration)
     conditions = build_conditions(focused_text, card.application_requirements, requires_registration)
+    conditions = append_inferred_subcategory_conditions(title, focused_text, category, subcategory, conditions)
+    conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
     conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
+    subcategory = canonicalize_subcategory(category, subcategory, conditions)
     summary = build_summary(
         title,
         focused_text,

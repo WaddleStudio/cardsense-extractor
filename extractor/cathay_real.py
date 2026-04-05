@@ -24,6 +24,9 @@ from extractor.promotion_rules import (
     infer_channel,
     infer_subcategory,
     normalize_promotion_title,
+    append_inferred_subcategory_conditions,
+    append_inferred_payment_method_conditions,
+    canonicalize_subcategory,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -448,6 +451,16 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             category = infer_category(clean_title, candidate["body"], CATEGORY_SIGNALS, overseas_category="OVERSEAS")
             subcategory = infer_subcategory(clean_title, candidate["body"], category, SUBCATEGORY_SIGNALS)
             recommendation_scope = classify_recommendation_scope(clean_title, candidate["body"], category)
+            conditions = append_inferred_subcategory_conditions(
+                clean_title,
+                candidate["body"],
+                category,
+                subcategory,
+                build_conditions(candidate["body"], enriched_card.application_requirements, requires_registration),
+            )
+            conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
+            subcategory = canonicalize_subcategory(category, subcategory, conditions)
+
             promotions.append(
                 {
                     "title": f"{enriched_card.card_name} {clean_title}",
@@ -471,7 +484,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                     "eligibilityType": eligibility_type,
                     "validFrom": valid_from,
                     "validUntil": valid_until,
-                    "conditions": build_conditions(candidate["body"], enriched_card.application_requirements, requires_registration),
+                    "conditions": conditions,
                     "excludedConditions": [],
                     "sourceUrl": enriched_card.detail_url,
                     "summary": build_summary(
@@ -591,7 +604,13 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
 
             category = infer_category(tier_title, merchants, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
             subcategory = infer_subcategory(tier_title, merchants, category, SUBCATEGORY_SIGNALS)
-            category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+            category, subcategory = apply_plan_subcategory_hint(
+                plan_id,
+                category,
+                subcategory,
+                title=tier_title,
+                body=merchants,
+            )
             channel = infer_channel(tier_title, merchants, CHANNEL_SIGNALS)
             title = f"{card.card_name} {plan_name} {tier_title}"
             body = f"{tier_title} 享{rate}%小樹點回饋 {merchants}"
@@ -644,7 +663,13 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
         body = f"{plan_name}方案 指定通路享{default_rate}%小樹點回饋"
         channel = "ONLINE" if default_category == "ONLINE" else "ALL"
         fallback_subcategory = infer_subcategory(title, body, default_category, SUBCATEGORY_SIGNALS)
-        default_category, fallback_subcategory = apply_plan_subcategory_hint(plan_id, default_category, fallback_subcategory)
+        default_category, fallback_subcategory = apply_plan_subcategory_hint(
+            plan_id,
+            default_category,
+            fallback_subcategory,
+            title=title,
+            body=body,
+        )
 
         promo = _build_plan_promotion_with_conditions(
             card=card,

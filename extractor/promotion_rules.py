@@ -643,6 +643,189 @@ def infer_subcategory(
     return best if scores[best] >= 3 else "GENERAL"
 
 
+STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, str]]] = {
+    ("ONLINE", "ECOMMERCE"): [
+        {"token": "PChome 24h", "type": "ECOMMERCE_PLATFORM", "value": "PCHOME_24H", "label": "PChome 24h"},
+        {"token": "PChome", "type": "ECOMMERCE_PLATFORM", "value": "PCHOME_24H", "label": "PChome 24h"},
+        {"token": "momo", "type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo"},
+        {"token": "?衣", "type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "?衣"},
+        {"token": "Yahoo", "type": "ECOMMERCE_PLATFORM", "value": "YAHOO", "label": "Yahoo"},
+        {"token": "Coupang", "type": "ECOMMERCE_PLATFORM", "value": "COUPANG", "label": "Coupang"},
+        {"token": "瘛窄", "type": "ECOMMERCE_PLATFORM", "value": "TAOBAO", "label": "瘛窄"},
+        {"token": "憭抵?", "type": "ECOMMERCE_PLATFORM", "value": "TMALL", "label": "憭抵?"},
+    ],
+    ("ONLINE", "MOBILE_PAY"): [
+        {"token": "LINE Pay", "type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
+        {"token": "Apple Pay", "type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
+        {"token": "Google Pay", "type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
+        {"token": "Samsung Pay", "type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+        {"token": "銵", "type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "JKOPay"},
+        {"token": "?控Wallet", "type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "?控Wallet"},
+        {"token": "全支付", "type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
+        {"token": "街口支付", "type": "PAYMENT_PLATFORM", "value": "街口支付", "label": "街口支付"},
+        {"token": "悠遊付", "type": "PAYMENT_PLATFORM", "value": "悠遊付", "label": "悠遊付"},
+        {"token": "全盈+PAY", "type": "PAYMENT_PLATFORM", "value": "全盈_PAY", "label": "全盈+PAY"},
+        {"token": "iPASS MONEY", "type": "PAYMENT_PLATFORM", "value": "IPASS_MONEY", "label": "iPASS MONEY"},
+        {"token": "icash Pay", "type": "PAYMENT_PLATFORM", "value": "ICASH_PAY", "label": "icash Pay"},
+    ],
+    ("ONLINE", "AI_TOOL"): [
+        {"token": "ChatGPT", "type": "MERCHANT", "value": "CHATGPT", "label": "ChatGPT"},
+        {"token": "Claude", "type": "MERCHANT", "value": "CLAUDE", "label": "Claude"},
+        {"token": "Cursor", "type": "MERCHANT", "value": "CURSOR", "label": "Cursor"},
+        {"token": "Gemini", "type": "MERCHANT", "value": "GEMINI", "label": "Gemini"},
+        {"token": "Perplexity", "type": "MERCHANT", "value": "PERPLEXITY", "label": "Perplexity"},
+        {"token": "Notion", "type": "MERCHANT", "value": "NOTION", "label": "Notion"},
+        {"token": "Canva", "type": "MERCHANT", "value": "CANVA", "label": "Canva"},
+        {"token": "Gamma", "type": "MERCHANT", "value": "GAMMA", "label": "Gamma"},
+    ],
+    ("ENTERTAINMENT", "STREAMING"): [
+        {"token": "Netflix", "type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
+        {"token": "Spotify", "type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
+        {"token": "Disney+", "type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"token": "YouTube Premium", "type": "MERCHANT", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
+        {"token": "friDay", "type": "MERCHANT", "value": "FRIDAY_VIDEO", "label": "friDay Video"},
+        {"token": "MyVideo", "type": "MERCHANT", "value": "MYVIDEO", "label": "MyVideo"},
+    ],
+    ("DINING", "DELIVERY"): [
+        {"token": "Uber Eats", "type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
+        {"token": "foodpanda", "type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+    ],
+    ("TRANSPORT", "RIDESHARE"): [
+        {"token": "Uber", "type": "MERCHANT", "value": "UBER", "label": "Uber"},
+        {"token": "Grab", "type": "MERCHANT", "value": "GRAB", "label": "Grab"},
+        {"token": "yoxi", "type": "MERCHANT", "value": "YOXI", "label": "yoxi"},
+        {"token": "GoShare", "type": "MERCHANT", "value": "GOSHARE", "label": "GoShare"},
+        {"token": "WeMo", "type": "MERCHANT", "value": "WEMO", "label": "WeMo"},
+    ],
+    ("TRANSPORT", "AIRLINE"): [
+        {"token": "?航", "type": "MERCHANT", "value": "CHINA_AIRLINES", "label": "?航"},
+        {"token": "?瑟旨?芰征", "type": "MERCHANT", "value": "EVA_AIR", "label": "?瑟旨?芰征"},
+        {"token": "???芰征", "type": "MERCHANT", "value": "STARLUX", "label": "???芰征"},
+        {"token": "?陸?芰征", "type": "MERCHANT", "value": "CATHAY_PACIFIC", "label": "?陸?芰征"},
+        {"token": "ANA", "type": "MERCHANT", "value": "ANA", "label": "ANA"},
+    ],
+    ("GROCERY", "SUPERMARKET"): [
+        {"token": "?刻", "type": "RETAIL_CHAIN", "value": "PXMART", "label": "?刻"},
+        {"token": "摰嗆?蝳?", "type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "摰嗆?蝳?"},
+        {"token": "LOPIA", "type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
+        {"token": "RT-Mart", "type": "RETAIL_CHAIN", "value": "RT_MART", "label": "RT-Mart"},
+    ],
+    ("SHOPPING", "DEPARTMENT"): [
+        {"token": "SOGO", "type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"},
+        {"token": "?啣?銝?", "type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "?啣?銝?"},
+        {"token": "??曇疏", "type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "??曇疏"},
+        {"token": "微風", "type": "RETAIL_CHAIN", "value": "BREEZE", "label": "微風"},
+        {"token": "?啣?101", "type": "RETAIL_CHAIN", "value": "TAIPEI_101", "label": "?啣?101"},
+    ],
+    ("SHOPPING", "DRUGSTORE"): [
+        {"token": "摨瑟蝢?", "type": "RETAIL_CHAIN", "value": "COSMED", "label": "摨瑟蝢?"},
+        {"token": "撅瘞?", "type": "RETAIL_CHAIN", "value": "WATSONS", "label": "撅瘞?"},
+    ],
+    ("OTHER", "EV_CHARGING"): [
+        {"token": "U-POWER", "type": "MERCHANT", "value": "U_POWER", "label": "U-POWER"},
+        {"token": "EVOASIS", "type": "MERCHANT", "value": "EVOASIS", "label": "EVOASIS"},
+        {"token": "AmpGO", "type": "MERCHANT", "value": "AMPGO", "label": "AmpGO"},
+        {"token": "iCharging", "type": "MERCHANT", "value": "ICHARGING", "label": "iCharging"},
+    ],
+    ("TRANSPORT", "GAS_STATION"): [
+        {"token": "?啁銝剜硃", "type": "RETAIL_CHAIN", "value": "CPC", "label": "?啁銝剜硃"},
+        {"token": "?典??硃", "type": "RETAIL_CHAIN", "value": "NATIONWIDE_GAS", "label": "?典??硃"},
+        {"token": "?啣??單硃", "type": "RETAIL_CHAIN", "value": "FORMOSA_PETROCHEMICAL", "label": "?啣??單硃"},
+        {"token": "?唬?", "type": "RETAIL_CHAIN", "value": "TAIA", "label": "?唬?"},
+        {"token": "蝳?", "type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "蝳?"},
+    ],
+}
+
+PAYMENT_METHOD_SUBCATEGORY_CONDITIONS: Dict[tuple[str, str], Dict[str, str]] = {
+    ("ONLINE", "MOBILE_PAY"): {
+        "type": "PAYMENT_METHOD",
+        "value": "MOBILE_PAY",
+        "label": "行動支付",
+    },
+}
+
+
+def append_inferred_subcategory_conditions(
+    title: str,
+    body: str,
+    category: str | None,
+    subcategory: str | None,
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    if not category or not subcategory or subcategory.upper() == "GENERAL":
+        return conditions
+
+    inferred = STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS.get((category.upper(), subcategory.upper()))
+    if not inferred:
+        return conditions
+
+    text = f"{title} {body}"
+    merged = list(conditions)
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+
+    for candidate in inferred:
+        if candidate["token"] not in text:
+            continue
+        key = (candidate["type"].upper(), candidate["value"].upper())
+        if key in seen:
+            continue
+        merged.append(
+            {
+                "type": candidate["type"],
+                "value": candidate["value"],
+                "label": candidate["label"],
+            }
+        )
+        seen.add(key)
+
+    return merged
+
+
+def append_inferred_payment_method_conditions(
+    category: str | None,
+    subcategory: str | None,
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    if not category or not subcategory:
+        return conditions
+
+    inferred = PAYMENT_METHOD_SUBCATEGORY_CONDITIONS.get((category.upper(), subcategory.upper()))
+    if not inferred:
+        return conditions
+
+    merged = list(conditions)
+    key = (inferred["type"].upper(), inferred["value"].upper())
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    if key not in seen:
+        merged.append(dict(inferred))
+    return merged
+
+
+def canonicalize_subcategory(
+    category: str | None,
+    subcategory: str | None,
+    conditions: Sequence[Dict[str, str]] | None = None,
+) -> str | None:
+    if not category or not subcategory:
+        return subcategory
+
+    if category.upper() != "ONLINE" or subcategory.upper() != "MOBILE_PAY":
+        return subcategory
+
+    normalized_conditions = conditions or []
+    has_payment_condition = any(
+        str(condition.get("type", "")).upper() in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"}
+        for condition in normalized_conditions
+    )
+    return "GENERAL" if has_payment_condition else subcategory
+
+
 def build_conditions(
     text: str,
     application_requirements: Iterable[str],

@@ -26,7 +26,11 @@ def test_normalize_infers_plan_id_for_benefit_plan_cards():
     )
 
     assert normalized["planId"] == "ESUN_UNICARD_FLEXIBLE"
-    assert normalized["subcategory"] == "MOBILE_PAY"
+    assert normalized["subcategory"] == "GENERAL"
+    assert any(
+        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        for condition in normalized["conditions"]
+    )
 
 
 def test_normalize_infers_richart_plan_id_when_missing():
@@ -48,7 +52,7 @@ def test_normalize_infers_richart_plan_id_when_missing():
     )
 
     assert normalized["planId"] == "TAISHIN_RICHART_DIGITAL"
-    assert normalized["subcategory"] == "STREAMING"
+    assert normalized["subcategory"] == "GENERAL"
 
 
 def test_normalize_applies_richart_big_department_hint():
@@ -69,7 +73,7 @@ def test_normalize_applies_richart_big_department_hint():
     )
 
     assert normalized["planId"] == "TAISHIN_RICHART_BIG"
-    assert normalized["subcategory"] == "DEPARTMENT"
+    assert normalized["subcategory"] == "GENERAL"
 
 
 def test_normalize_applies_richart_daily_supermarket_hint():
@@ -90,7 +94,7 @@ def test_normalize_applies_richart_daily_supermarket_hint():
     )
 
     assert normalized["planId"] == "TAISHIN_RICHART_DAILY"
-    assert normalized["subcategory"] == "SUPERMARKET"
+    assert normalized["subcategory"] == "GENERAL"
 
 
 def test_normalize_preserves_explicit_plan_id():
@@ -115,7 +119,7 @@ def test_normalize_preserves_explicit_plan_id():
     assert normalized["planId"] == "CATHAY_CUBE_JAPAN"
 
 
-def test_normalize_preserves_existing_subcategory_when_present():
+def test_normalize_converts_mobile_pay_subcategory_into_payment_method_condition():
     normalized = normalize_data(
         {
             "bank": "TAISHIN",
@@ -134,7 +138,11 @@ def test_normalize_preserves_existing_subcategory_when_present():
     )
 
     assert normalized["planId"] == "TAISHIN_RICHART_PAY"
-    assert normalized["subcategory"] == "MOBILE_PAY"
+    assert normalized["subcategory"] == "GENERAL"
+    assert any(
+        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        for condition in normalized["conditions"]
+    )
 
 
 def test_normalize_applies_category_specific_cube_shopping_hint():
@@ -177,7 +185,7 @@ def test_normalize_maps_cube_dining_to_shopping_plan():
     )
 
     assert normalized["planId"] == "CATHAY_CUBE_SHOPPING"
-    assert normalized["subcategory"] == "RESTAURANT"
+    assert normalized["subcategory"] == "GENERAL"
 
 
 def test_normalize_maps_cube_grocery_to_essentials_plan():
@@ -220,7 +228,7 @@ def test_normalize_applies_unicard_simple_supermarket_hint():
     )
 
     assert normalized["planId"] == "ESUN_UNICARD_SIMPLE"
-    assert normalized["subcategory"] == "SUPERMARKET"
+    assert normalized["subcategory"] == "GENERAL"
 
 
 def test_normalize_applies_unicard_up_department_hint():
@@ -241,7 +249,7 @@ def test_normalize_applies_unicard_up_department_hint():
     )
 
     assert normalized["planId"] == "ESUN_UNICARD_UP"
-    assert normalized["subcategory"] == "DEPARTMENT"
+    assert normalized["subcategory"] == "GENERAL"
 
 
 def test_infer_eligibility_type_detects_business_card_names():

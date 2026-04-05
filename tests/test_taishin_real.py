@@ -254,7 +254,11 @@ def test_extract_card_promotions_applies_plan_subcategory_hints_for_richart_mark
 
     assert promotion is not None
     assert promotion["planId"] == "TAISHIN_RICHART_PAY"
-    assert promotion["subcategory"] == "MOBILE_PAY"
+    assert promotion["subcategory"] == "GENERAL"
+    assert any(
+        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        for condition in promotion["conditions"]
+    )
     assert any(
         condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
         for condition in promotion["conditions"]

@@ -108,11 +108,31 @@ def test_unicard_online_offer_can_infer_plan_and_subcategory_hint():
         title="LINE Pay 加碼 3%",
         subcategory="GENERAL",
     )
-    category, subcategory = apply_plan_subcategory_hint(plan_id, "ONLINE", "GENERAL")
+    category, subcategory = apply_plan_subcategory_hint(
+        plan_id,
+        "ONLINE",
+        "GENERAL",
+        title="LINE Pay ?Ⅳ 3%",
+    )
 
     assert plan_id == "ESUN_UNICARD_FLEXIBLE"
     assert category == "ONLINE"
     assert subcategory == "MOBILE_PAY"
+
+
+def test_unicard_plan_hint_keeps_general_without_matching_subcategory_signal():
+    from extractor.benefit_plans import apply_plan_subcategory_hint
+
+    category, subcategory = apply_plan_subcategory_hint(
+        "ESUN_UNICARD_SIMPLE",
+        "GROCERY",
+        "GENERAL",
+        title="蝪∪??3%",
+        body="百大指定消費最高享3%",
+    )
+
+    assert category == "GROCERY"
+    assert subcategory == "GENERAL"
 
 
 def test_unicard_plan_hint_appends_merchant_conditions_for_mobile_pay():
@@ -126,6 +146,18 @@ def test_unicard_plan_hint_appends_merchant_conditions_for_mobile_pay():
     )
     assert any(
         condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "ESUN_WALLET"
+        for condition in conditions
+    )
+
+
+def test_mobile_pay_subcategory_is_canonicalized_after_payment_conditions_are_added():
+    from extractor.promotion_rules import append_inferred_payment_method_conditions, canonicalize_subcategory
+
+    conditions = append_inferred_payment_method_conditions("ONLINE", "MOBILE_PAY", [])
+
+    assert canonicalize_subcategory("ONLINE", "MOBILE_PAY", conditions) == "GENERAL"
+    assert any(
+        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
         for condition in conditions
     )
 

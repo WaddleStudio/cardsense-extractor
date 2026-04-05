@@ -24,7 +24,11 @@ from extractor.promotion_rules import (
     infer_channel,
     infer_subcategory,
     normalize_promotion_title,
+    append_inferred_subcategory_conditions,
+    append_inferred_payment_method_conditions,
+    canonicalize_subcategory,
     SUBCATEGORY_SIGNALS,
+    to_condition_value,
 )
 
 
@@ -94,6 +98,69 @@ UNICARD_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
     ),
 }
 
+UNICARD_HUNDRED_STORE_CLUSTER_META: dict[str, dict[str, str]] = {
+    "行動支付": {
+        "category": "ONLINE",
+        "subcategory": "GENERAL",
+        "channel": "ONLINE",
+        "condition_type": "PAYMENT_PLATFORM",
+    },
+    "加油交通": {
+        "category": "TRANSPORT",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "condition_type": "MERCHANT",
+    },
+    "國內百貨": {
+        "category": "SHOPPING",
+        "subcategory": "GENERAL",
+        "channel": "OFFLINE",
+        "condition_type": "RETAIL_CHAIN",
+    },
+    "餐飲美食": {
+        "category": "DINING",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "condition_type": "MERCHANT",
+    },
+    "航空旅遊": {
+        "category": "OVERSEAS",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "condition_type": "MERCHANT",
+    },
+    "精選商家": {
+        "category": "SHOPPING",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "condition_type": "RETAIL_CHAIN",
+    },
+    "生活採買": {
+        "category": "GROCERY",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "condition_type": "RETAIL_CHAIN",
+    },
+    "電商平台": {
+        "category": "ONLINE",
+        "subcategory": "ECOMMERCE",
+        "channel": "ONLINE",
+        "condition_type": "ECOMMERCE_PLATFORM",
+    },
+    "國外實體": {
+        "category": "OVERSEAS",
+        "subcategory": "GENERAL",
+        "channel": "OFFLINE",
+        "condition_type": "LOCATION_ONLY",
+    },
+    "ESG消費": {
+        "category": "OTHER",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "condition_type": "MERCHANT",
+    },
+}
+
 CATEGORY_SIGNALS = {
     "OVERSEAS": [("日本", 4), ("韓國", 4), ("海外", 4), ("外幣", 3), ("航空", 3), ("旅遊", 3), ("旅行", 3), ("飯店", 3), ("住宿", 3), ("機場", 2), ("日圓", 2), ("韓圓", 2)],
     "ONLINE": [("Booking", 3), ("Agoda", 3), ("Hotels.com", 3), ("Expedia", 3), ("Klook", 3), ("KKday", 3), ("PChome", 4), ("蝦皮", 4), ("網購", 4), ("LINE Pay", 3), ("Uber Eats", 3), ("網頁", 2), ("網站", 2), ("平台", 1), ("APP", 1)],
@@ -119,6 +186,7 @@ PAGE_CONFIG = SectionedPageConfig(
             "卡片介紹",
             "卡片特色",
             "專屬優惠",
+            "百大指定消費",
             "Pi拍錢包加碼",
             "卡友禮遇服務",
             "卡片須知",
@@ -129,12 +197,13 @@ PAGE_CONFIG = SectionedPageConfig(
             "Additional Links",
         }
     ),
-    active_sections=frozenset({"卡片特色", "專屬優惠", "Pi拍錢包加碼", "卡友禮遇服務"}),
+    active_sections=frozenset({"卡片特色", "專屬優惠", "百大指定消費", "Pi拍錢包加碼", "卡友禮遇服務"}),
     subsection_skip=frozenset(
         {
             "卡片介紹",
             "卡片特色",
             "專屬優惠",
+            "百大指定消費",
             "Pi拍錢包加碼",
             "卡友禮遇服務",
             "卡片須知",
@@ -257,11 +326,23 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         )
         category = _infer_category(clean_title, clean_body)
         subcategory = infer_subcategory(clean_title, clean_body, category, SUBCATEGORY_SIGNALS)
+        if "一般消費" in clean_title:
+            category = "OTHER"
+            subcategory = "GENERAL"
         plan_id = infer_plan_id(enriched_card.card_code, category, title=clean_title, subcategory=subcategory)
-        category, subcategory = apply_plan_subcategory_hint(plan_id, category, subcategory)
+        category, subcategory = apply_plan_subcategory_hint(
+            plan_id,
+            category,
+            subcategory,
+            title=clean_title,
+            body=clean_body,
+        )
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
+        conditions = append_inferred_subcategory_conditions(clean_title, clean_body, category, subcategory, conditions)
+        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
         conditions = _append_unicard_plan_conditions(plan_id, subcategory, conditions)
+        subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         base_promotion = {
             "title": f"{enriched_card.card_name} {clean_title}",
@@ -294,6 +375,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         }
 
         promotions.extend(_expand_card_specific_promotions(enriched_card.card_code, clean_title, clean_body, base_promotion))
+
+    promotions.extend(_extract_unicard_hundred_store_promotions(lines, enriched_card, eligibility_type))
 
     return enriched_card, _dedupe_promotions(promotions)
 
@@ -410,3 +493,163 @@ def _append_unicard_plan_conditions(
         merged.append(dict(condition))
         seen.add(key)
     return merged
+
+
+def _extract_unicard_hundred_store_promotions(
+    lines: List[str],
+    card: CardRecord,
+    eligibility_type: str,
+) -> List[Dict[str, object]]:
+    if card.card_code != "ESUN_UNICARD":
+        return []
+
+    valid_from, valid_until, clusters = _extract_unicard_hundred_store_clusters(lines)
+    if not valid_from or not valid_until or not clusters:
+        return []
+
+    rate_summary = "簡單選 3% / 任意選 3.5% / UP選 4.5%"
+    notes = (
+        "百大指定消費加碼以每月最後一日最終方案計算；任意選需於 100 家指定消費中自選最多 8 家；"
+        "簡單選與任意選月上限 1,000 點，UP選月上限 5,000 點。"
+    )
+
+    promotions: List[Dict[str, object]] = []
+    for cluster_name, merchant_labels in clusters:
+        meta = UNICARD_HUNDRED_STORE_CLUSTER_META.get(cluster_name)
+        if not meta or not merchant_labels:
+            continue
+
+        conditions = [
+            {"type": "TEXT", "value": "UNICARD_HUNDRED_STORE_CATALOG", "label": notes},
+            *_build_unicard_hundred_store_conditions(meta["condition_type"], merchant_labels),
+        ]
+        if meta["condition_type"] == "PAYMENT_PLATFORM":
+            conditions.insert(1, {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"})
+        summary = (
+            f"{cluster_name}百大指定消費；{rate_summary}；"
+            f"共 {len(merchant_labels)} 個指定通路；期間 {valid_from}~{valid_until}"
+        )
+
+        promotions.append(
+            {
+                "title": f"{card.card_name} 百大指定消費 {cluster_name}",
+                "cardCode": card.card_code,
+                "cardName": card.card_name,
+                "cardStatus": "ACTIVE",
+                "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+                "applyUrl": card.apply_url,
+                "bankCode": BANK_CODE,
+                "bankName": BANK_NAME,
+                "category": meta["category"],
+                "subcategory": meta["subcategory"],
+                "channel": meta["channel"],
+                "cashbackType": "PERCENT",
+                "cashbackValue": 4.5,
+                "minAmount": 0,
+                "maxCashback": None,
+                "frequencyLimit": "NONE",
+                "requiresRegistration": False,
+                "recommendationScope": "CATALOG_ONLY",
+                "eligibilityType": eligibility_type,
+                "validFrom": valid_from,
+                "validUntil": valid_until,
+                "conditions": conditions,
+                "excludedConditions": [],
+                "sourceUrl": card.detail_url,
+                "summary": summary,
+                "status": "ACTIVE",
+                "planId": None,
+            }
+        )
+
+    return promotions
+
+
+def _extract_unicard_hundred_store_clusters(lines: List[str]) -> tuple[str | None, str | None, List[tuple[str, List[str]]]]:
+    try:
+        start_index = lines.index("百大指定消費列表")
+    except ValueError:
+        return None, None, []
+
+    valid_from = None
+    valid_until = None
+    clusters: List[tuple[str, List[str]]] = []
+    known_cluster_names = set(UNICARD_HUNDRED_STORE_CLUSTER_META)
+
+    index = start_index + 1
+    while index < len(lines):
+        line = lines[index]
+        if not valid_from or not valid_until:
+            valid_from, valid_until = extract_date_range(line)
+
+        if line == "百大指定消費列表注意事項":
+            break
+
+        if line in {"類別", "指定百大指定消費"} or "適用百大指定消費列表如下" in line or line.startswith("※"):
+            index += 1
+            continue
+
+        if line in known_cluster_names and index + 1 < len(lines):
+            merchant_line = lines[index + 1]
+            if merchant_line == "百大指定消費列表注意事項":
+                break
+            clusters.append((line, _split_unicard_merchant_labels(merchant_line)))
+            index += 2
+            continue
+
+        index += 1
+
+    return valid_from, valid_until, clusters
+
+
+def _split_unicard_merchant_labels(value: str) -> List[str]:
+    labels: List[str] = []
+    current: List[str] = []
+    depth = 0
+
+    for char in value:
+        if char in "(（":
+            depth += 1
+        elif char in ")）" and depth > 0:
+            depth -= 1
+
+        if char == "、" and depth == 0:
+            label = collapse_text("".join(current))
+            if label:
+                labels.append(label)
+            current = []
+            continue
+
+        current.append(char)
+
+    trailing = collapse_text("".join(current))
+    if trailing:
+        labels.append(trailing)
+
+    return labels
+
+
+def _build_unicard_hundred_store_conditions(
+    condition_type: str,
+    merchant_labels: List[str],
+) -> List[Dict[str, str]]:
+    conditions: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    for label in merchant_labels:
+        if not label:
+            continue
+
+        if condition_type == "LOCATION_ONLY":
+            value = label.strip()
+        else:
+            value = to_condition_value(label)
+
+        key = (condition_type, value)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        conditions.append({"type": condition_type, "value": value, "label": label})
+
+    return conditions
