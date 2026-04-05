@@ -135,6 +135,60 @@ def test_mobile_pay_subcategory_is_canonicalized_after_payment_conditions_are_ad
     )
 
 
+def test_unicard_hundred_store_department_cluster_is_not_general():
+    from extractor.esun_real import UNICARD_HUNDRED_STORE_CLUSTER_META
+
+    assert UNICARD_HUNDRED_STORE_CLUSTER_META["國內百貨"]["subcategory"] == "DEPARTMENT"
+
+
+def test_unicard_hundred_store_variant_filters_split_mixed_clusters():
+    from extractor.esun_real import _filter_unicard_variant_labels
+
+    transport_labels = ["台灣中油(直營店)", "台鐵", "高鐵", "Uber", "yoxi", "55688(台灣大車隊、機場接送)"]
+    travel_labels = ["中華航空", "長榮航空", "Trip.com", "Booking.com", "Klook", "Agoda"]
+
+    gas_labels = _filter_unicard_variant_labels(transport_labels, match_tokens=("台灣中油", "中油", "全國加油"))
+    transit_labels = _filter_unicard_variant_labels(transport_labels, match_tokens=("台鐵", "高鐵"))
+    rideshare_labels = _filter_unicard_variant_labels(transport_labels, match_tokens=("UBER", "YOXI", "55688"))
+    airline_labels = _filter_unicard_variant_labels(travel_labels, match_tokens=("中華航空", "長榮航空"))
+    platform_labels = _filter_unicard_variant_labels(
+        travel_labels,
+        exclude_tokens=("中華航空", "長榮航空", "日本航空", "台灣虎航", "樂桃航空", "酷航"),
+    )
+
+    assert gas_labels == ["台灣中油(直營店)"]
+    assert transit_labels == ["台鐵", "高鐵"]
+    assert rideshare_labels == ["Uber", "yoxi", "55688(台灣大車隊、機場接送)"]
+    assert airline_labels == ["中華航空", "長榮航空"]
+    assert platform_labels == ["Trip.com", "Booking.com", "Klook", "Agoda"]
+
+
+def test_unicard_hundred_store_variant_filters_split_remaining_general_clusters():
+    from extractor.esun_real import _filter_unicard_variant_labels
+
+    selected_labels = ["Apple直營店", "小米台灣", "全國電子", "燦坤", "迪卡儂"]
+    grocery_labels = ["家樂福", "屈臣氏", "康是美", "特力屋", "HOLA", "hoi好好生活", "UNIQLO", "NET", "大樹藥局", "丁丁藥妝"]
+    esg_labels = ["玉山Wallet愛心捐款-單筆捐款", "玉山Wallet愛心捐款-定期定額", "特斯拉", "Gogoro電池資費", "YouBike 2.0"]
+
+    electronics = _filter_unicard_variant_labels(selected_labels, match_tokens=("APPLE", "小米", "全國電子", "燦坤"))
+    sporting = _filter_unicard_variant_labels(selected_labels, match_tokens=("迪卡儂",))
+    drugstore = _filter_unicard_variant_labels(grocery_labels, match_tokens=("屈臣氏", "康是美", "大樹藥局", "丁丁藥妝"))
+    home_living = _filter_unicard_variant_labels(grocery_labels, match_tokens=("特力屋", "HOLA", "HOI"))
+    apparel = _filter_unicard_variant_labels(grocery_labels, match_tokens=("UNIQLO", "NET"))
+    charging = _filter_unicard_variant_labels(esg_labels, match_tokens=("特斯拉", "GOGORO"))
+    transit = _filter_unicard_variant_labels(esg_labels, match_tokens=("YOUBIKE",))
+    donation = _filter_unicard_variant_labels(esg_labels, match_tokens=("愛心捐款",))
+
+    assert electronics == ["Apple直營店", "小米台灣", "全國電子", "燦坤"]
+    assert sporting == ["迪卡儂"]
+    assert drugstore == ["屈臣氏", "康是美", "大樹藥局", "丁丁藥妝"]
+    assert home_living == ["特力屋", "HOLA", "hoi好好生活"]
+    assert apparel == ["UNIQLO", "NET"]
+    assert charging == ["特斯拉", "Gogoro電池資費"]
+    assert transit == ["YouBike 2.0"]
+    assert donation == ["玉山Wallet愛心捐款-單筆捐款", "玉山Wallet愛心捐款-定期定額"]
+
+
 def test_unicard_plan_hint_appends_streaming_merchants_after_subcategory_resolution():
     from extractor.esun_real import _append_unicard_plan_conditions
 

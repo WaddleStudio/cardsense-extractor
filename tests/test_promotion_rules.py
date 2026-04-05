@@ -220,3 +220,47 @@ def test_infer_subcategory_matches_rideshare_terms_under_transport():
     )
 
     assert subcategory == "RIDESHARE"
+
+
+def test_infer_subcategory_matches_public_transit_terms_under_transport():
+    subcategory = infer_subcategory(
+        "指定交通通路加碼",
+        "台鐵、高鐵購票與乘車相關消費享加碼回饋",
+        "TRANSPORT",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "PUBLIC_TRANSIT"
+
+
+def test_infer_subcategory_matches_sporting_goods_terms_under_shopping():
+    subcategory = infer_subcategory(
+        "指定商家加碼",
+        "迪卡儂運動用品消費享加碼回饋",
+        "SHOPPING",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "SPORTING_GOODS"
+
+
+def test_infer_subcategory_matches_apparel_terms_under_shopping():
+    subcategory = infer_subcategory(
+        "指定商家加碼",
+        "UNIQLO、NET 服飾成衣消費享加碼回饋",
+        "SHOPPING",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "APPAREL"
+
+
+def test_infer_subcategory_matches_charity_donation_terms_under_other():
+    subcategory = infer_subcategory(
+        "ESG 消費加碼",
+        "玉山Wallet 愛心捐款與公益定期定額享加碼回饋",
+        "OTHER",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "CHARITY_DONATION"

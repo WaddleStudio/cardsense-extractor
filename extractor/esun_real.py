@@ -113,7 +113,7 @@ UNICARD_HUNDRED_STORE_CLUSTER_META: dict[str, dict[str, str]] = {
     },
     "國內百貨": {
         "category": "SHOPPING",
-        "subcategory": "GENERAL",
+        "subcategory": "DEPARTMENT",
         "channel": "OFFLINE",
         "condition_type": "RETAIL_CHAIN",
     },
@@ -160,6 +160,236 @@ UNICARD_HUNDRED_STORE_CLUSTER_META: dict[str, dict[str, str]] = {
         "condition_type": "MERCHANT",
     },
 }
+
+UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
+    "加油交通": (
+        {
+            "title_suffix": "加油",
+            "category": "TRANSPORT",
+            "subcategory": "GAS_STATION",
+            "channel": "ALL",
+            "condition_type": "RETAIL_CHAIN",
+            "match_tokens": ("台灣中油", "中油", "全國加油", "台塑石油", "台亞", "福懋"),
+            "condition_overrides": {
+                "台灣中油": ("CPC", "台灣中油"),
+                "中油": ("CPC", "台灣中油"),
+                "全國加油": ("NATIONWIDE_GAS", "全國加油"),
+                "台塑石油": ("FORMOSA_PETROCHEMICAL", "台塑石油"),
+                "台亞": ("TAIA", "台亞"),
+                "福懋": ("FORMOZA", "福懋"),
+            },
+        },
+        {
+            "title_suffix": "大眾運輸",
+            "category": "TRANSPORT",
+            "subcategory": "PUBLIC_TRANSIT",
+            "channel": "ALL",
+            "condition_type": "MERCHANT",
+            "match_tokens": ("台鐵", "臺鐵", "高鐵"),
+            "condition_overrides": {
+                "台鐵": ("TRA", "台鐵"),
+                "臺鐵": ("TRA", "台鐵"),
+                "高鐵": ("THSR", "高鐵"),
+            },
+        },
+        {
+            "title_suffix": "叫車 / 共享",
+            "category": "TRANSPORT",
+            "subcategory": "RIDESHARE",
+            "channel": "ALL",
+            "condition_type": "MERCHANT",
+            "match_tokens": ("UBER", "YOXI", "55688", "台灣大車隊"),
+            "condition_overrides": {
+                "UBER": ("UBER", "Uber"),
+                "YOXI": ("YOXI", "yoxi"),
+                "55688": ("TAIWAN_TAXI", "台灣大車隊"),
+                "台灣大車隊": ("TAIWAN_TAXI", "台灣大車隊"),
+            },
+        },
+    ),
+    "餐飲美食": (
+        {
+            "title_suffix": "外送",
+            "category": "DINING",
+            "subcategory": "DELIVERY",
+            "channel": "ONLINE",
+            "condition_type": "MERCHANT",
+            "match_tokens": ("UBER EATS", "FOODPANDA"),
+            "condition_overrides": {
+                "UBER EATS": ("UBER_EATS", "Uber Eats"),
+                "FOODPANDA": ("FOODPANDA", "foodpanda"),
+            },
+        },
+        {
+            "title_suffix": "餐廳",
+            "category": "DINING",
+            "subcategory": "RESTAURANT",
+            "channel": "ALL",
+            "condition_type": "MERCHANT",
+            "exclude_tokens": ("UBER EATS", "FOODPANDA"),
+            "condition_overrides": {
+                "EZTABLE": ("EZTABLE", "EZTABLE"),
+            },
+        },
+    ),
+    "航空旅遊": (
+        {
+            "title_suffix": "航空",
+            "category": "TRANSPORT",
+            "subcategory": "AIRLINE",
+            "channel": "ALL",
+            "condition_type": "MERCHANT",
+            "match_tokens": ("中華航空", "長榮航空", "日本航空", "台灣虎航", "樂桃航空", "酷航"),
+            "condition_overrides": {
+                "中華航空": ("CHINA_AIRLINES", "中華航空"),
+                "長榮航空": ("EVA_AIR", "長榮航空"),
+                "日本航空": ("JAPAN_AIRLINES", "日本航空"),
+                "台灣虎航": ("TIGERAIR_TAIWAN", "台灣虎航"),
+                "樂桃航空": ("PEACH", "樂桃航空"),
+                "酷航": ("SCOOT", "酷航"),
+            },
+        },
+        {
+            "title_suffix": "旅遊平台",
+            "category": "ONLINE",
+            "subcategory": "TRAVEL_PLATFORM",
+            "channel": "ONLINE",
+            "condition_type": "MERCHANT",
+            "exclude_tokens": ("中華航空", "長榮航空", "日本航空", "台灣虎航", "樂桃航空", "酷航"),
+            "condition_overrides": {
+                "TRIP.COM": ("TRIP_COM", "Trip.com"),
+                "BOOKING.COM": ("BOOKING", "Booking.com"),
+                "HOTELS.COM": ("HOTELS_COM", "Hotels.com"),
+                "ASIAYO": ("ASIAYO", "AsiaYo"),
+                "EXPEDIA": ("EXPEDIA", "Expedia"),
+                "KKDAY": ("KKDAY", "KKday"),
+                "KLOOK": ("KLOOK", "Klook"),
+                "AGODA": ("AGODA", "Agoda"),
+            },
+        },
+    ),
+}
+
+UNICARD_HUNDRED_STORE_VARIANTS.update(
+    {
+        "精選商家": (
+            {
+                "title_suffix": "3C 家電",
+                "category": "SHOPPING",
+                "subcategory": "ELECTRONICS",
+                "channel": "ALL",
+                "condition_type": "RETAIL_CHAIN",
+                "match_tokens": ("APPLE", "小米", "全國電子", "燦坤"),
+                "condition_overrides": {
+                    "APPLE": ("APPLE_STORE", "Apple直營店"),
+                    "小米": ("MI_STORE", "小米台灣"),
+                    "全國電子": ("ELIFE", "全國電子"),
+                    "燦坤": ("TSANN_KUEN", "燦坤"),
+                },
+            },
+            {
+                "title_suffix": "運動用品",
+                "category": "SHOPPING",
+                "subcategory": "SPORTING_GOODS",
+                "channel": "ALL",
+                "condition_type": "RETAIL_CHAIN",
+                "match_tokens": ("迪卡儂",),
+                "condition_overrides": {
+                    "迪卡儂": ("DECATHLON", "迪卡儂"),
+                },
+            },
+        ),
+        "生活採買": (
+            {
+                "title_suffix": "超市量販",
+                "category": "GROCERY",
+                "subcategory": "SUPERMARKET",
+                "channel": "ALL",
+                "condition_type": "RETAIL_CHAIN",
+                "match_tokens": ("家樂福",),
+                "condition_overrides": {
+                    "家樂福": ("CARREFOUR", "家樂福"),
+                },
+            },
+            {
+                "title_suffix": "藥妝",
+                "category": "SHOPPING",
+                "subcategory": "DRUGSTORE",
+                "channel": "ALL",
+                "condition_type": "RETAIL_CHAIN",
+                "match_tokens": ("屈臣氏", "康是美", "大樹藥局", "丁丁藥妝"),
+                "condition_overrides": {
+                    "屈臣氏": ("WATSONS", "屈臣氏"),
+                    "康是美": ("COSMED", "康是美"),
+                    "大樹藥局": ("GREAT_TREE", "大樹藥局"),
+                    "丁丁藥妝": ("DING_DING", "丁丁藥妝"),
+                },
+            },
+            {
+                "title_suffix": "居家生活",
+                "category": "OTHER",
+                "subcategory": "HOME_LIVING",
+                "channel": "ALL",
+                "condition_type": "RETAIL_CHAIN",
+                "match_tokens": ("特力屋", "HOLA", "HOI"),
+                "condition_overrides": {
+                    "特力屋": ("TR_PLUS", "特力屋"),
+                    "HOLA": ("HOLA", "HOLA"),
+                    "HOI": ("HOI", "hoi好好生活"),
+                },
+            },
+            {
+                "title_suffix": "服飾",
+                "category": "SHOPPING",
+                "subcategory": "APPAREL",
+                "channel": "ALL",
+                "condition_type": "RETAIL_CHAIN",
+                "match_tokens": ("UNIQLO", "NET"),
+                "condition_overrides": {
+                    "UNIQLO": ("UNIQLO", "UNIQLO"),
+                    "NET": ("NET", "NET"),
+                },
+            },
+        ),
+        "ESG消費": (
+            {
+                "title_suffix": "充電",
+                "category": "OTHER",
+                "subcategory": "EV_CHARGING",
+                "channel": "ALL",
+                "condition_type": "MERCHANT",
+                "match_tokens": ("特斯拉", "GOGORO"),
+                "condition_overrides": {
+                    "特斯拉": ("TESLA_SUPERCHARGER", "特斯拉"),
+                    "GOGORO": ("GOGORO_BATTERY", "Gogoro電池資費"),
+                },
+            },
+            {
+                "title_suffix": "大眾運輸",
+                "category": "TRANSPORT",
+                "subcategory": "PUBLIC_TRANSIT",
+                "channel": "ALL",
+                "condition_type": "MERCHANT",
+                "match_tokens": ("YOUBIKE",),
+                "condition_overrides": {
+                    "YOUBIKE": ("YOUBIKE_2_0", "YouBike 2.0"),
+                },
+            },
+            {
+                "title_suffix": "公益 / 捐款",
+                "category": "OTHER",
+                "subcategory": "CHARITY_DONATION",
+                "channel": "ALL",
+                "condition_type": "MERCHANT",
+                "match_tokens": ("愛心捐款",),
+                "condition_overrides": {
+                    "單筆捐款": ("ESUN_WALLET_DONATION_SINGLE", "玉山Wallet愛心捐款-單筆捐款"),
+                    "定期定額": ("ESUN_WALLET_DONATION_RECURRING", "玉山Wallet愛心捐款-定期定額"),
+                },
+            },
+        ),
+    }
+)
 
 CATEGORY_SIGNALS = {
     "OVERSEAS": [("日本", 4), ("韓國", 4), ("海外", 4), ("外幣", 3), ("航空", 3), ("旅遊", 3), ("旅行", 3), ("飯店", 3), ("住宿", 3), ("機場", 2), ("日圓", 2), ("韓圓", 2)],
@@ -495,6 +725,89 @@ def _append_unicard_plan_conditions(
     return merged
 
 
+def _filter_unicard_variant_labels(
+    merchant_labels: List[str],
+    *,
+    match_tokens: tuple[str, ...] | None = None,
+    exclude_tokens: tuple[str, ...] | None = None,
+) -> List[str]:
+    filtered: List[str] = []
+    normalized_match_tokens = tuple(token.upper() for token in (match_tokens or ()))
+    normalized_exclude_tokens = tuple(token.upper() for token in (exclude_tokens or ()))
+
+    for label in merchant_labels:
+        normalized_label = label.upper()
+        if normalized_exclude_tokens and any(token in normalized_label for token in normalized_exclude_tokens):
+            continue
+        if normalized_match_tokens and not any(token in normalized_label for token in normalized_match_tokens):
+            continue
+        filtered.append(label)
+
+    return filtered
+
+
+def _build_unicard_hundred_store_promotion(
+    *,
+    card: CardRecord,
+    eligibility_type: str,
+    valid_from: str,
+    valid_until: str,
+    notes: str,
+    rate_summary: str,
+    title_suffix: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    condition_type: str,
+    merchant_labels: List[str],
+    condition_overrides: dict[str, tuple[str, str]] | None = None,
+) -> Dict[str, object] | None:
+    if not merchant_labels:
+        return None
+
+    conditions = [
+        {"type": "TEXT", "value": "UNICARD_HUNDRED_STORE_CATALOG", "label": notes},
+        *_build_unicard_hundred_store_conditions(condition_type, merchant_labels, condition_overrides=condition_overrides),
+    ]
+    if condition_type == "PAYMENT_PLATFORM":
+        conditions.insert(1, {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"})
+
+    summary = (
+        f"{title_suffix}百大指定消費，{rate_summary}，"
+        f"共 {len(merchant_labels)} 個指定通路，有效期間 {valid_from}~{valid_until}"
+    )
+
+    return {
+        "title": f"{card.card_name} 百大指定消費 {title_suffix}",
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "subcategory": subcategory,
+        "channel": channel,
+        "cashbackType": "PERCENT",
+        "cashbackValue": 4.5,
+        "minAmount": 0,
+        "maxCashback": None,
+        "frequencyLimit": "NONE",
+        "requiresRegistration": False,
+        "recommendationScope": "CATALOG_ONLY",
+        "eligibilityType": eligibility_type,
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": conditions,
+        "excludedConditions": [],
+        "sourceUrl": card.detail_url,
+        "summary": summary,
+        "status": "ACTIVE",
+        "planId": None,
+    }
+
+
 def _extract_unicard_hundred_store_promotions(
     lines: List[str],
     card: CardRecord,
@@ -519,48 +832,49 @@ def _extract_unicard_hundred_store_promotions(
         if not meta or not merchant_labels:
             continue
 
-        conditions = [
-            {"type": "TEXT", "value": "UNICARD_HUNDRED_STORE_CATALOG", "label": notes},
-            *_build_unicard_hundred_store_conditions(meta["condition_type"], merchant_labels),
-        ]
-        if meta["condition_type"] == "PAYMENT_PLATFORM":
-            conditions.insert(1, {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"})
-        summary = (
-            f"{cluster_name}百大指定消費；{rate_summary}；"
-            f"共 {len(merchant_labels)} 個指定通路；期間 {valid_from}~{valid_until}"
-        )
+        variants = UNICARD_HUNDRED_STORE_VARIANTS.get(cluster_name)
+        if variants:
+            for variant in variants:
+                variant_labels = _filter_unicard_variant_labels(
+                    merchant_labels,
+                    match_tokens=variant.get("match_tokens"),
+                    exclude_tokens=variant.get("exclude_tokens"),
+                )
+                promotion = _build_unicard_hundred_store_promotion(
+                    card=card,
+                    eligibility_type=eligibility_type,
+                    valid_from=valid_from,
+                    valid_until=valid_until,
+                    notes=notes,
+                    rate_summary=rate_summary,
+                    title_suffix=str(variant["title_suffix"]),
+                    category=str(variant["category"]),
+                    subcategory=str(variant["subcategory"]),
+                    channel=str(variant["channel"]),
+                    condition_type=str(variant["condition_type"]),
+                    merchant_labels=variant_labels,
+                    condition_overrides=variant.get("condition_overrides"),
+                )
+                if promotion:
+                    promotions.append(promotion)
+            continue
 
-        promotions.append(
-            {
-                "title": f"{card.card_name} 百大指定消費 {cluster_name}",
-                "cardCode": card.card_code,
-                "cardName": card.card_name,
-                "cardStatus": "ACTIVE",
-                "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
-                "applyUrl": card.apply_url,
-                "bankCode": BANK_CODE,
-                "bankName": BANK_NAME,
-                "category": meta["category"],
-                "subcategory": meta["subcategory"],
-                "channel": meta["channel"],
-                "cashbackType": "PERCENT",
-                "cashbackValue": 4.5,
-                "minAmount": 0,
-                "maxCashback": None,
-                "frequencyLimit": "NONE",
-                "requiresRegistration": False,
-                "recommendationScope": "CATALOG_ONLY",
-                "eligibilityType": eligibility_type,
-                "validFrom": valid_from,
-                "validUntil": valid_until,
-                "conditions": conditions,
-                "excludedConditions": [],
-                "sourceUrl": card.detail_url,
-                "summary": summary,
-                "status": "ACTIVE",
-                "planId": None,
-            }
+        promotion = _build_unicard_hundred_store_promotion(
+            card=card,
+            eligibility_type=eligibility_type,
+            valid_from=valid_from,
+            valid_until=valid_until,
+            notes=notes,
+            rate_summary=rate_summary,
+            title_suffix=cluster_name,
+            category=meta["category"],
+            subcategory=meta["subcategory"],
+            channel=meta["channel"],
+            condition_type=meta["condition_type"],
+            merchant_labels=merchant_labels,
         )
+        if promotion:
+            promotions.append(promotion)
 
     return promotions
 
@@ -632,6 +946,7 @@ def _split_unicard_merchant_labels(value: str) -> List[str]:
 def _build_unicard_hundred_store_conditions(
     condition_type: str,
     merchant_labels: List[str],
+    condition_overrides: dict[str, tuple[str, str]] | None = None,
 ) -> List[Dict[str, str]]:
     conditions: List[Dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -640,10 +955,13 @@ def _build_unicard_hundred_store_conditions(
         if not label:
             continue
 
-        if condition_type == "LOCATION_ONLY":
-            value = label.strip()
-        else:
-            value = to_condition_value(label)
+        value = label.strip() if condition_type == "LOCATION_ONLY" else to_condition_value(label)
+        normalized_label = label.upper()
+        if condition_overrides:
+            for token, override in condition_overrides.items():
+                if token.upper() in normalized_label:
+                    value, label = override
+                    break
 
         key = (condition_type, value)
         if key in seen:

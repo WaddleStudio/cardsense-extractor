@@ -540,6 +540,8 @@ SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
         "WAREHOUSE":    [("Costco", 5), ("好市多", 5), ("家樂福", 5), ("大潤發", 5), ("量販", 4)],
         "ELECTRONICS":  [("3C", 5), ("家電", 4), ("燦坤", 5), ("全國電子", 5), ("Apple Store", 4)],
         "DRUGSTORE":    [("康是美", 5), ("屈臣氏", 5), ("藥妝", 4), ("美妝", 3)],
+        "SPORTING_GOODS": [("迪卡儂", 5), ("運動用品", 4), ("體育用品", 4)],
+        "APPAREL":      [("UNIQLO", 5), ("NET", 5), ("服飾", 4), ("成衣", 4)],
     },
     "ONLINE": {
         "ECOMMERCE":    [("蝦皮", 5), ("momo", 5), ("PChome", 5), ("博客來", 4), ("Yahoo", 3), ("樂天", 4)],
@@ -551,6 +553,7 @@ SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
     },
     "TRANSPORT": {
         "RIDESHARE":    [("Uber", 5), ("Grab", 5), ("yoxi", 5), ("台灣大車隊", 5), ("iRent", 4), ("和運租車", 4), ("格上租車", 4), ("GoShare", 5), ("WeMo", 5)],
+        "PUBLIC_TRANSIT": [("台鐵", 5), ("高鐵", 5), ("臺鐵", 5), ("Taiwan Railway", 4), ("THSR", 4)],
         "EV_CHARGING":  [("U-POWER", 5), ("EVOASIS", 5), ("AmpGO", 5), ("EVALUE", 5), ("USPACE", 4), ("Autopass", 4), ("車麻吉", 4)],
         "GAS_STATION":  [("台灣中油", 5), ("中油", 4), ("全國加油", 5), ("台塑石油", 5), ("台亞", 5), ("福懋", 5), ("加油", 4)],
         "AIRLINE":      [("航空", 4), ("華航", 5), ("長榮航空", 5), ("星宇航空", 5), ("虎航", 4), ("國泰航空", 5), ("樂桃", 4), ("阿聯酋", 4), ("酷航", 4), ("捷星", 4), ("ANA", 4), ("全日空", 4), ("日本航空", 4), ("亞洲航空", 4), ("聯合航空", 4), ("新加坡航空", 4), ("越捷航空", 4), ("大韓航空", 4), ("達美航空", 4), ("土耳其航空", 4), ("卡達航空", 4), ("法國航空", 4)],
@@ -569,6 +572,7 @@ SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
         "EV_CHARGING":  [("U-POWER", 5), ("EVOASIS", 5), ("EVALUE", 5), ("TAIL", 4), ("iCharging", 5), ("充電站", 4), ("充電", 4)],
         "PARKING":      [("車麻吉", 5), ("uTagGo", 5), ("停車", 4), ("停車費", 4)],
         "HOME_LIVING":  [("IKEA", 5), ("宜家家居", 5), ("生活家居", 4)],
+        "CHARITY_DONATION": [("捐款", 5), ("公益", 5), ("愛心捐款", 5), ("定期定額", 4)],
         "GAS_STATION":  [("台灣中油", 5), ("中油", 4), ("加油", 4)],
     },
 }
@@ -586,6 +590,8 @@ EXTRA_SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
     "SHOPPING": {
         "DEPARTMENT": [("百貨", 5), ("新光三越", 5), ("遠東SOGO", 5), ("遠百", 4), ("微風", 4), ("漢神", 4), ("夢時代", 4), ("統一時代", 4)],
         "DRUGSTORE": [("康是美", 5), ("屈臣氏", 5), ("藥妝", 4), ("美妝", 3)],
+        "SPORTING_GOODS": [("迪卡儂", 5), ("運動用品", 4), ("體育用品", 4)],
+        "APPAREL": [("UNIQLO", 5), ("NET", 5), ("服飾", 4), ("成衣", 4)],
     },
     "ONLINE": {
         "ECOMMERCE": [("網購", 5), ("線上購物", 5), ("蝦皮", 5), ("博客來", 4), ("東森購物", 4), ("Yahoo購物", 4), ("Yahoo奇摩購物", 4)],
@@ -597,6 +603,7 @@ EXTRA_SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
     },
     "TRANSPORT": {
         "RIDESHARE": [("Uber", 5), ("Grab", 5), ("yoxi", 5), ("台灣大車隊", 5), ("iRent", 4), ("和運租車", 4), ("格上租車", 4), ("GoShare", 5), ("WeMo", 5)],
+        "PUBLIC_TRANSIT": [("台鐵", 5), ("高鐵", 5), ("臺鐵", 5), ("Taiwan Railway", 4), ("THSR", 4)],
         "EV_CHARGING": [("U-POWER", 5), ("EVOASIS", 5), ("AmpGO", 5), ("EVALUE", 5), ("USPACE", 4), ("Autopass", 4), ("車麻吉", 4)],
         "GAS_STATION": [("台灣中油", 5), ("中油", 4), ("全國加油", 5), ("台塑石油", 5), ("台亞", 5), ("福懋", 5), ("加油", 4)],
         "AIRLINE": [("航空", 4), ("華航", 5), ("長榮航空", 5), ("星宇航空", 5), ("虎航", 4), ("國泰航空", 5), ("樂桃", 4), ("阿聯酋", 4), ("酷航", 4), ("捷星", 4), ("ANA", 4), ("全日空", 4), ("日本航空", 4), ("亞洲航空", 4), ("聯合航空", 4), ("新加坡航空", 4), ("越捷航空", 4), ("大韓航空", 4), ("達美航空", 4), ("土耳其航空", 4), ("卡達航空", 4), ("法國航空", 4)],
@@ -615,6 +622,7 @@ EXTRA_SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
         "EV_CHARGING": [("U-POWER", 5), ("EVOASIS", 5), ("EVALUE", 5), ("TAIL", 4), ("iCharging", 5), ("充電站", 4), ("充電", 4)],
         "PARKING": [("車麻吉", 5), ("uTagGo", 5), ("停車", 4), ("停車費", 4)],
         "HOME_LIVING": [("IKEA", 5), ("宜家家居", 5), ("生活家居", 4)],
+        "CHARITY_DONATION": [("捐款", 5), ("公益", 5), ("愛心捐款", 5), ("定期定額", 4)],
         "GAS_STATION": [("台灣中油", 5), ("中油", 4), ("加油", 4)],
     },
 }
@@ -707,6 +715,12 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "yoxi", "type": "MERCHANT", "value": "YOXI", "label": "yoxi"},
         {"token": "GoShare", "type": "MERCHANT", "value": "GOSHARE", "label": "GoShare"},
         {"token": "WeMo", "type": "MERCHANT", "value": "WEMO", "label": "WeMo"},
+    ],
+    ("TRANSPORT", "PUBLIC_TRANSIT"): [
+        {"token": "台鐵", "type": "MERCHANT", "value": "TRA", "label": "台鐵"},
+        {"token": "臺鐵", "type": "MERCHANT", "value": "TRA", "label": "台鐵"},
+        {"token": "高鐵", "type": "MERCHANT", "value": "THSR", "label": "高鐵"},
+        {"token": "THSR", "type": "MERCHANT", "value": "THSR", "label": "高鐵"},
     ],
     ("TRANSPORT", "AIRLINE"): [
         {"token": "華航", "type": "MERCHANT", "value": "CHINA_AIRLINES", "label": "華航"},
