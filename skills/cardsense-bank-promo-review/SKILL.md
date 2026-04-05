@@ -86,6 +86,7 @@ Assess compatibility against:
 - `cardsense-api/src/main/java/com/cardsense/api/service/DecisionEngine.java`
 - `cardsense-web/src/components/RecommendationForm.tsx`
 - `cardsense-web/src/components/RecommendationResults.tsx`
+- `cardsense-web/src/pages/CalcPage.tsx`
 
 Use this rule of thumb:
 
@@ -109,6 +110,7 @@ Common pattern:
 
 - `category` is the product/API spine
 - `subcategory` captures bank-specific merchant or program detail
+- when a user selects a specific `subcategory`, CardSense runtime should compare the matching scene together with `GENERAL` promos, not scene-only exact match
 
 ### 5. Merchant modeling policy
 
@@ -227,6 +229,7 @@ Typical follow-ups:
 - add tier selector for tiered cards
 - surface condition badges in recommendation results
 - surface active plan hints more clearly
+- if `/calc` or other compare flows expose `subcategory`, make sure merchant-scoped scenes such as `AI_TOOL`, `DELIVERY`, `AIRLINE`, or `SUPERMARKET` can also pass `merchantName` or clearly explain the limitation
 
 If you need a step-by-step review template, read:
 - [references/review-checklist.md](references/review-checklist.md)
