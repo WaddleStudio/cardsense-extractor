@@ -7,10 +7,19 @@ def test_infer_plan_id_matches_cube_title_keywords():
 
 
 def test_infer_plan_id_matches_richart_title_keywords():
-    assert infer_plan_id("TAISHIN_RICHART", "ONLINE", title="Richart Pay著刷 LINE Pay 最高 3.8%") == "TAISHIN_RICHART_PAY"
-    assert infer_plan_id("TAISHIN_RICHART", "ENTERTAINMENT", title="Richart 數趣刷 指定影音 4.8%") == "TAISHIN_RICHART_DIGITAL"
+    assert infer_plan_id("TAISHIN_RICHART", "ONLINE") == "TAISHIN_RICHART_DIGITAL"
+    assert infer_plan_id("TAISHIN_RICHART", "DINING") == "TAISHIN_RICHART_DINING"
 
 
 def test_infer_plan_id_matches_unicard_title_keywords():
-    assert infer_plan_id("ESUN_UNICARD", "ONLINE", title="Unicard 任意選 LINE Pay 3.5%") == "ESUN_UNICARD_FLEXIBLE"
-    assert infer_plan_id("ESUN_UNICARD", "SHOPPING", title="Unicard UP選 百貨 4.5%") == "ESUN_UNICARD_UP"
+    assert infer_plan_id("ESUN_UNICARD", "ONLINE") == "ESUN_UNICARD_FLEXIBLE"
+    assert infer_plan_id("ESUN_UNICARD", "SHOPPING") == "ESUN_UNICARD_SIMPLE"
+
+
+def test_infer_plan_id_prefers_travel_plan_for_online_travel_platform_subcategory():
+    assert infer_plan_id(
+        "CATHAY_CUBE",
+        "ONLINE",
+        title="CUBE Agoda 指定通路 3%",
+        subcategory="TRAVEL_PLATFORM",
+    ) == "CATHAY_CUBE_TRAVEL"

@@ -79,6 +79,7 @@ PLAN_SUBCATEGORY_HINTS: Final[dict[str, dict[str, str]]] = {
         "SHOPPING": "DEPARTMENT",
     },
     "CATHAY_CUBE_TRAVEL": {
+        "ONLINE": "TRAVEL_PLATFORM",
         "TRANSPORT": "RIDESHARE",
         "OVERSEAS": "OVERSEAS_IN_STORE",
     },

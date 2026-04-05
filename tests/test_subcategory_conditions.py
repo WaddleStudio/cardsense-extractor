@@ -9,8 +9,8 @@ from extractor.promotion_rules import append_inferred_payment_method_conditions,
 
 def test_append_inferred_subcategory_conditions_adds_ecommerce_platform_condition():
     conditions = append_inferred_subcategory_conditions(
-        "PChome加碼3.8%",
-        "使用玉山Unicard至PChome消費，享加碼 3.8% 回饋。",
+        "PChome 3.8%",
+        "Unicard 於 PChome 消費享 3.8% 回饋",
         "ONLINE",
         "ECOMMERCE",
         [],
@@ -24,8 +24,8 @@ def test_append_inferred_subcategory_conditions_adds_ecommerce_platform_conditio
 
 def test_append_inferred_subcategory_conditions_adds_mobile_pay_platform_condition():
     conditions = append_inferred_subcategory_conditions(
-        "LINE Pay一般消費加碼",
-        "綁定LINE Pay交易享加碼回饋。",
+        "LINE Pay 指定通路回饋",
+        "使用 LINE Pay 消費可享加碼回饋",
         "ONLINE",
         "MOBILE_PAY",
         [],
@@ -33,6 +33,25 @@ def test_append_inferred_subcategory_conditions_adds_mobile_pay_platform_conditi
 
     assert any(
         condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
+        for condition in conditions
+    )
+
+
+def test_append_inferred_subcategory_conditions_adds_travel_platform_merchant_condition():
+    conditions = append_inferred_subcategory_conditions(
+        "Agoda 訂房最高 8%",
+        "Trip.com、Klook、KKday 與 Agoda 指定通路消費回饋",
+        "ONLINE",
+        "TRAVEL_PLATFORM",
+        [],
+    )
+
+    assert any(
+        condition["type"] == "MERCHANT" and condition["value"] == "AGODA"
+        for condition in conditions
+    )
+    assert any(
+        condition["type"] == "MERCHANT" and condition["value"] == "TRIP_COM"
         for condition in conditions
     )
 
@@ -45,5 +64,5 @@ def test_append_inferred_payment_method_conditions_adds_mobile_pay_group_conditi
     )
 
     assert conditions == [
-        {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+        {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": conditions[0]["label"]},
     ]

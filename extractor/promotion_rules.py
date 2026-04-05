@@ -678,6 +678,17 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "Canva", "type": "MERCHANT", "value": "CANVA", "label": "Canva"},
         {"token": "Gamma", "type": "MERCHANT", "value": "GAMMA", "label": "Gamma"},
     ],
+    ("ONLINE", "TRAVEL_PLATFORM"): [
+        {"token": "Hotels.com", "type": "MERCHANT", "value": "HOTELS_COM", "label": "Hotels.com"},
+        {"token": "Agoda", "type": "MERCHANT", "value": "AGODA", "label": "Agoda"},
+        {"token": "Booking.com", "type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
+        {"token": "Booking", "type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
+        {"token": "Trip.com", "type": "MERCHANT", "value": "TRIP_COM", "label": "Trip.com"},
+        {"token": "AsiaYo", "type": "MERCHANT", "value": "ASIAYO", "label": "AsiaYo"},
+        {"token": "Klook", "type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
+        {"token": "KKday", "type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
+        {"token": "AIRSIM", "type": "MERCHANT", "value": "AIRSIM", "label": "AIRSIM"},
+    ],
     ("ENTERTAINMENT", "STREAMING"): [
         {"token": "Netflix", "type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
         {"token": "Spotify", "type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
