@@ -546,10 +546,13 @@ SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
         "MOBILE_PAY":   [("Line Pay", 5), ("街口", 5), ("全盈", 4), ("台灣Pay", 4), ("悠遊付", 4)],
         "SUBSCRIPTION": [("訂閱", 4), ("月費", 3), ("年費", 3), ("自動扣繳", 3)],
         "AI_TOOL":      [("ChatGPT", 5), ("Claude", 5), ("Cursor", 5), ("Gemini", 4), ("Perplexity", 4), ("Notion", 4), ("Canva", 4), ("Gamma", 4), ("Duolingo", 3), ("Speak", 3), ("AI工具", 5)],
+        "TRAVEL_PLATFORM": [("Hotels.com", 5), ("Agoda", 5), ("Booking", 5), ("Trip.com", 5), ("AsiaYo", 4), ("Klook", 4), ("KKday", 4), ("AIRSIM", 4)],
         "INTERNATIONAL_ECOMMERCE": [("Coupang", 5), ("酷澎", 5), ("淘寶", 5), ("天貓", 5), ("國際電商", 4)],
     },
     "TRANSPORT": {
-        "RIDESHARE":    [("Uber", 5), ("Grab", 5), ("yoxi", 5), ("台灣大車隊", 5), ("iRent", 4), ("和運租車", 4), ("格上租車", 4)],
+        "RIDESHARE":    [("Uber", 5), ("Grab", 5), ("yoxi", 5), ("台灣大車隊", 5), ("iRent", 4), ("和運租車", 4), ("格上租車", 4), ("GoShare", 5), ("WeMo", 5)],
+        "EV_CHARGING":  [("U-POWER", 5), ("EVOASIS", 5), ("AmpGO", 5), ("EVALUE", 5), ("USPACE", 4), ("Autopass", 4), ("車麻吉", 4)],
+        "GAS_STATION":  [("台灣中油", 5), ("中油", 4), ("全國加油", 5), ("台塑石油", 5), ("台亞", 5), ("福懋", 5), ("加油", 4)],
         "AIRLINE":      [("航空", 4), ("華航", 5), ("長榮航空", 5), ("星宇航空", 5), ("虎航", 4), ("國泰航空", 5), ("樂桃", 4), ("阿聯酋", 4), ("酷航", 4), ("捷星", 4), ("ANA", 4), ("全日空", 4), ("日本航空", 4), ("亞洲航空", 4), ("聯合航空", 4), ("新加坡航空", 4), ("越捷航空", 4), ("大韓航空", 4), ("達美航空", 4), ("土耳其航空", 4), ("卡達航空", 4), ("法國航空", 4)],
     },
     "OVERSEAS": {
@@ -589,10 +592,13 @@ EXTRA_SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
         "MOBILE_PAY": [("LINE Pay", 5), ("街口", 5), ("街口支付", 5), ("行動支付", 5), ("電子支付", 5), ("Apple Pay", 5), ("Google Pay", 5), ("Samsung Pay", 5), ("全支付", 5), ("全盈", 4), ("Pi 拍錢包", 5), ("Pi拍錢包", 5), ("玉山Wallet", 5), ("台灣Pay", 5), ("悠遊付", 4), ("icash Pay", 4), ("TWQR", 4)],
         "SUBSCRIPTION": [("訂閱", 5), ("串流", 5), ("Netflix", 5), ("Disney+", 5), ("Spotify", 5), ("KKBOX", 5), ("YouTube Premium", 5), ("friDay影音", 4), ("MyVideo", 4), ("愛奇藝", 4)],
         "AI_TOOL": [("ChatGPT", 5), ("Claude", 5), ("Cursor", 5), ("Gemini", 4), ("Perplexity", 4), ("Notion", 4), ("Canva", 4), ("Gamma", 4), ("Duolingo", 3), ("Speak", 3), ("AI工具", 5)],
+        "TRAVEL_PLATFORM": [("Hotels.com", 5), ("Agoda", 5), ("Booking", 5), ("Trip.com", 5), ("AsiaYo", 4), ("Klook", 4), ("KKday", 4), ("AIRSIM", 4)],
         "INTERNATIONAL_ECOMMERCE": [("Coupang", 5), ("酷澎", 5), ("淘寶", 5), ("天貓", 5), ("國際電商", 4)],
     },
     "TRANSPORT": {
-        "RIDESHARE": [("Uber", 5), ("Grab", 5), ("yoxi", 5), ("台灣大車隊", 5), ("iRent", 4), ("和運租車", 4), ("格上租車", 4)],
+        "RIDESHARE": [("Uber", 5), ("Grab", 5), ("yoxi", 5), ("台灣大車隊", 5), ("iRent", 4), ("和運租車", 4), ("格上租車", 4), ("GoShare", 5), ("WeMo", 5)],
+        "EV_CHARGING": [("U-POWER", 5), ("EVOASIS", 5), ("AmpGO", 5), ("EVALUE", 5), ("USPACE", 4), ("Autopass", 4), ("車麻吉", 4)],
+        "GAS_STATION": [("台灣中油", 5), ("中油", 4), ("全國加油", 5), ("台塑石油", 5), ("台亞", 5), ("福懋", 5), ("加油", 4)],
         "AIRLINE": [("航空", 4), ("華航", 5), ("長榮航空", 5), ("星宇航空", 5), ("虎航", 4), ("國泰航空", 5), ("樂桃", 4), ("阿聯酋", 4), ("酷航", 4), ("捷星", 4), ("ANA", 4), ("全日空", 4), ("日本航空", 4), ("亞洲航空", 4), ("聯合航空", 4), ("新加坡航空", 4), ("越捷航空", 4), ("大韓航空", 4), ("達美航空", 4), ("土耳其航空", 4), ("卡達航空", 4), ("法國航空", 4)],
     },
     "OVERSEAS": {

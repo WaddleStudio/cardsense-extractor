@@ -51,6 +51,48 @@ def test_normalize_infers_richart_plan_id_when_missing():
     assert normalized["subcategory"] == "STREAMING"
 
 
+def test_normalize_applies_richart_big_department_hint():
+    normalized = normalize_data(
+        {
+            "bank": "TAISHIN",
+            "bank_name": "台新銀行",
+            "card_code": "TAISHIN_RICHART",
+            "card_name": "台新Richart卡",
+            "promotion": "大筆刷 3.3%",
+            "category": "SHOPPING",
+            "cashback_type": "PERCENT",
+            "cashback_value": "3.3",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-06-30",
+            "annual_fee": "0",
+        }
+    )
+
+    assert normalized["planId"] == "TAISHIN_RICHART_BIG"
+    assert normalized["subcategory"] == "DEPARTMENT"
+
+
+def test_normalize_applies_richart_daily_supermarket_hint():
+    normalized = normalize_data(
+        {
+            "bank": "TAISHIN",
+            "bank_name": "台新銀行",
+            "card_code": "TAISHIN_RICHART",
+            "card_name": "台新Richart卡",
+            "promotion": "天天刷 3.3%",
+            "category": "GROCERY",
+            "cashback_type": "PERCENT",
+            "cashback_value": "3.3",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-06-30",
+            "annual_fee": "0",
+        }
+    )
+
+    assert normalized["planId"] == "TAISHIN_RICHART_DAILY"
+    assert normalized["subcategory"] == "SUPERMARKET"
+
+
 def test_normalize_preserves_explicit_plan_id():
     normalized = normalize_data(
         {
@@ -158,6 +200,48 @@ def test_normalize_maps_cube_grocery_to_essentials_plan():
 
     assert normalized["planId"] == "CATHAY_CUBE_ESSENTIALS"
     assert normalized["subcategory"] == "SUPERMARKET"
+
+
+def test_normalize_applies_unicard_simple_supermarket_hint():
+    normalized = normalize_data(
+        {
+            "bank": "ESUN",
+            "bank_name": "玉山銀行",
+            "card_code": "ESUN_UNICARD",
+            "card_name": "玉山Unicard",
+            "promotion": "簡單選 3%",
+            "category": "GROCERY",
+            "cashback_type": "PERCENT",
+            "cashback_value": "3",
+            "valid_from": "2025-10-01",
+            "valid_until": "2026-06-30",
+            "annual_fee": "0",
+        }
+    )
+
+    assert normalized["planId"] == "ESUN_UNICARD_SIMPLE"
+    assert normalized["subcategory"] == "SUPERMARKET"
+
+
+def test_normalize_applies_unicard_up_department_hint():
+    normalized = normalize_data(
+        {
+            "bank": "ESUN",
+            "bank_name": "玉山銀行",
+            "card_code": "ESUN_UNICARD",
+            "card_name": "玉山Unicard",
+            "promotion": "UP選 4.5%",
+            "category": "SHOPPING",
+            "cashback_type": "PERCENT",
+            "cashback_value": "4.5",
+            "valid_from": "2025-10-01",
+            "valid_until": "2026-06-30",
+            "annual_fee": "0",
+        }
+    )
+
+    assert normalized["planId"] == "ESUN_UNICARD_UP"
+    assert normalized["subcategory"] == "DEPARTMENT"
 
 
 def test_infer_eligibility_type_detects_business_card_names():

@@ -167,6 +167,17 @@ def test_infer_subcategory_matches_ecommerce_from_local_platform_terms():
     assert subcategory == "ECOMMERCE"
 
 
+def test_infer_subcategory_matches_travel_platform_from_online_terms():
+    subcategory = infer_subcategory(
+        "Hotels.com 玩旅刷最高 8.3%",
+        "Agoda、Booking、Trip.com、AIRSIM 指定通路消費回饋",
+        "ONLINE",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "TRAVEL_PLATFORM"
+
+
 def test_infer_subcategory_matches_ai_tool_terms():
     subcategory = infer_subcategory(
         "CUBE 玩數位 AI工具訂閱最高 3%",
@@ -187,3 +198,25 @@ def test_infer_subcategory_matches_ev_charging_terms():
     )
 
     assert subcategory == "EV_CHARGING"
+
+
+def test_infer_subcategory_matches_gas_station_terms_under_transport():
+    subcategory = infer_subcategory(
+        "玉山Unicard 加油最高 7.5%",
+        "台灣中油、全國加油、台塑石油、台亞、福懋消費回饋",
+        "TRANSPORT",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "GAS_STATION"
+
+
+def test_infer_subcategory_matches_rideshare_terms_under_transport():
+    subcategory = infer_subcategory(
+        "指定交通通路加碼 5%",
+        "GoShare、WeMo、Uber、yoxi 消費加碼",
+        "TRANSPORT",
+        SUBCATEGORY_SIGNALS,
+    )
+
+    assert subcategory == "RIDESHARE"

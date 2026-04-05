@@ -32,6 +32,27 @@ CARD_LIST_URL = "https://www.esunbank.com/zh-tw/personal/credit-card/intro"
 BANK_CODE = "ESUN"
 BANK_NAME = "玉山銀行"
 
+UNICARD_TRANSPORT_CLUSTERS = (
+    (
+        "RIDESHARE",
+        "共享交通",
+        (
+            {"type": "MERCHANT", "value": "GOSHARE", "label": "GoShare"},
+            {"type": "MERCHANT", "value": "WEMO", "label": "WeMo"},
+        ),
+    ),
+    (
+        "EV_CHARGING",
+        "充電通路",
+        (
+            {"type": "MERCHANT", "value": "U_POWER", "label": "U-POWER"},
+            {"type": "MERCHANT", "value": "EVOASIS", "label": "EVOASIS"},
+            {"type": "MERCHANT", "value": "AMPGO", "label": "AmpGO"},
+            {"type": "MERCHANT", "value": "NATIONWIDE_FAST_CHARGING", "label": "全國特急電"},
+        ),
+    ),
+)
+
 CATEGORY_SIGNALS = {
     "OVERSEAS": [("日本", 4), ("韓國", 4), ("海外", 4), ("外幣", 3), ("航空", 3), ("旅遊", 3), ("旅行", 3), ("飯店", 3), ("住宿", 3), ("機場", 2), ("日圓", 2), ("韓圓", 2)],
     "ONLINE": [("Booking", 3), ("Agoda", 3), ("Hotels.com", 3), ("Expedia", 3), ("Klook", 3), ("KKday", 3), ("PChome", 4), ("蝦皮", 4), ("網購", 4), ("LINE Pay", 3), ("Uber Eats", 3), ("網頁", 2), ("網站", 2), ("平台", 1), ("APP", 1)],
@@ -39,7 +60,7 @@ CATEGORY_SIGNALS = {
     "TRANSPORT": [("交通", 4), ("乘車", 4), ("高鐵", 4), ("台鐵", 4), ("捷運", 4), ("巴士", 3), ("TAXI", 4), ("機場接送", 4), ("大眾交通", 4), ("Suica", 4), ("加油", 2), ("中油", 2)],
     "SHOPPING": [("百貨", 3), ("新光三越", 5), ("購物", 3), ("購物園區", 4), ("免稅", 2), ("商圈", 2), ("OUTLET", 2)],
     "GROCERY": [("家樂福", 5), ("全聯", 5), ("超市", 4), ("量販", 3)],
-    "ENTERTAINMENT": [("影城", 4), ("電影", 4), ("串流", 4), ("購票", 2), ("演唱會", 4), ("轉播", 2), ("健身房", 2), ("學習平台", 2)],
+    "ENTERTAINMENT": [("影城", 4), ("電影", 4), ("串流", 4), ("購票", 2), ("演唱會", 4), ("轉播", 2), ("健身房", 2), ("學習平台", 2), ("樂園", 5), ("遊樂園", 5), ("麗寶", 4), ("六福村", 4), ("劍湖山", 4)],
 }
 
 CHANNEL_SIGNALS = {
@@ -200,37 +221,37 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
 
-        promotions.append(
-            {
-                "title": f"{enriched_card.card_name} {clean_title}",
-                "cardCode": enriched_card.card_code,
-                "cardName": enriched_card.card_name,
-                "cardStatus": "ACTIVE",
-                "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
-                "applyUrl": enriched_card.apply_url,
-                "bankCode": BANK_CODE,
-                "bankName": BANK_NAME,
-                "category": category,
-                "subcategory": subcategory,
-                "channel": _infer_channel(clean_title, clean_body),
-                "cashbackType": reward["type"],
-                "cashbackValue": reward["value"],
-                "minAmount": min_amount,
-                "maxCashback": max_cashback,
-                "frequencyLimit": frequency_limit,
-                "requiresRegistration": requires_registration,
-                "recommendationScope": recommendation_scope,
-                "eligibilityType": eligibility_type,
-                "validFrom": valid_from,
-                "validUntil": valid_until,
-                "conditions": conditions,
-                "excludedConditions": [],
-                "sourceUrl": enriched_card.detail_url,
-                "summary": summary,
-                "status": "ACTIVE",
-                "planId": plan_id,
-            }
-        )
+        base_promotion = {
+            "title": f"{enriched_card.card_name} {clean_title}",
+            "cardCode": enriched_card.card_code,
+            "cardName": enriched_card.card_name,
+            "cardStatus": "ACTIVE",
+            "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
+            "applyUrl": enriched_card.apply_url,
+            "bankCode": BANK_CODE,
+            "bankName": BANK_NAME,
+            "category": category,
+            "subcategory": subcategory,
+            "channel": _infer_channel(clean_title, clean_body),
+            "cashbackType": reward["type"],
+            "cashbackValue": reward["value"],
+            "minAmount": min_amount,
+            "maxCashback": max_cashback,
+            "frequencyLimit": frequency_limit,
+            "requiresRegistration": requires_registration,
+            "recommendationScope": recommendation_scope,
+            "eligibilityType": eligibility_type,
+            "validFrom": valid_from,
+            "validUntil": valid_until,
+            "conditions": conditions,
+            "excludedConditions": [],
+            "sourceUrl": enriched_card.detail_url,
+            "summary": summary,
+            "status": "ACTIVE",
+            "planId": plan_id,
+        }
+
+        promotions.extend(_expand_card_specific_promotions(enriched_card.card_code, clean_title, clean_body, base_promotion))
 
     return enriched_card, _dedupe_promotions(promotions)
 
@@ -298,3 +319,26 @@ def _infer_channel(title: str, body: str) -> str:
     if any(token in text for token in OFFLINE_PRIORITY_TOKENS) and not any(token in text for token in ONLINE_PRIORITY_TOKENS):
         return "OFFLINE"
     return infer_channel(title, body, CHANNEL_SIGNALS)
+
+
+def _expand_card_specific_promotions(
+    card_code: str,
+    title: str,
+    body: str,
+    promotion: Dict[str, object],
+) -> List[Dict[str, object]]:
+    if (
+        card_code == "ESUN_UNICARD"
+        and promotion.get("category") == "TRANSPORT"
+        and "指定交通通路" in title
+    ):
+        expanded: List[Dict[str, object]] = []
+        for subcategory, title_suffix, merchant_conditions in UNICARD_TRANSPORT_CLUSTERS:
+            clone = dict(promotion)
+            clone["subcategory"] = subcategory
+            clone["title"] = f"{promotion['title']}（{title_suffix}）"
+            clone["conditions"] = [*promotion.get("conditions", []), *merchant_conditions]
+            expanded.append(clone)
+        return expanded
+
+    return [promotion]

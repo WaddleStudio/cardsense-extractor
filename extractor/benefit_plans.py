@@ -89,11 +89,22 @@ PLAN_SUBCATEGORY_HINTS: Final[dict[str, dict[str, str]]] = {
     "TAISHIN_RICHART_PAY": {
         "ONLINE": "MOBILE_PAY",
     },
+    "TAISHIN_RICHART_DAILY": {
+        "GROCERY": "SUPERMARKET",
+    },
+    "TAISHIN_RICHART_BIG": {
+        "SHOPPING": "DEPARTMENT",
+    },
     "TAISHIN_RICHART_DINING": {
         "DINING": "RESTAURANT",
     },
     "TAISHIN_RICHART_DIGITAL": {
+        "ONLINE": "ECOMMERCE",
         "ENTERTAINMENT": "STREAMING",
+    },
+    "TAISHIN_RICHART_TRAVEL": {
+        "ONLINE": "TRAVEL_PLATFORM",
+        "OVERSEAS": "OVERSEAS_IN_STORE",
     },
     "ESUN_UNICARD_FLEXIBLE": {
         "ONLINE": "MOBILE_PAY",
@@ -101,6 +112,12 @@ PLAN_SUBCATEGORY_HINTS: Final[dict[str, dict[str, str]]] = {
     },
     "ESUN_UNICARD_SIMPLE": {
         "DINING": "RESTAURANT",
+        "GROCERY": "SUPERMARKET",
+        "SHOPPING": "DEPARTMENT",
+    },
+    "ESUN_UNICARD_UP": {
+        "DINING": "RESTAURANT",
+        "GROCERY": "SUPERMARKET",
         "SHOPPING": "DEPARTMENT",
     },
 }

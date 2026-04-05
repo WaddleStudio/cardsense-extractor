@@ -252,12 +252,29 @@ If you want a fixed review deliverable format, use:
 - distinguish `簡單選`, `任意選`, `UP選`
 - be careful with month-end final-plan settlement and user-selected merchant slots
 - review subscription/task-unlock behavior separately from plan catalog metadata
+- prefer `subcategory` cleanup before proposing new top-level taxonomy:
+  - `樂園` / `遊樂園` / `麗寶` / `六福村` / `劍湖山` -> `ENTERTAINMENT` + `THEME_PARK`
+  - `加油` / `中油` / `全國加油` / `台塑石油` / `台亞` / `福懋` -> `TRANSPORT` + `GAS_STATION`
+  - `GoShare` / `WeMo` and similar shared-mobility terms -> `TRANSPORT` + `RIDESHARE`
+- expect some rows to remain `OTHER` or `GENERAL` after safe cleanup:
+  - first-purchase / new-card / welcome campaigns
+  - insurance-premium / registration-heavy offers
+  - broad coupon pages where CardSense cannot safely infer a durable merchant cluster
+- after changing Unicard heuristics, rerun extractor and validate `ESUN_UNICARD` rows in SQLite rather than relying only on fixture tests
 
 ### Taishin Richart
 
 - distinguish benefit plans from short-term plan-specific campaigns
 - watch payment rail, wallet, MCC, and domestic-vs-overseas rules
 - do not over-promote rules that depend on transaction recognition details CardSense cannot yet model
+- plan inference should prefer explicit plan-name signals over generic channel terms:
+  - `玩旅刷` should not be overridden by generic `LINE Pay` / `台新Pay` / `行動支付` wording on travel pages
+  - travel-platform pages such as `Hotels.com` / `Agoda` / `Booking` / `Trip.com` / `AsiaYo` / `AIRSIM` often belong to `TAISHIN_RICHART_TRAVEL`
+- prefer these subcategory refinements when the official page is specific enough:
+  - travel-platform pages -> `ONLINE` + `TRAVEL_PLATFORM`
+  - `大筆刷` department-store style pages -> `SHOPPING` + `DEPARTMENT`
+  - `天天刷` grocery / hypermarket pages -> `GROCERY` + `SUPERMARKET`
+- some Richart rows may still remain coarse when the page mixes plan explanation with broad settlement text; document these separately instead of forcing a misleading subcategory
 
 ## Deliverable format
 

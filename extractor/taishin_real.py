@@ -77,13 +77,20 @@ RICHART_KEYWORDS = (
 )
 REGISTRATION_TOKENS = ("登錄", "領券", "領取", "切換")
 RICHART_PLAN_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("Pay著刷", "LINE Pay", "台新Pay", "街口", "電子支付", "行動支付"), "TAISHIN_RICHART_PAY"),
-    (("天天刷", "超商量販", "高鐵", "臺鐵", "台鐵", "量販"), "TAISHIN_RICHART_DAILY"),
-    (("大筆刷", "滿額", "分期"), "TAISHIN_RICHART_BIG"),
-    (("好饗刷", "餐飲", "餐廳", "美食"), "TAISHIN_RICHART_DINING"),
-    (("數趣刷", "影音", "串流", "Netflix", "Spotify", "Disney+", "friDay"), "TAISHIN_RICHART_DIGITAL"),
-    (("玩旅刷", "旅遊", "訂房", "Hotels.com", "Agoda", "Booking", "Klook", "KKday"), "TAISHIN_RICHART_TRAVEL"),
-    (("假日刷", "週末", "周末", "假日"), "TAISHIN_RICHART_WEEKEND"),
+    (("Pay著刷",), "TAISHIN_RICHART_PAY"),
+    (("天天刷",), "TAISHIN_RICHART_DAILY"),
+    (("大筆刷",), "TAISHIN_RICHART_BIG"),
+    (("好饗刷",), "TAISHIN_RICHART_DINING"),
+    (("數趣刷",), "TAISHIN_RICHART_DIGITAL"),
+    (("玩旅刷",), "TAISHIN_RICHART_TRAVEL"),
+    (("假日刷",), "TAISHIN_RICHART_WEEKEND"),
+    (("Hotels.com", "Agoda", "Booking", "Klook", "KKday", "Trip.com", "AsiaYo", "AIRSIM", "旅遊", "訂房"), "TAISHIN_RICHART_TRAVEL"),
+    (("LINE Pay", "台新Pay", "街口", "電子支付", "行動支付"), "TAISHIN_RICHART_PAY"),
+    (("超商量販", "高鐵", "臺鐵", "台鐵", "量販"), "TAISHIN_RICHART_DAILY"),
+    (("滿額", "分期"), "TAISHIN_RICHART_BIG"),
+    (("餐飲", "餐廳", "美食"), "TAISHIN_RICHART_DINING"),
+    (("影音", "串流", "Netflix", "Spotify", "Disney+", "friDay"), "TAISHIN_RICHART_DIGITAL"),
+    (("週末", "周末", "假日"), "TAISHIN_RICHART_WEEKEND"),
 )
 MARKETING_NOISE_TOKENS = (
     "處理中",

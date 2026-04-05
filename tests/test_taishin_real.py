@@ -214,6 +214,19 @@ def test_resolve_richart_plan_id_prefers_body_signal_over_category_fallback():
     assert plan_id == "TAISHIN_RICHART_TRAVEL"
 
 
+def test_resolve_richart_plan_id_prefers_travel_signal_over_generic_payment_terms():
+    from extractor.taishin_real import _resolve_richart_plan_id
+
+    plan_id = _resolve_richart_plan_id(
+        "TAISHIN_RICHART",
+        "ONLINE",
+        "八大訂房網最高現折18%",
+        "Richart卡享最高3.3%回饋，指定訂房平台 Hotels.com、Agoda、Booking.com 適用，並提及台新Pay綁卡付款。",
+    )
+
+    assert plan_id == "TAISHIN_RICHART_TRAVEL"
+
+
 def test_extract_card_promotions_applies_plan_subcategory_hints_for_richart_marketing():
     from extractor.taishin_real import CardRecord, _extract_marketing_promotion
 

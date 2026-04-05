@@ -6,6 +6,7 @@ sys.path.append(project_root)
 
 from extractor.esun_real import _dedupe_promotions, _extract_reward, _infer_channel, _normalize_promotion_title
 from extractor.normalize import clean_card_name
+from extractor.promotion_rules import SUBCATEGORY_SIGNALS, infer_subcategory
 
 
 def test_extract_reward_prefers_fixed_when_title_is_fixed_offer():
@@ -112,6 +113,42 @@ def test_unicard_online_offer_can_infer_plan_and_subcategory_hint():
     assert plan_id == "ESUN_UNICARD_FLEXIBLE"
     assert category == "ONLINE"
     assert subcategory == "MOBILE_PAY"
+
+
+def test_unicard_theme_park_offer_infers_entertainment_theme_park():
+    from extractor.esun_real import _infer_category
+
+    title = "指定樂園加碼3%"
+    body = "玉山Unicard 正卡持卡人至指定樂園消費，享加碼 3% 玉山e point 回饋，指定樂園包含麗寶樂園。"
+
+    category = _infer_category(title, body)
+    subcategory = infer_subcategory(title, body, category, SUBCATEGORY_SIGNALS)
+
+    assert category == "ENTERTAINMENT"
+    assert subcategory == "THEME_PARK"
+
+
+def test_unicard_transport_offer_expands_into_rideshare_and_ev_charging_clusters():
+    from extractor.esun_real import _expand_card_specific_promotions
+
+    base_promotion = {
+        "title": "玉山Unicard 指定交通通路加碼5%",
+        "category": "TRANSPORT",
+        "subcategory": "GENERAL",
+        "conditions": [{"type": "TEXT", "value": "NEED_ESUN_WALLET", "label": "需於玉山Wallet領取優惠"}],
+    }
+
+    expanded = _expand_card_specific_promotions(
+        "ESUN_UNICARD",
+        "指定交通通路加碼5%",
+        "指定交通通路為 GoShare、WeMo、U-POWER、EVOASIS、AmpGO、全國特急電。",
+        base_promotion,
+    )
+
+    assert len(expanded) == 2
+    assert {promo["subcategory"] for promo in expanded} == {"RIDESHARE", "EV_CHARGING"}
+    assert any(any(condition["label"] == "GoShare" for condition in promo["conditions"]) for promo in expanded)
+    assert any(any(condition["label"] == "U-POWER" for condition in promo["conditions"]) for promo in expanded)
 
 
 def test_clean_card_name_trims_unicard_page_selling_points():
