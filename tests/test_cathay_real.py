@@ -162,3 +162,63 @@ def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
     assert any(condition["type"] == "MERCHANT" and condition["value"] == "CHATGPT" for condition in ai_tool["conditions"])
     assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "PXMART" for condition in supermarket["conditions"])
     assert any(condition["type"] == "MERCHANT" and condition["value"] == "CHINA_AIRLINES" for condition in airline["conditions"])
+
+
+def test_formosa_gas_promos_remove_payment_and_add_gas_station_conditions():
+    category, subcategory, channel, scope, conditions = cathay_real._apply_card_specific_overrides(
+        "CATHAY_FORMOSA",
+        "加油降價天天享",
+        "於台亞/福懋/速邁樂加油中心及其他標有動能精靈之加油站加油享優惠。行動支付APP內顯示之交易記錄為預授權金額。",
+        "ONLINE",
+        "GENERAL",
+        "ONLINE",
+        "RECOMMENDABLE",
+        [{"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"}],
+    )
+
+    assert category == "TRANSPORT"
+    assert subcategory == "GAS_STATION"
+    assert channel == "OFFLINE"
+    assert scope == "RECOMMENDABLE"
+    assert all(condition["type"] != "PAYMENT_METHOD" for condition in conditions)
+    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "TAIA" for condition in conditions)
+    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "FORMOZA" for condition in conditions)
+    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "FORMOSA_PETROCHEMICAL" for condition in conditions)
+
+
+def test_cash_rebate_new_user_tasks_drop_false_merchant_structure():
+    category, subcategory, channel, scope, conditions = cathay_real._apply_card_specific_overrides(
+        "CATHAY_CASH_REBATE_SIGNATURE",
+        "【本活動已結束】新戶首刷完成任務享權益加碼 新戶權益加碼2%！享最高1,200元刷卡金",
+        "新戶完成任務一之次月起，Apple Pay綁定現金回饋御璽卡消費。",
+        "SHOPPING",
+        "DEPARTMENT",
+        "ONLINE",
+        "FUTURE_SCOPE",
+        [{"type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"}],
+    )
+
+    assert category == "OTHER"
+    assert subcategory == "GENERAL"
+    assert channel == "ALL"
+    assert scope == "FUTURE_SCOPE"
+    assert conditions == []
+
+
+def test_eva_mileage_offer_is_downgraded_to_catalog_only_general():
+    category, subcategory, channel, scope, conditions = cathay_real._apply_card_specific_overrides(
+        "CATHAY_EVA",
+        "倍速哩遇消費最優10元1哩",
+        "長榮航空官網購票與海外指定消費，登錄成功後享回饋。",
+        "OVERSEAS",
+        "TRAVEL_PLATFORM",
+        "ONLINE",
+        "FUTURE_SCOPE",
+        [{"type": "REGISTRATION_REQUIRED", "value": "true", "label": "需登錄活動"}],
+    )
+
+    assert category == "OVERSEAS"
+    assert subcategory == "GENERAL"
+    assert channel == "ALL"
+    assert scope == "CATALOG_ONLY"
+    assert conditions == [{"type": "REGISTRATION_REQUIRED", "value": "true", "label": "需登錄活動"}]

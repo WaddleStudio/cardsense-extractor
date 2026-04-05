@@ -14,6 +14,7 @@ from extractor.promotion_rules import (
     build_conditions,
     build_summary,
     classify_recommendation_scope,
+    clean_offer_text,
     dedupe_promotions,
     extract_cap,
     extract_date_range,
@@ -337,6 +338,12 @@ CUBE_VARIANT_CONDITIONS: dict[tuple[str, str], list[dict[str, str]]] = {
     ],
 }
 
+FORMOSA_GAS_STATION_CONDITIONS: tuple[dict[str, str], ...] = (
+    {"type": "RETAIL_CHAIN", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
+    {"type": "RETAIL_CHAIN", "value": "TAIA", "label": "台亞"},
+    {"type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "福懋"},
+)
+
 
 @dataclass
 class CardRecord:
@@ -438,30 +445,43 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             if not clean_title:
                 continue
 
-            reward = extract_reward(clean_title, candidate["body"])
+            clean_body = clean_offer_text(candidate["body"])
+
+            reward = extract_reward(clean_title, clean_body)
             if reward is None:
                 continue
 
-            valid_from, valid_until = extract_date_range(candidate["body"])
+            valid_from, valid_until = extract_date_range(clean_body)
             if not valid_from or not valid_until:
                 continue
 
-            requires_registration = "登錄" in candidate["body"]
-            min_amount = extract_min_amount(candidate["body"])
-            max_cashback = extract_cap(candidate["body"])
-            category = infer_category(clean_title, candidate["body"], CATEGORY_SIGNALS, overseas_category="OVERSEAS")
-            subcategory = infer_subcategory(clean_title, candidate["body"], category, SUBCATEGORY_SIGNALS)
-            recommendation_scope = classify_recommendation_scope(clean_title, candidate["body"], category)
+            requires_registration = "登錄" in clean_body
+            min_amount = extract_min_amount(clean_body)
+            max_cashback = extract_cap(clean_body)
+            category = infer_category(clean_title, clean_body, CATEGORY_SIGNALS, overseas_category="OVERSEAS")
+            subcategory = infer_subcategory(clean_title, clean_body, category, SUBCATEGORY_SIGNALS)
+            recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
             conditions = append_inferred_subcategory_conditions(
                 clean_title,
-                candidate["body"],
+                clean_body,
                 category,
                 subcategory,
-                build_conditions(candidate["body"], enriched_card.application_requirements, requires_registration),
+                build_conditions(clean_body, enriched_card.application_requirements, requires_registration),
             )
             conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
             conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
             subcategory = canonicalize_subcategory(category, subcategory, conditions)
+            channel = infer_channel(clean_title, clean_body, CHANNEL_SIGNALS)
+            category, subcategory, channel, recommendation_scope, conditions = _apply_card_specific_overrides(
+                enriched_card.card_code,
+                clean_title,
+                clean_body,
+                category,
+                subcategory,
+                channel,
+                recommendation_scope,
+                conditions,
+            )
 
             promotions.append(
                 {
@@ -475,7 +495,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                     "bankName": BANK_NAME,
                     "category": category,
                     "subcategory": subcategory,
-                    "channel": infer_channel(clean_title, candidate["body"], CHANNEL_SIGNALS),
+                    "channel": channel,
                     "cashbackType": reward["type"],
                     "cashbackValue": reward["value"],
                     "minAmount": min_amount,
@@ -491,7 +511,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                     "sourceUrl": enriched_card.detail_url,
                     "summary": build_summary(
                         clean_title,
-                        candidate["body"],
+                        clean_body,
                         valid_from,
                         valid_until,
                         min_amount,
@@ -796,6 +816,62 @@ def _build_plan_promotion_with_conditions(
 
 def _build_variant_conditions(plan_name: str, subcategory: str) -> list[dict[str, str]]:
     return [dict(condition) for condition in CUBE_VARIANT_CONDITIONS.get((plan_name, subcategory), [])]
+
+
+def _apply_card_specific_overrides(
+    card_code: str,
+    title: str,
+    body: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    recommendation_scope: str,
+    conditions: list[dict[str, str]],
+) -> tuple[str, str, str, str, list[dict[str, str]]]:
+    merged_conditions = [dict(condition) for condition in conditions]
+
+    if card_code == "CATHAY_FORMOSA":
+        gas_station_titles = {"加油降價天天享", "加油金再折抵", "週三加油日"}
+        gas_station_tokens = ("台亞", "福懋", "速邁樂", "動能精靈")
+        if title in gas_station_titles and any(token in body for token in gas_station_tokens):
+            merged_conditions = [
+                condition
+                for condition in merged_conditions
+                if str(condition.get("type", "")).upper() not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"}
+            ]
+            merged_conditions = _merge_conditions(merged_conditions, FORMOSA_GAS_STATION_CONDITIONS)
+            return ("TRANSPORT", "GAS_STATION", "OFFLINE", recommendation_scope, merged_conditions)
+
+    if card_code == "CATHAY_CASH_REBATE_SIGNATURE" and any(token in title for token in ("新戶", "首刷", "本活動已結束")):
+        merged_conditions = [
+            condition
+            for condition in merged_conditions
+            if str(condition.get("type", "")).upper() not in {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM", "PAYMENT_METHOD", "PAYMENT_PLATFORM"}
+        ]
+        return ("OTHER", "GENERAL", "ALL", recommendation_scope, merged_conditions)
+
+    if card_code == "CATHAY_EVA" and "倍速哩遇" in title:
+        return ("OVERSEAS", "GENERAL", "ALL", "CATALOG_ONLY", merged_conditions)
+
+    return category, subcategory, channel, recommendation_scope, merged_conditions
+
+
+def _merge_conditions(
+    base_conditions: list[dict[str, str]],
+    extra_conditions: Iterable[dict[str, str]],
+) -> list[dict[str, str]]:
+    merged = [dict(condition) for condition in base_conditions]
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    for condition in extra_conditions:
+        key = (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        if key in seen:
+            continue
+        merged.append(dict(condition))
+        seen.add(key)
+    return merged
 
 
 def _normalize_date(date_str: str) -> str | None:
