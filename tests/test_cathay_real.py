@@ -179,7 +179,7 @@ def test_formosa_gas_promos_remove_payment_and_add_gas_station_conditions():
     assert category == "TRANSPORT"
     assert subcategory == "GAS_STATION"
     assert channel == "OFFLINE"
-    assert scope == "RECOMMENDABLE"
+    assert scope == "CATALOG_ONLY"
     assert all(condition["type"] != "PAYMENT_METHOD" for condition in conditions)
     assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "TAIA" for condition in conditions)
     assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "FORMOZA" for condition in conditions)
@@ -222,3 +222,79 @@ def test_eva_mileage_offer_is_downgraded_to_catalog_only_general():
     assert channel == "ALL"
     assert scope == "CATALOG_ONLY"
     assert conditions == [{"type": "REGISTRATION_REQUIRED", "value": "true", "label": "需登錄活動"}]
+
+
+def test_formosa_page_extracts_four_major_promotions(monkeypatch):
+    list_payload = {
+        ":items": {
+            "cardList": {
+                ":type": "cathay/components/content/creditcardlist",
+                "creditCards": [
+                    {
+                        "cardName": "台塑聯名卡",
+                        "ctaLink": "/cathaybk/personal/product/credit-card/cards/formosa/",
+                    }
+                ],
+            }
+        }
+    }
+    detail_payload = {
+        ":items": {
+            "applyInfo": {
+                ":type": "cathay/components/content/creditcardapplyinfo",
+                "information": ["<p>免年費條件</p>"],
+            },
+            "promoGroup": {
+                ":type": "cub-aem-cs/components/cub-content/cub-horgraphictab/v1/cub-horgraphictab",
+                "items": [
+                    {
+                        "title": "加油降價天天享",
+                        "description": "2026/1/1~2026/3/31，於台亞/福懋/速邁樂加油中心及其他標有動能精靈之加油站加油享優惠。",
+                    },
+                    {
+                        "title": "加油金再折抵",
+                        "description": "2026/1/1~2026/7/31，以加油金折抵消費，每公升可折抵2元加油金。",
+                    },
+                    {
+                        "title": "週三加油日",
+                        "description": "2026/1/1~2026/3/31，週三站內汽油加滿25公升(含)以上，再享現折NT$15。限台亞/福懋/速邁樂加油中心。",
+                    },
+                    {
+                        "title": "站外高回饋 最高回饋1%加油金",
+                        "description": "站外一般消費NT$200＝1元加油金；指定台塑關係企業消費NT$200＝2元加油金。活動期間：2026/1/1~2026/7/31。",
+                    },
+                ],
+            },
+        }
+    }
+
+    def fake_fetch(url: str, timeout: int = 20) -> str:
+        if url == cathay_real.CARD_LIST_MODEL_URL:
+            return json.dumps(list_payload, ensure_ascii=False)
+        if url.endswith("/formosa.model.json"):
+            return json.dumps(detail_payload, ensure_ascii=False)
+        raise AssertionError(f"unexpected url: {url}")
+
+    monkeypatch.setattr(cathay_real.ingest, "fetch_real_page", fake_fetch)
+
+    card = cathay_real.list_cathay_cards()[0]
+    _, promotions = cathay_real.extract_card_promotions(card)
+
+    titles = {promotion["title"] for promotion in promotions}
+    assert "台塑聯名卡 加油降價天天享" in titles
+    assert "台塑聯名卡 加油金再折抵" in titles
+    assert "台塑聯名卡 週三加油日" in titles
+    assert "台塑聯名卡 站外高回饋 最高回饋1%加油金" in titles
+
+    by_title = {promotion["title"]: promotion for promotion in promotions}
+    assert by_title["台塑聯名卡 加油降價天天享"]["cashbackType"] == "FIXED"
+    assert by_title["台塑聯名卡 加油降價天天享"]["cashbackValue"] == 1.2
+    assert by_title["台塑聯名卡 加油金再折抵"]["cashbackValue"] == 2.0
+    assert by_title["台塑聯名卡 週三加油日"]["cashbackValue"] == 15.0
+    assert by_title["台塑聯名卡 週三加油日"]["recommendationScope"] == "CATALOG_ONLY"
+    assert by_title["台塑聯名卡 站外高回饋 最高回饋1%加油金"]["validFrom"] == "2026-01-01"
+    assert by_title["台塑聯名卡 站外高回饋 最高回饋1%加油金"]["validUntil"] == "2026-07-31"
+    assert any(
+        condition["type"] == "MERCHANT" and condition["value"] == "FORMOSA_BIOMEDICAL"
+        for condition in by_title["台塑聯名卡 站外高回饋 最高回饋1%加油金"]["conditions"]
+    )

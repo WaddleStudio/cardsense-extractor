@@ -344,6 +344,56 @@ FORMOSA_GAS_STATION_CONDITIONS: tuple[dict[str, str], ...] = (
     {"type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "福懋"},
 )
 
+FORMOSA_AFFILIATE_CONDITIONS: tuple[dict[str, str], ...] = (
+    {"type": "MERCHANT", "value": "FORMOSA_BIOMEDICAL", "label": "台塑生醫"},
+    {"type": "MERCHANT", "value": "CHANG_GUNG_BIOTECH", "label": "長庚生技"},
+    {"type": "MERCHANT", "value": "FORMOSA_SHOPPING", "label": "台塑購物網"},
+    {"type": "MERCHANT", "value": "FORMOSA_TRAVEL", "label": "台塑網旅行社"},
+)
+
+FORMOSA_PROMO_DEFAULTS: dict[str, dict[str, object]] = {
+    "加油降價天天享": {
+        "reward": {"type": "FIXED", "value": 1.2},
+        "category": "TRANSPORT",
+        "subcategory": "GAS_STATION",
+        "channel": "OFFLINE",
+        "recommendation_scope": "CATALOG_ONLY",
+        "valid_from": "2026-01-01",
+        "valid_until": "2026-03-31",
+        "conditions": FORMOSA_GAS_STATION_CONDITIONS,
+    },
+    "加油金再折抵": {
+        "reward": {"type": "FIXED", "value": 2.0},
+        "category": "TRANSPORT",
+        "subcategory": "GAS_STATION",
+        "channel": "OFFLINE",
+        "recommendation_scope": "CATALOG_ONLY",
+        "valid_from": "2026-01-01",
+        "valid_until": "2026-07-31",
+        "conditions": FORMOSA_GAS_STATION_CONDITIONS,
+    },
+    "週三加油日": {
+        "reward": {"type": "FIXED", "value": 15.0},
+        "category": "TRANSPORT",
+        "subcategory": "GAS_STATION",
+        "channel": "OFFLINE",
+        "recommendation_scope": "CATALOG_ONLY",
+        "valid_from": "2026-01-01",
+        "valid_until": "2026-03-31",
+        "conditions": FORMOSA_GAS_STATION_CONDITIONS,
+    },
+    "站外高回饋 最高回饋1%加油金": {
+        "reward": {"type": "PERCENT", "value": 1.0},
+        "category": "SHOPPING",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "recommendation_scope": "CATALOG_ONLY",
+        "valid_from": "2026-01-01",
+        "valid_until": "2026-07-31",
+        "conditions": FORMOSA_AFFILIATE_CONDITIONS,
+    },
+}
+
 
 @dataclass
 class CardRecord:
@@ -448,10 +498,21 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             clean_body = clean_offer_text(candidate["body"])
 
             reward = extract_reward(clean_title, clean_body)
+            reward = _apply_card_specific_reward_override(
+                enriched_card.card_code,
+                clean_title,
+                reward,
+            )
             if reward is None:
                 continue
 
             valid_from, valid_until = extract_date_range(clean_body)
+            valid_from, valid_until = _apply_card_specific_validity_override(
+                enriched_card.card_code,
+                clean_title,
+                valid_from,
+                valid_until,
+            )
             if not valid_from or not valid_until:
                 continue
 
@@ -818,6 +879,35 @@ def _build_variant_conditions(plan_name: str, subcategory: str) -> list[dict[str
     return [dict(condition) for condition in CUBE_VARIANT_CONDITIONS.get((plan_name, subcategory), [])]
 
 
+def _apply_card_specific_reward_override(
+    card_code: str,
+    title: str,
+    reward: dict[str, object] | None,
+) -> dict[str, object] | None:
+    if card_code != "CATHAY_FORMOSA":
+        return reward
+
+    config = FORMOSA_PROMO_DEFAULTS.get(title)
+    if not config:
+        return reward
+    return dict(config["reward"])
+
+
+def _apply_card_specific_validity_override(
+    card_code: str,
+    title: str,
+    valid_from: str | None,
+    valid_until: str | None,
+) -> tuple[str | None, str | None]:
+    if card_code != "CATHAY_FORMOSA":
+        return valid_from, valid_until
+
+    config = FORMOSA_PROMO_DEFAULTS.get(title)
+    if not config:
+        return valid_from, valid_until
+    return str(config["valid_from"]), str(config["valid_until"])
+
+
 def _apply_card_specific_overrides(
     card_code: str,
     title: str,
@@ -831,16 +921,24 @@ def _apply_card_specific_overrides(
     merged_conditions = [dict(condition) for condition in conditions]
 
     if card_code == "CATHAY_FORMOSA":
-        gas_station_titles = {"加油降價天天享", "加油金再折抵", "週三加油日"}
-        gas_station_tokens = ("台亞", "福懋", "速邁樂", "動能精靈")
-        if title in gas_station_titles and any(token in body for token in gas_station_tokens):
+        config = FORMOSA_PROMO_DEFAULTS.get(title)
+        if config:
             merged_conditions = [
                 condition
                 for condition in merged_conditions
                 if str(condition.get("type", "")).upper() not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"}
             ]
-            merged_conditions = _merge_conditions(merged_conditions, FORMOSA_GAS_STATION_CONDITIONS)
-            return ("TRANSPORT", "GAS_STATION", "OFFLINE", recommendation_scope, merged_conditions)
+            merged_conditions = _merge_conditions(
+                merged_conditions,
+                config.get("conditions", ()),
+            )
+            return (
+                str(config["category"]),
+                str(config["subcategory"]),
+                str(config["channel"]),
+                str(config["recommendation_scope"]),
+                merged_conditions,
+            )
 
     if card_code == "CATHAY_CASH_REBATE_SIGNATURE" and any(token in title for token in ("新戶", "首刷", "本活動已結束")):
         merged_conditions = [
