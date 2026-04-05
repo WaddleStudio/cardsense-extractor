@@ -15,6 +15,7 @@ This skill is optimized for:
 - updating plan metadata, `category -> planId` mappings, and subcategory coverage
 - preparing extractor-native or importer-friendly data updates
 - validating safe SQLite and Supabase rollout scope for a specific bank or card
+- reviewing and cleaning payment-condition quality before a bank-scoped sync
 
 ## Core Principles
 
@@ -132,6 +133,21 @@ A good default is:
 - one promo for `AIRLINE`
 - with `conditions` carrying merchants such as `CHATGPT`, `PXMART`, `CHINA_AIRLINES`
 
+### 5.5. Payment-condition policy
+
+Before treating payment rails as structured conditions, apply the payment review policy.
+
+Use:
+
+- [references/payment-condition-policy.md](references/payment-condition-policy.md)
+
+Rule of thumb:
+
+- keep payment conditions only when the bank copy clearly makes payment route a positive eligibility condition
+- remove positive payment conditions when the bank copy says the route is excluded
+- normalize aliases before reviewing result quality
+- do not treat generic wallet app mentions as payment conditions
+
 ### 6. Plan-mapping policy
 
 For benefit-plan cards:
@@ -201,6 +217,7 @@ Useful checks:
 - count plan-bound promotions
 - inspect `category`, `subcategory`, `plan_id`, `cashback_value`, and `conditions_json`
 - spot-check merchant-aware conditions for representative rows
+- spot-check payment-conditioned rows for false positives and alias consistency
 - verify non-target cards are not affected by scoped sync
 
 ### 11. Safe sync policy
@@ -233,6 +250,9 @@ Typical follow-ups:
 
 If you need a step-by-step review template, read:
 - [references/review-checklist.md](references/review-checklist.md)
+
+If you are shipping a bank-wide cleanup or a card-by-card review rollout, use:
+- [references/bank-review-rollout-playbook.md](references/bank-review-rollout-playbook.md)
 
 If you want concrete examples and known edge cases for current CardSense target cards, read:
 - [references/bank-case-studies.md](references/bank-case-studies.md)

@@ -22,6 +22,9 @@ Use this checklist when reviewing a benefit-plan card.
 - stable base rewards separated from campaign rewards
 - category/subcategory mapping proposed
 - plan binding proposed
+- payment conditions reviewed with positive / negative wording separated
+- false-positive payment tags removed
+- payment platform aliases canonicalized
 - exclusions captured
 - caps / frequency / registration captured
 - tiered-rate behavior identified if present
@@ -47,6 +50,7 @@ Use this checklist when reviewing a benefit-plan card.
 - `benefit_plans.py` update needed or not
 - subcategory expansion needed or not
 - extractor-native card parser changes needed or not
+- payment-condition policy applied
 - curated JSONL needed or not
 - SQLite import plan decided
 - Supabase rollout scope decided
@@ -59,4 +63,5 @@ Use this checklist when reviewing a benefit-plan card.
 - frontend build run when request/result UI changed
 - DB row counts checked
 - affected `plan_id`, `subcategory`, and `conditions_json` values spot-checked
+- payment-conditioned rows spot-checked
 - scoped sync safety checked if only one card should roll out

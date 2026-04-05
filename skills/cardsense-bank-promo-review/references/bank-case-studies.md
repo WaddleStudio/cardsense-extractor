@@ -86,6 +86,22 @@ CardSense currently lacks a native way to model:
 - often `compatible with approximation`
 - or base promotions `CATALOG_ONLY` until runtime state is modeled
 
+### Payment review lesson
+
+E.SUN also exposed a reusable payment-data lesson for every future bank review:
+
+- generic wallet app copy must not become `PAYMENT_PLATFORM`
+- excluded payment rails must not remain as positive payment conditions
+- alias cleanup matters because frontend filters and backend matching depend on normalized values
+- after cleanup, only keep payment rows that are truly recommendation-relevant
+
+Practical examples from the E.SUN cleanup:
+
+- `街口支付` should normalize to `JKOPAY`
+- `玉山WALLET電子支付` should normalize to `ESUN_WALLET`
+- `玉山Wallet 卡友必備APP` should not create a payment condition
+- `Apple Pay / Google Pay / LINE Pay 恕無法參加` should remove positive payment conditions instead of keeping them
+
 ## Taishin Richart
 
 ### Why it matters
