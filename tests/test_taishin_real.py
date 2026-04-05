@@ -263,6 +263,10 @@ def test_extract_card_promotions_applies_plan_subcategory_hints_for_richart_mark
         condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
         for condition in promotion["conditions"]
     )
+    assert any(
+        condition["type"] == "TEXT" and condition["value"] == "RICHART_BENEFIT_TIER_REQUIRED"
+        for condition in promotion["conditions"]
+    )
 
 
 def test_richart_plan_hint_appends_travel_platform_merchants():
@@ -284,6 +288,25 @@ def test_richart_plan_hint_appends_streaming_merchants():
         condition["type"] == "MERCHANT" and condition["value"] == "DISNEY_PLUS"
         for condition in conditions
     )
+
+
+def test_richart_tier_hint_appends_level_marker_for_standard_plan_rate():
+    from extractor.taishin_real import _append_richart_tier_conditions
+
+    conditions = _append_richart_tier_conditions("TAISHIN_RICHART_DIGITAL", 3.3, [])
+
+    assert any(
+        condition["type"] == "TEXT" and condition["value"] == "RICHART_BENEFIT_TIER_REQUIRED"
+        for condition in conditions
+    )
+
+
+def test_richart_tier_hint_skips_non_standard_bonus_rate():
+    from extractor.taishin_real import _append_richart_tier_conditions
+
+    conditions = _append_richart_tier_conditions("TAISHIN_RICHART_DIGITAL", 4.8, [])
+
+    assert conditions == []
 
 
 def test_resolve_richart_plan_id_does_not_affect_other_cards():

@@ -128,6 +128,16 @@ RICHART_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
         {"type": "MERCHANT", "value": "ASIAYO", "label": "AsiaYo"},
     ),
 }
+RICHART_TIERED_PLAN_IDS = {
+    "TAISHIN_RICHART_PAY",
+    "TAISHIN_RICHART_DAILY",
+    "TAISHIN_RICHART_BIG",
+    "TAISHIN_RICHART_DINING",
+    "TAISHIN_RICHART_DIGITAL",
+    "TAISHIN_RICHART_TRAVEL",
+    "TAISHIN_RICHART_WEEKEND",
+}
+RICHART_TIER_SENSITIVE_RATES = {1.3, 2.0, 2.3, 3.3, 3.8}
 MARKETING_NOISE_TOKENS = (
     "處理中",
     "敬請稍候",
@@ -340,6 +350,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             body=clean_body,
         )
         conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
+        conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         promotions.append(
@@ -507,6 +518,7 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     conditions = append_inferred_subcategory_conditions(title, focused_text, category, subcategory, conditions)
     conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
     conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
+    conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
     subcategory = canonicalize_subcategory(category, subcategory, conditions)
     summary = build_summary(
         title,
@@ -626,6 +638,40 @@ def _append_richart_plan_conditions(
             continue
         merged.append(dict(condition))
         seen.add(key)
+    return merged
+
+
+def _append_richart_tier_conditions(
+    plan_id: str | None,
+    cashback_value: object,
+    conditions: List[Dict[str, object]],
+) -> List[Dict[str, object]]:
+    if not plan_id or plan_id not in RICHART_TIERED_PLAN_IDS:
+        return conditions
+
+    try:
+        normalized_rate = round(float(cashback_value), 1)
+    except (TypeError, ValueError):
+        return conditions
+
+    if normalized_rate not in RICHART_TIER_SENSITIVE_RATES:
+        return conditions
+
+    marker = {
+        "type": "TEXT",
+        "value": "RICHART_BENEFIT_TIER_REQUIRED",
+        "label": "Richart LEVEL 1 / LEVEL 2 affects actual reward rate",
+    }
+
+    merged = list(conditions)
+    if any(
+        str(condition.get("type", "")).upper() == marker["type"]
+        and str(condition.get("value", "")).upper() == marker["value"]
+        for condition in merged
+    ):
+        return merged
+
+    merged.append(marker)
     return merged
 
 
