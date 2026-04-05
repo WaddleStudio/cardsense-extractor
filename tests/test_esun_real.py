@@ -126,7 +126,13 @@ def test_unicard_plan_hint_appends_merchant_conditions_for_mobile_pay():
 def test_mobile_pay_subcategory_is_canonicalized_after_payment_conditions_are_added():
     from extractor.promotion_rules import append_inferred_payment_method_conditions, canonicalize_subcategory
 
-    conditions = append_inferred_payment_method_conditions("ONLINE", "MOBILE_PAY", [])
+    conditions = append_inferred_payment_method_conditions(
+        "ONLINE",
+        "MOBILE_PAY",
+        [],
+        "LINE Pay 3%",
+        "LINE Pay 行動支付 3%",
+    )
 
     assert canonicalize_subcategory("ONLINE", "MOBILE_PAY", conditions) == "GENERAL"
     assert any(

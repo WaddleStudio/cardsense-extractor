@@ -595,7 +595,7 @@ EXTRA_SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
     },
     "ONLINE": {
         "ECOMMERCE": [("網購", 5), ("線上購物", 5), ("蝦皮", 5), ("博客來", 4), ("東森購物", 4), ("Yahoo購物", 4), ("Yahoo奇摩購物", 4)],
-        "MOBILE_PAY": [("LINE Pay", 5), ("街口", 5), ("街口支付", 5), ("行動支付", 5), ("電子支付", 5), ("Apple Pay", 5), ("Google Pay", 5), ("Samsung Pay", 5), ("全支付", 5), ("全盈", 4), ("Pi 拍錢包", 5), ("Pi拍錢包", 5), ("玉山Wallet", 5), ("台灣Pay", 5), ("悠遊付", 4), ("icash Pay", 4), ("TWQR", 4)],
+        "MOBILE_PAY": [("LINE Pay", 5), ("街口", 5), ("街口支付", 5), ("行動支付", 5), ("電子支付", 5), ("Apple Pay", 5), ("Google Pay", 5), ("Samsung Pay", 5), ("全支付", 5), ("全盈", 4), ("Pi 拍錢包", 5), ("Pi拍錢包", 5), ("玉山WALLET電子支付", 5), ("玉山 Wallet電子支付", 5), ("台灣Pay", 5), ("悠遊付", 4), ("icash Pay", 4), ("TWQR", 4)],
         "SUBSCRIPTION": [("訂閱", 5), ("串流", 5), ("Netflix", 5), ("Disney+", 5), ("Spotify", 5), ("KKBOX", 5), ("YouTube Premium", 5), ("friDay影音", 4), ("MyVideo", 4), ("愛奇藝", 4)],
         "AI_TOOL": [("ChatGPT", 5), ("Claude", 5), ("Cursor", 5), ("Gemini", 4), ("Perplexity", 4), ("Notion", 4), ("Canva", 4), ("Gamma", 4), ("Duolingo", 3), ("Speak", 3), ("AI工具", 5)],
         "TRAVEL_PLATFORM": [("Hotels.com", 5), ("Agoda", 5), ("Booking", 5), ("Trip.com", 5), ("AsiaYo", 4), ("Klook", 4), ("KKday", 4), ("AIRSIM", 4)],
@@ -668,7 +668,8 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "Google Pay", "type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
         {"token": "Samsung Pay", "type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
         {"token": "街口", "type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "JKOPay"},
-        {"token": "玉山Wallet", "type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山Wallet"},
+        {"token": "玉山WALLET電子支付", "type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+        {"token": "玉山 Wallet電子支付", "type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
         {"token": "全支付", "type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
         {"token": "街口支付", "type": "PAYMENT_PLATFORM", "value": "街口支付", "label": "街口支付"},
         {"token": "悠遊付", "type": "PAYMENT_PLATFORM", "value": "悠遊付", "label": "悠遊付"},
@@ -770,6 +771,162 @@ PAYMENT_METHOD_SUBCATEGORY_CONDITIONS: Dict[tuple[str, str], Dict[str, str]] = {
 }
 
 
+PAYMENT_PLATFORM_VALUE_ALIASES: Dict[str, tuple[str, str]] = {
+    "LINE_PAY": ("LINE_PAY", "LINE Pay"),
+    "APPLE_PAY": ("APPLE_PAY", "Apple Pay"),
+    "GOOGLE_PAY": ("GOOGLE_PAY", "Google Pay"),
+    "SAMSUNG_PAY": ("SAMSUNG_PAY", "Samsung Pay"),
+    "JKOPAY": ("JKOPAY", "街口支付"),
+    "街口支付": ("JKOPAY", "街口支付"),
+    "ESUN_WALLET": ("ESUN_WALLET", "玉山 Wallet"),
+    "玉山WALLET電子支付": ("ESUN_WALLET", "玉山 Wallet"),
+    "玉山 Wallet電子支付": ("ESUN_WALLET", "玉山 Wallet"),
+    "全支付": ("全支付", "全支付"),
+    "悠遊付": ("悠遊付", "悠遊付"),
+    "全盈_PAY": ("全盈_PAY", "全盈+PAY"),
+    "IPASS_MONEY": ("IPASS_MONEY", "iPASS MONEY"),
+    "ICASH_PAY": ("ICASH_PAY", "icash Pay"),
+    "TWQR": ("TWQR", "TWQR"),
+}
+
+PAYMENT_SIGNAL_TOKENS: Dict[str, tuple[str, ...]] = {
+    "MOBILE_PAY": (
+        "行動支付",
+        "電子支付",
+        "LINE Pay",
+        "Apple Pay",
+        "Google Pay",
+        "Samsung Pay",
+        "街口支付",
+        "JKOPay",
+        "玉山WALLET電子支付",
+        "玉山 Wallet電子支付",
+        "全支付",
+        "悠遊付",
+        "全盈+PAY",
+        "iPASS MONEY",
+        "icash Pay",
+        "TWQR",
+    ),
+    "LINE_PAY": ("LINE Pay",),
+    "APPLE_PAY": ("Apple Pay",),
+    "GOOGLE_PAY": ("Google Pay",),
+    "SAMSUNG_PAY": ("Samsung Pay",),
+    "JKOPAY": ("JKOPay", "街口支付"),
+    "ESUN_WALLET": ("玉山WALLET電子支付", "玉山 Wallet電子支付"),
+    "全支付": ("全支付",),
+    "悠遊付": ("悠遊付",),
+    "全盈_PAY": ("全盈+PAY",),
+    "IPASS_MONEY": ("iPASS MONEY",),
+    "ICASH_PAY": ("icash Pay",),
+    "TWQR": ("TWQR",),
+}
+
+PAYMENT_NEGATION_TOKENS: tuple[str, ...] = (
+    "不適用",
+    "恕不適用",
+    "恕無法參加",
+    "無法參加",
+    "不列入",
+    "不享",
+    "不回饋",
+    "排除",
+    "除外",
+)
+
+
+def _canonicalize_payment_condition(condition: Dict[str, str]) -> Dict[str, str]:
+    normalized_type = str(condition.get("type", "")).upper()
+    if normalized_type != "PAYMENT_PLATFORM":
+        return dict(condition)
+
+    canonical = PAYMENT_PLATFORM_VALUE_ALIASES.get(str(condition.get("value", "")).strip())
+    if not canonical:
+        return dict(condition)
+
+    return {
+        **condition,
+        "type": "PAYMENT_PLATFORM",
+        "value": canonical[0],
+        "label": canonical[1],
+    }
+
+
+def _is_negated_payment_token(text: str, token: str) -> bool:
+    for match in re.finditer(re.escape(token), text, flags=re.IGNORECASE):
+        sentence_start = max(
+            text.rfind("。", 0, match.start()),
+            text.rfind("；", 0, match.start()),
+            text.rfind("!", 0, match.start()),
+            text.rfind("?", 0, match.start()),
+        )
+        sentence_end_candidates = [
+            index for index in (
+                text.find("。", match.end()),
+                text.find("；", match.end()),
+                text.find("!", match.end()),
+                text.find("?", match.end()),
+            )
+            if index != -1
+        ]
+        left = 0 if sentence_start == -1 else sentence_start + 1
+        right = min(sentence_end_candidates) if sentence_end_candidates else len(text)
+        context = text[left:right]
+        if any(negation in context for negation in PAYMENT_NEGATION_TOKENS):
+            return True
+    return False
+
+
+def _has_positive_payment_signal(text: str, payment_value: str) -> bool:
+    for token in PAYMENT_SIGNAL_TOKENS.get(payment_value, (payment_value,)):
+        if token not in text:
+            continue
+        if _is_negated_payment_token(text, token):
+            continue
+        return True
+    return False
+
+
+def sanitize_payment_conditions(
+    title: str,
+    body: str,
+    conditions: Sequence[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    text = collapse_text(f"{title} {body}")
+    merged: List[Dict[str, str]] = []
+
+    for raw_condition in conditions:
+        condition = _canonicalize_payment_condition(raw_condition)
+        normalized_type = str(condition.get("type", "")).upper()
+        normalized_value = str(condition.get("value", "")).upper()
+
+        if normalized_type == "PAYMENT_PLATFORM" and not _has_positive_payment_signal(text, normalized_value):
+            continue
+        if normalized_type == "PAYMENT_METHOD" and normalized_value == "MOBILE_PAY":
+            has_positive_platform = any(
+                str(existing.get("type", "")).upper() == "PAYMENT_PLATFORM"
+                for existing in merged
+            )
+            if not has_positive_platform and not _has_positive_payment_signal(text, "MOBILE_PAY"):
+                continue
+
+        merged.append(condition)
+
+    deduped: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for condition in merged:
+        key = (
+            str(condition.get("type", "")).upper(),
+            str(condition.get("value", "")).upper(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(condition)
+
+    return deduped
+
+
 def append_inferred_subcategory_conditions(
     title: str,
     body: str,
@@ -794,16 +951,22 @@ def append_inferred_subcategory_conditions(
     for candidate in inferred:
         if candidate["token"] not in text:
             continue
-        key = (candidate["type"].upper(), candidate["value"].upper())
-        if key in seen:
-            continue
-        merged.append(
+        candidate_condition = _canonicalize_payment_condition(
             {
                 "type": candidate["type"],
                 "value": candidate["value"],
                 "label": candidate["label"],
             }
         )
+        if candidate_condition["type"].upper() == "PAYMENT_PLATFORM" and not _has_positive_payment_signal(
+            text,
+            candidate_condition["value"].upper(),
+        ):
+            continue
+        key = (candidate_condition["type"].upper(), candidate_condition["value"].upper())
+        if key in seen:
+            continue
+        merged.append(candidate_condition)
         seen.add(key)
 
     return merged
@@ -813,6 +976,8 @@ def append_inferred_payment_method_conditions(
     category: str | None,
     subcategory: str | None,
     conditions: List[Dict[str, str]],
+    title: str = "",
+    body: str = "",
 ) -> List[Dict[str, str]]:
     if not category or not subcategory:
         return conditions
@@ -827,7 +992,9 @@ def append_inferred_payment_method_conditions(
         (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
         for condition in merged
     }
-    if key not in seen:
+    text = collapse_text(f"{title} {body}")
+    has_existing_payment_condition = any(condition_type in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition_type, _ in seen)
+    if key not in seen and (has_existing_payment_condition or _has_positive_payment_signal(text, inferred["value"].upper())):
         merged.append(dict(inferred))
     return merged
 
@@ -848,7 +1015,9 @@ def canonicalize_subcategory(
         str(condition.get("type", "")).upper() in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"}
         for condition in normalized_conditions
     )
-    return "GENERAL" if has_payment_condition else subcategory
+    # MOBILE_PAY is only an internal inference bridge for ONLINE promos.
+    # It should never survive as a persisted subcategory after normalization.
+    return "GENERAL" if has_payment_condition else "GENERAL"
 
 
 def build_conditions(

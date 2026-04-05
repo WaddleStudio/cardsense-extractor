@@ -6,6 +6,7 @@ from extractor.promotion_rules import (
     append_inferred_payment_method_conditions,
     append_inferred_subcategory_conditions,
     canonicalize_subcategory,
+    sanitize_payment_conditions,
 )
 
 
@@ -155,7 +156,14 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         subcategory,
         normalized_conditions,
     )
-    normalized_conditions = append_inferred_payment_method_conditions(category, subcategory, normalized_conditions)
+    normalized_conditions = append_inferred_payment_method_conditions(
+        category,
+        subcategory,
+        normalized_conditions,
+        title_text or "",
+        title_text or "",
+    )
+    normalized_conditions = sanitize_payment_conditions(title_text or "", title_text or "", normalized_conditions)
     subcategory = canonicalize_subcategory(category, subcategory, normalized_conditions)
 
     normalized = {

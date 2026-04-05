@@ -27,6 +27,7 @@ from extractor.promotion_rules import (
     append_inferred_subcategory_conditions,
     append_inferred_payment_method_conditions,
     canonicalize_subcategory,
+    sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
     to_condition_value,
 )
@@ -570,8 +571,9 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
         conditions = append_inferred_subcategory_conditions(clean_title, clean_body, category, subcategory, conditions)
-        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
+        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
         conditions = _append_unicard_plan_conditions(plan_id, subcategory, conditions)
+        conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         base_promotion = {
@@ -776,6 +778,8 @@ def _build_unicard_hundred_store_promotion(
         f"{title_suffix}百大指定消費，{rate_summary}，"
         f"共 {len(merchant_labels)} 個指定通路，有效期間 {valid_from}~{valid_until}"
     )
+
+    conditions = sanitize_payment_conditions(title_suffix, " ".join(merchant_labels), conditions)
 
     return {
         "title": f"{card.card_name} 百大指定消費 {title_suffix}",

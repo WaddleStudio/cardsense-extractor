@@ -27,6 +27,7 @@ from extractor.promotion_rules import (
     append_inferred_subcategory_conditions,
     append_inferred_payment_method_conditions,
     canonicalize_subcategory,
+    sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -341,7 +342,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         plan_id = _resolve_richart_plan_id(enriched_card.card_code, category, clean_title, clean_body)
         conditions = build_conditions(clean_body, enriched_card.application_requirements, requires_registration)
         conditions = append_inferred_subcategory_conditions(clean_title, clean_body, category, subcategory, conditions)
-        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
+        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
         category, subcategory = apply_plan_subcategory_hint(
             plan_id,
             category,
@@ -351,6 +352,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         )
         conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
         conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
+        conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         promotions.append(
@@ -516,9 +518,10 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration)
     conditions = build_conditions(focused_text, card.application_requirements, requires_registration)
     conditions = append_inferred_subcategory_conditions(title, focused_text, category, subcategory, conditions)
-    conditions = append_inferred_payment_method_conditions(category, subcategory, conditions)
+    conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, title, focused_text)
     conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
     conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
+    conditions = sanitize_payment_conditions(title, focused_text, conditions)
     subcategory = canonicalize_subcategory(category, subcategory, conditions)
     summary = build_summary(
         title,

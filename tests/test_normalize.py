@@ -145,6 +145,49 @@ def test_normalize_converts_mobile_pay_subcategory_into_payment_method_condition
     )
 
 
+def test_normalize_does_not_add_payment_condition_for_negated_mobile_pay_text():
+    normalized = normalize_data(
+        {
+            "bank": "ESUN",
+            "bank_name": "E.SUN",
+            "card_code": "ESUN_EZTRAVEL",
+            "card_name": "E.SUN ezTravel Card",
+            "promotion": "易遊網折扣碼",
+            "summary": "若以 Apple Pay、Google Pay、LINE Pay 等相關綁定行動載具支付恕無法參加。",
+            "category": "ONLINE",
+            "subcategory": "MOBILE_PAY",
+            "cashback_type": "FIXED",
+            "cashback_value": "1000",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-12-31",
+            "annual_fee": "0",
+        }
+    )
+
+    assert all(condition["type"] not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition in normalized["conditions"])
+
+
+def test_normalize_does_not_treat_generic_esun_wallet_app_copy_as_payment_platform():
+    normalized = normalize_data(
+        {
+            "bank": "ESUN",
+            "bank_name": "E.SUN",
+            "card_code": "ESUN_INSCARD",
+            "card_name": "E.SUN Insurance Card",
+            "promotion": "玉山數位保險卡 玉山 e point回饋",
+            "summary": "保費回饋依實際扣款保費金額計算，回饋點數明細詳見 玉山Wallet。玉山Wallet 卡友必備APP。",
+            "category": "ONLINE",
+            "cashback_type": "POINTS",
+            "cashback_value": "1.2",
+            "valid_from": "2026-01-01",
+            "valid_until": "2026-12-31",
+            "annual_fee": "0",
+        }
+    )
+
+    assert all(condition["type"] not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition in normalized["conditions"])
+
+
 def test_normalize_applies_category_specific_cube_shopping_hint():
     normalized = normalize_data(
         {
