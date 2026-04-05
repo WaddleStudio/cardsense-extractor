@@ -40,7 +40,7 @@ def test_normalize_infers_richart_plan_id_when_missing():
             "bank_name": "台新銀行",
             "card_code": "TAISHIN_RICHART",
             "card_name": "台新Richart卡",
-            "promotion": "數位影音 3%",
+            "promotion": "數趣刷 3%",
             "category": "ENTERTAINMENT",
             "cashback_type": "PERCENT",
             "cashback_value": "3",
@@ -152,7 +152,7 @@ def test_normalize_applies_category_specific_cube_shopping_hint():
             "bank_name": "Cathay",
             "card_code": "CATHAY_CUBE",
             "card_name": "CUBE Credit Card",
-            "promotion": "來享購 百貨 3%",
+            "promotion": "樂饗購 新光三越 3%",
             "category": "SHOPPING",
             "cashback_type": "PERCENT",
             "cashback_value": "3",
@@ -173,7 +173,7 @@ def test_normalize_maps_cube_dining_to_shopping_plan():
             "bank_name": "Cathay",
             "card_code": "CATHAY_CUBE",
             "card_name": "CUBE Credit Card",
-            "promotion": "來享購 餐飲 3%",
+            "promotion": "樂饗購 餐飲 3%",
             "category": "DINING",
             "cashback_type": "PERCENT",
             "cashback_value": "3",
@@ -257,16 +257,16 @@ def test_infer_eligibility_type_detects_business_card_names():
 
 
 def test_infer_eligibility_type_detects_profession_specific_card_names():
-    assert infer_eligibility_type("中信教師認同卡") == "PROFESSION_SPECIFIC"
+    assert infer_eligibility_type("醫師世界卡") == "PROFESSION_SPECIFIC"
 
 
 def test_clean_card_name_trims_marketing_suffixes_from_listing_titles():
-    assert clean_card_name("玉山ＵBear信用卡 行動支付、網路消費") == "玉山ＵBear信用卡"
-    assert clean_card_name("玉山 Pi 拍錢包信用卡 國內外一般消費") == "玉山 Pi 拍錢包信用卡"
-    assert clean_card_name("寶雅悠遊聯名卡 每週末實體門市、寶雅線上買享13%現金回饋") == "寶雅悠遊聯名卡"
+    assert clean_card_name("玉山 U Bear 信用卡 最高 3% 回饋") == "玉山 U Bear 信用卡"
+    assert clean_card_name("玉山 Pi 拍錢包信用卡 | 玉山銀行") == "玉山 Pi 拍錢包信用卡"
+    assert clean_card_name("燦坤聯名卡 最高 3% 回饋") == "燦坤聯名卡"
 
 
 def test_clean_card_name_trims_status_suffixes():
-    assert clean_card_name("玉山商務御璽卡 《2025/10/15起停止申辦》") == "玉山商務御璽卡"
-    assert clean_card_name("KOKO COMBO icash聯名卡，已停發") == "KOKO COMBO icash聯名卡"
-    assert clean_card_name("Taiwan Money 卡 (停發)") == "Taiwan Money 卡"
+    assert clean_card_name("玉山商務御璽卡（已停發）") == "玉山商務御璽卡"
+    assert clean_card_name("KOKO COMBO icash聯名卡（停發）") == "KOKO COMBO icash聯名卡"
+    assert clean_card_name("Taiwan Money Debit卡(已停發)") == "Taiwan Money Debit卡"

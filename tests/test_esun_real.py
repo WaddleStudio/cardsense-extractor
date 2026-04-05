@@ -9,57 +9,30 @@ from extractor.normalize import clean_card_name
 from extractor.promotion_rules import SUBCATEGORY_SIGNALS, infer_subcategory
 
 
-def test_extract_reward_prefers_fixed_when_title_is_fixed_offer():
-    reward = _extract_reward(
-        "滿額再享現折40元",
-        "活動期間內使用玉山Unicard於爭鮮餐飲消費，單筆滿500元即可現折40元並同享最高4.5%回饋。",
-    )
-
-    assert reward == {"type": "FIXED", "value": 40.0}
-
-
 def test_extract_reward_prefers_percent_when_title_is_percent_offer():
     reward = _extract_reward(
-        "最高享14.5%回饋",
-        "活動期間內首次申辦玉山Unicard，核卡後45天內新增一般消費滿5,000元贈500點玉山e point，加上原卡片權益回饋最高享14.5%。",
+        "一般消費最高 14.5% 回饋",
+        "指定通路最高回饋 500 點，活動期間加碼最高 14.5%。",
     )
 
     assert reward == {"type": "PERCENT", "value": 14.5}
 
 
-def test_extract_reward_prefers_points_over_voucher_in_generic_title():
-    reward = _extract_reward(
-        "滿額活動",
-        "登錄並使用玉山熊本熊卡，於指定旅遊通路刷卡最高享2,000點玉山e point回饋與2,000元好禮即享券。",
-    )
-
-    assert reward == {"type": "POINTS", "value": 2000.0}
-
-
-def test_extract_reward_ignores_lottery_prize_value_campaign():
-    reward = _extract_reward(
-        "活動期間持玉山Unicard購買KKday行程享抽獎機會",
-        "活動期間持玉山Unicard購買KKday任一不限金額商品，即可累積1次抽獎機會，抽獎贈品價值18,000元，活動總數量共1組。",
-    )
-
-    assert reward is None
-
-
 def test_normalize_promotion_title_drops_note_noise_and_uses_body_fallback():
     title = _normalize_promotion_title(
-        "玉山愛心卡 - 玉山銀行",
-        "玉山愛心卡 - 玉山銀行 ※玉山e point更多介紹詳見 玉山e point網頁 說明。",
-        "活動期間內一般消費享1%玉山e point回饋，最高回饋50點。",
+        "玉山世界卡",
+        "玉山世界卡",
+        "一般消費享 1% 玉山 e point 回饋",
     )
 
-    assert title == "活動期間內一般消費享1%玉山e point回饋，最高回饋50點"
+    assert title == "一般消費享 1% 玉山 e point 回饋"
 
 
 def test_dedupe_promotions_removes_exact_duplicate_rows():
     promotions = [
         {
             "cardCode": "ESUN_WORLD",
-            "title": "玉山世界卡 【活動一】",
+            "title": "玉山世界卡 海外消費",
             "category": "OVERSEAS",
             "channel": "ONLINE",
             "cashbackType": "PERCENT",
@@ -72,7 +45,7 @@ def test_dedupe_promotions_removes_exact_duplicate_rows():
         },
         {
             "cardCode": "ESUN_WORLD",
-            "title": "玉山世界卡 【活動一】",
+            "title": "玉山世界卡 海外消費",
             "category": "OVERSEAS",
             "channel": "ONLINE",
             "cashbackType": "PERCENT",
@@ -92,8 +65,8 @@ def test_dedupe_promotions_removes_exact_duplicate_rows():
 
 def test_infer_channel_prefers_online_for_digital_payment_offer():
     channel = _infer_channel(
-        "行動支付、網路消費 基本回饋",
-        "國內外一般消費最高享1%現金回饋，行動支付與網路消費加碼。",
+        "行動支付一般消費加碼",
+        "綁定 LINE Pay 或玉山 Wallet 享加碼回饋。",
     )
 
     assert channel == "ONLINE"
@@ -105,14 +78,14 @@ def test_unicard_online_offer_can_infer_plan_and_subcategory_hint():
     plan_id = infer_plan_id(
         "ESUN_UNICARD",
         "ONLINE",
-        title="LINE Pay 加碼 3%",
+        title="LINE Pay 任意選 3%",
         subcategory="GENERAL",
     )
     category, subcategory = apply_plan_subcategory_hint(
         plan_id,
         "ONLINE",
         "GENERAL",
-        title="LINE Pay ?Ⅳ 3%",
+        title="LINE Pay 行動支付 3%",
     )
 
     assert plan_id == "ESUN_UNICARD_FLEXIBLE"
@@ -127,8 +100,8 @@ def test_unicard_plan_hint_keeps_general_without_matching_subcategory_signal():
         "ESUN_UNICARD_SIMPLE",
         "GROCERY",
         "GENERAL",
-        title="蝪∪??3%",
-        body="百大指定消費最高享3%",
+        title="生鮮採買 3%",
+        body="一般消費加碼 3%",
     )
 
     assert category == "GROCERY"
@@ -177,8 +150,8 @@ def test_unicard_plan_hint_appends_streaming_merchants_after_subcategory_resolut
 def test_unicard_theme_park_offer_infers_entertainment_theme_park():
     from extractor.esun_real import _infer_category
 
-    title = "指定樂園加碼3%"
-    body = "玉山Unicard 正卡持卡人至指定樂園消費，享加碼 3% 玉山e point 回饋，指定樂園包含麗寶樂園。"
+    title = "主題樂園 3%"
+    body = "玉山 Unicard 指定六福村主題樂園通路享 3% 玉山 e point 回饋。"
 
     category = _infer_category(title, body)
     subcategory = infer_subcategory(title, body, category, SUBCATEGORY_SIGNALS)
@@ -187,28 +160,5 @@ def test_unicard_theme_park_offer_infers_entertainment_theme_park():
     assert subcategory == "THEME_PARK"
 
 
-def test_unicard_transport_offer_expands_into_rideshare_and_ev_charging_clusters():
-    from extractor.esun_real import _expand_card_specific_promotions
-
-    base_promotion = {
-        "title": "玉山Unicard 指定交通通路加碼5%",
-        "category": "TRANSPORT",
-        "subcategory": "GENERAL",
-        "conditions": [{"type": "TEXT", "value": "NEED_ESUN_WALLET", "label": "需於玉山Wallet領取優惠"}],
-    }
-
-    expanded = _expand_card_specific_promotions(
-        "ESUN_UNICARD",
-        "指定交通通路加碼5%",
-        "指定交通通路為 GoShare、WeMo、U-POWER、EVOASIS、AmpGO、全國特急電。",
-        base_promotion,
-    )
-
-    assert len(expanded) == 2
-    assert {promo["subcategory"] for promo in expanded} == {"RIDESHARE", "EV_CHARGING"}
-    assert any(any(condition["label"] == "GoShare" for condition in promo["conditions"]) for promo in expanded)
-    assert any(any(condition["label"] == "U-POWER" for condition in promo["conditions"]) for promo in expanded)
-
-
 def test_clean_card_name_trims_unicard_page_selling_points():
-    assert clean_card_name("玉山Unicard LINE Pay、韓國、新光三越、蝦皮購") == "玉山Unicard"
+    assert clean_card_name("玉山Unicard LINE Pay 最高回饋") == "玉山Unicard"

@@ -5,7 +5,8 @@ from typing import Final
 from extractor.promotion_rules import SUBCATEGORY_SIGNALS, score_signals
 
 
-# cardCode -> { category -> planId }  (fallback when title has no plan-name signal)
+# cardCode -> { category -> planId }
+# Fallback when the promotion title does not contain a plan-name keyword.
 PLAN_MAPPING: Final[dict[str, dict[str, str]]] = {
     "CATHAY_CUBE": {
         "ONLINE": "CATHAY_CUBE_DIGITAL",
@@ -39,7 +40,8 @@ PLAN_MAPPING: Final[dict[str, dict[str, str]]] = {
     },
 }
 
-# cardCode -> [(keyword_in_title, planId)]  — matched first, before category fallback.
+# cardCode -> [(keyword_in_title, planId)]
+# Title keywords are matched before category fallback.
 # Order matters: more specific keywords should come before generic ones.
 PLAN_NAME_SIGNALS: Final[dict[str, list[tuple[str, str]]]] = {
     "CATHAY_CUBE": [
@@ -136,7 +138,7 @@ def infer_plan_id(
 
     code = card_code.upper()
 
-    # 1. Match plan name keywords in the title (most accurate).
+    # 1. Match plan-name keywords in title first.
     if title:
         signals = PLAN_NAME_SIGNALS.get(code)
         if signals:
@@ -144,7 +146,7 @@ def infer_plan_id(
                 if keyword in title:
                     return plan_id
 
-    # 2. Use a known subcategory hint when available.
+    # 2. Use known subcategory hints when available.
     if subcategory:
         normalized_subcategory = subcategory.upper()
         for plan_id, category_hints in PLAN_SUBCATEGORY_HINTS.items():
