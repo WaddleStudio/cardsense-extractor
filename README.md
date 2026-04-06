@@ -51,8 +51,11 @@ uv run python jobs/import_jsonl_to_db.py \
   --input outputs/fubon-real-*.jsonl \
   --db data/cardsense.db
 
-# 一鍵全銀行提取 → 匯入 DB → 複製到 API
+# 一鍵全銀行提取 → 匯入 DB → Supabase sync
 uv run python jobs/refresh_and_deploy.py
+
+# 指定銀行、不 sync Supabase
+uv run python jobs/refresh_and_deploy.py --banks ESUN --no-supabase --db data/cardsense.db
 
 # planId 標記（為既有 promotion 補上 planId）
 uv run python jobs/tag_plan_ids.py --db data/cardsense.db --dry-run   # 預覽
@@ -87,7 +90,8 @@ cardsense-extractor/
 │   ├── taishin_real.py            # Taishin extractor (Cloudflare Browser Rendering)
 │   ├── fubon_real.py              # Fubon extractor (Cloudflare Browser Rendering)
 │   ├── ctbc_real.py               # CTBC extractor (JSON API + Playwright)
-│   ├── promotion_rules.py         # reward / category / condition heuristics
+│   ├── promotion_rules.py         # reward / category / condition / subcategory heuristics
+│   ├── benefit_plans.py           # plan inference (PLAN_MAPPING + PLAN_NAME_SIGNALS + SUBCATEGORY_HINTS)
 │   ├── html_utils.py              # HTML cleanup helpers
 │   ├── ingest.py                  # mock 與 real page fetch entrypoint
 │   ├── normalize.py               # normalize to contract fields
@@ -135,7 +139,7 @@ cardsense-extractor/
 - **`sectioned_page.py`**：section heading、subsection、offer block 的共用頁面抽取邏輯
 - **`promotion_rules.py`**：reward detection、summary 組裝、condition inference、category / channel inference
 - **`run_real_bank_job.py`**：各銀行共用的 real extraction runner，包括輸出檔命名、validation、summary 統計
-- **`refresh_and_deploy.py`**：一鍵全銀行 extract → import DB → 複製到 API 的部署流程
+- **`refresh_and_deploy.py`**：一鍵全銀行 extract → import DB → Supabase sync 的部署流程（支援 `--banks` 和 `--no-supabase` 參數）
 
 ### Bank-Specific Extractor
 
