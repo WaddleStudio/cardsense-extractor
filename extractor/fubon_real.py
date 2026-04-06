@@ -329,7 +329,125 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
         promotions.extend(expand_general_reward_promotions(base_promotion, clean_title, clean_body))
 
+    # Card-specific feature extractors
+    feature_builders: dict[str, object] = {
+        "FUBON_INSURANCE": _extract_insurance_feature_promotions,
+        "FUBON_LIFESTYLE": _extract_lifestyle_feature_promotions,
+        "FUBON_OPENPOSSIBLE": _extract_openpossible_feature_promotions,
+    }
+    builder = feature_builders.get(enriched_card.card_code)
+    if builder:
+        promotions.extend(builder(enriched_card, eligibility_type))
+
     return enriched_card, _dedupe_promotions(promotions)
+
+
+def _build_manual_promotion(
+    card: CardRecord,
+    *,
+    title: str,
+    body: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    recommendation_scope: str,
+    reward: dict[str, object],
+    valid_from: str,
+    valid_until: str,
+    eligibility_type: str,
+    conditions: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
+    return {
+        "title": f"{card.card_name} {title}",
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "subcategory": subcategory,
+        "channel": channel,
+        "cashbackType": reward["type"],
+        "cashbackValue": reward["value"],
+        "minAmount": 0,
+        "maxCashback": None,
+        "frequencyLimit": "NONE",
+        "requiresRegistration": False,
+        "recommendationScope": recommendation_scope,
+        "eligibilityType": eligibility_type,
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": conditions or [],
+        "excludedConditions": [],
+        "sourceUrl": card.detail_url,
+        "summary": f"{card.card_name} {title}；期間 {valid_from}~{valid_until}",
+        "status": "ACTIVE",
+    }
+
+
+def _extract_insurance_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """富邦鑽保卡: 一般消費0.7%現金回饋無上限 + 保費0.5%回饋."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="一般消費0.7%現金回饋無上限",
+        body="持富邦鑽保卡刷卡消費，所有新增一般消費(不含保費)均享0.7%現金回饋，回饋無上限。",
+        category="OTHER", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 0.7},
+        valid_from="2026-01-01", valid_until="2026-06-30",
+        eligibility_type=eligibility_type,
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="保費0.5%現金回饋無上限",
+        body="以富邦鑽保卡刷保費，享0.5%現金回饋，回饋無上限。",
+        category="OTHER", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 0.5},
+        valid_from="2026-01-01", valid_until="2026-06-30",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "TEXT", "value": "限保費消費", "label": "限保費消費"}],
+    ))
+    return promotions
+
+
+def _extract_lifestyle_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """富邦富利生活系列卡: 8大生活消費紅利5倍."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="8大生活消費紅利5倍回饋",
+        body="持富邦富利生活系列卡於8大通路消費，享5倍紅利回饋（含原本1倍，即NT$20=5點），回饋無上限。當期帳單消費需達NT$3,000以上始可累積紅利。",
+        category="OTHER", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "POINTS", "value": 0.25},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[
+            {"type": "TEXT", "value": "當期帳單需達NT$3,000以上", "label": "當期帳單需達NT$3,000以上"},
+        ],
+    ))
+    return promotions
+
+
+def _extract_openpossible_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """台灣大哥大Open Possible聯名卡: myfone基本回饋."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="myfone購物最高5%回饋",
+        body="持Open Possible聯名卡於myfone購物消費，享最高5%回饋。",
+        category="ONLINE", subcategory="ECOMMERCE", channel="ONLINE",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 5.0},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "ECOMMERCE_PLATFORM", "value": "MYFONE", "label": "myfone購物"}],
+    ))
+    return promotions
 
 
 def _build_card_code(slug: str) -> str:

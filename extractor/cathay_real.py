@@ -607,6 +607,17 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     plan_promotions = _extract_plan_promotions(enriched_card)
     promotions.extend(plan_promotions)
 
+    # Card-specific feature extractors for cards whose pages lack structured promo data
+    feature_builders: dict[str, object] = {
+        "CATHAY_SHOPEE": _extract_shopee_feature_promotions,
+        "CATHAY_EVA": _extract_eva_feature_promotions,
+        "CATHAY_DUAL_CURRENCY": _extract_dual_currency_feature_promotions,
+        "CATHAY_ASIA_MILES": _extract_asia_miles_feature_promotions,
+    }
+    builder = feature_builders.get(enriched_card.card_code)
+    if builder:
+        promotions.extend(builder(enriched_card, eligibility_type))
+
     return enriched_card, dedupe_promotions(promotions)
 
 
@@ -1007,6 +1018,213 @@ def _build_plan_promotion_with_conditions(
         "status": "ACTIVE",
         "planId": plan_id,
     }
+
+
+def _build_manual_promotion(
+    card: CardRecord,
+    *,
+    title: str,
+    body: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    recommendation_scope: str,
+    reward: dict[str, object],
+    valid_from: str,
+    valid_until: str,
+    eligibility_type: str,
+    conditions: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
+    return {
+        "title": f"{card.card_name} {title}",
+        "cardCode": card.card_code,
+        "cardName": card.card_name,
+        "cardStatus": "ACTIVE",
+        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+        "applyUrl": card.apply_url,
+        "bankCode": BANK_CODE,
+        "bankName": BANK_NAME,
+        "category": category,
+        "subcategory": subcategory,
+        "channel": channel,
+        "cashbackType": reward["type"],
+        "cashbackValue": reward["value"],
+        "minAmount": 0,
+        "maxCashback": None,
+        "frequencyLimit": "NONE",
+        "requiresRegistration": False,
+        "recommendationScope": recommendation_scope,
+        "eligibilityType": eligibility_type,
+        "validFrom": valid_from,
+        "validUntil": valid_until,
+        "conditions": conditions or [],
+        "excludedConditions": [],
+        "sourceUrl": card.detail_url,
+        "summary": f"{card.card_name} {title}；期間 {valid_from}~{valid_until}",
+        "status": "ACTIVE",
+    }
+
+
+def _extract_shopee_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """蝦皮購物聯名卡: 蝦皮站內最高4%蝦幣 + 站外0.5% + 外送交通旅遊最高7%."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="蝦皮購物站內消費最高4%蝦幣回饋",
+        body="全站消費天天回饋最高4%蝦幣。蝦皮購物站內回饋最高10%。",
+        category="ONLINE", subcategory="ECOMMERCE", channel="ONLINE",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 4.0},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮購物"}],
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="站外一般消費0.5%蝦幣回饋",
+        body="站外消費回饋0.5%蝦幣。可同享蝦幣點數站外消費回饋。",
+        category="OTHER", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 0.5},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="指定外送、交通、旅遊最高7%蝦幣回饋",
+        body="於指定外送、交通、航空、旅行社、旅遊平台與免稅店刷聯名卡，不限消費金額即享最高7%",
+        category="OVERSEAS", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 7.0},
+        valid_from="2026-01-01", valid_until="2026-06-30",
+        eligibility_type=eligibility_type,
+        conditions=[
+            {"type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
+            {"type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+        ],
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="海外消費免國際交易手續費",
+        body="海外消費免手續費。",
+        category="OVERSEAS", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="CATALOG_ONLY",
+        reward={"type": "PERCENT", "value": 1.5},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "TEXT", "value": "海外消費免國際交易手續費", "label": "海外消費免國際交易手續費"}],
+    ))
+    return promotions
+
+
+def _extract_eva_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """長榮航空聯名卡: 消費累積哩程 + 指定旅遊平台."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="消費最優NT$10累積1哩",
+        body="國內旅行社或長榮航空官網刷卡購買搭乘長榮/立榮航空國際線航班，登錄成功後享消費最優NT$10=1哩。海外指定消費亦提供最優10元1哩回饋。",
+        category="OVERSEAS", subcategory="AIRLINE", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "MILES", "value": 0.1},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[
+            {"type": "MERCHANT", "value": "EVA_AIR", "label": "長榮航空"},
+            {"type": "TEXT", "value": "需登錄", "label": "需登錄"},
+        ],
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="Expedia線上訂房NT$8元1哩",
+        body="2026年1-12月至Expedia長榮卡專屬網頁預訂飯店/住宿，刷聯名卡消費享最優NT$8元1哩",
+        category="OVERSEAS", subcategory="TRAVEL_PLATFORM", channel="ONLINE",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "MILES", "value": 0.125},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "MERCHANT", "value": "EXPEDIA", "label": "Expedia"}],
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="Hotels.com線上訂房NT$8元1哩",
+        body="2026年1-12月至Hotels.com長榮卡專屬網頁預訂飯店/住宿，刷聯名卡消費享最優NT$8元1哩",
+        category="OVERSEAS", subcategory="TRAVEL_PLATFORM", channel="ONLINE",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "MILES", "value": 0.125},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "MERCHANT", "value": "HOTELS_COM", "label": "Hotels.com"}],
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="長榮航空機上免稅品9折",
+        body="於長榮/立榮航空之國際線航班，刷長榮航空聯名卡購買機上免稅品享9折優惠。活動日期2026/1/1~2026/12/31。",
+        category="SHOPPING", subcategory="GENERAL", channel="OFFLINE",
+        recommendation_scope="CATALOG_ONLY",
+        reward={"type": "PERCENT", "value": 10.0},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "MERCHANT", "value": "EVA_AIR_DUTY_FREE", "label": "長榮航空機上免稅品"}],
+    ))
+    return promotions
+
+
+def _extract_dual_currency_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """雙幣卡: 海外消費最高1.5%回饋 + 外幣帳戶扣款免手續費."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="海外消費最高1.5%回饋",
+        body="海外消費最高1.5%回饋。國外消費自外幣帳戶扣款。",
+        category="OVERSEAS", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 1.5},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="外幣帳戶扣款免國際交易手續費",
+        body="國外消費自外幣帳戶扣款，免國際交易手續費。",
+        category="OVERSEAS", subcategory="GENERAL", channel="ALL",
+        recommendation_scope="CATALOG_ONLY",
+        reward={"type": "PERCENT", "value": 1.5},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "TEXT", "value": "外幣帳戶扣款免手續費", "label": "外幣帳戶扣款免手續費"}],
+    ))
+    return promotions
+
+
+def _extract_asia_miles_feature_promotions(card: CardRecord, eligibility_type: str) -> list[dict[str, object]]:
+    """亞洲萬里通聯名卡: 哩程加速器最優10元累積1里數."""
+    promotions: list[dict[str, object]] = []
+    promotions.append(_build_manual_promotion(
+        card,
+        title="哩程加速器 消費最優NT$10累積1里數",
+        body="哩程加速器最優10元累積1里數。國內外消費累積亞洲萬里通里數。",
+        category="OVERSEAS", subcategory="AIRLINE", channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "MILES", "value": 0.1},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[
+            {"type": "TEXT", "value": "累積亞洲萬里通里數", "label": "累積亞洲萬里通里數"},
+        ],
+    ))
+    promotions.append(_build_manual_promotion(
+        card,
+        title="國泰航空機票92折起",
+        body="國泰航空機票92折起禮遇。",
+        category="OVERSEAS", subcategory="AIRLINE", channel="ALL",
+        recommendation_scope="CATALOG_ONLY",
+        reward={"type": "PERCENT", "value": 8.0},
+        valid_from="2026-01-01", valid_until="2026-12-31",
+        eligibility_type=eligibility_type,
+        conditions=[{"type": "MERCHANT", "value": "CATHAY_PACIFIC", "label": "國泰航空"}],
+    ))
+    return promotions
 
 
 def _build_variant_conditions(plan_name: str, subcategory: str) -> list[dict[str, str]]:

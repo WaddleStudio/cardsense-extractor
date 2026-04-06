@@ -63,6 +63,7 @@ class CashbackTypeEnum(str, Enum):
     PERCENT = "PERCENT"
     FIXED = "FIXED"
     POINTS = "POINTS"
+    MILES = "MILES"
 
 
 class FrequencyLimitEnum(str, Enum):
