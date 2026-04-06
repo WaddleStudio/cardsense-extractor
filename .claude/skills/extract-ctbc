@@ -1,0 +1,85 @@
+---
+name: extract-ctbc
+description: Run CTBC (中國信託) credit card promotion extraction — full bank or targeted cards
+user_invocable: true
+---
+
+# CTBC Credit Card Extraction
+
+Extract promotions from CTBC (中國信託) credit card pages using Playwright (required due to F5 BIG-IP ASM bot protection).
+
+## Prerequisites
+
+Playwright must be installed:
+```bash
+cd cardsense-extractor && uv run playwright install chromium
+```
+
+## Extraction Modes
+
+### 1. Full Bank Extraction (all CTBC cards)
+```bash
+cd cardsense-extractor && uv run python jobs/run_ctbc_real_job.py
+```
+- Discovers all cards from CTBC's card list JSON API
+- Processes every card detail page
+- Output: `outputs/ctbc-real-{timestamp}.jsonl`
+
+### 2. Targeted Extraction (specific cards)
+```bash
+# Default 8 cards:
+cd cardsense-extractor && uv run python jobs/run_ctbc_targeted.py
+
+# Specific slugs via CLI:
+cd cardsense-extractor && uv run python jobs/run_ctbc_targeted.py B_Cashback_Signature B_SLV
+
+# Specific slugs via env:
+CTBC_TARGET_SLUGS=B_Cashback_Signature,B_SLV cd cardsense-extractor && uv run python jobs/run_ctbc_targeted.py
+```
+- Output: `outputs/ctbc-targeted-{timestamp}.jsonl`
+
+### Default Target Cards (8 cards)
+| Slug | Card Name |
+|------|-----------|
+| B_Cashback_Signature | 中信現金回饋御璽卡 |
+| B_Cashback_Titanium | 中信現金回饋鈦金卡 |
+| B_SLV | Super Life VISA卡 |
+| B_IR | 分期紅利卡 |
+| C_SHOWTIME | 秀泰聯名卡 |
+| C_TSDreamMall | 南紡購物中心聯名卡 |
+| C_XUEXUE | 學學認同卡 |
+| C_Globalmall | Global Mall聯名卡 |
+
+## URL Pattern
+Card detail pages follow this pattern:
+```
+https://www.ctbcbank.com/content/twrbo/zh_tw/cc_index/cc_product/cc_introduction_index/{SLUG}.html
+```
+
+The slug can be extracted from any CTBC card URL — e.g. `B_Cashback_Signature` from the URL above.
+
+## Post-Extraction Steps
+
+After extraction, import to DB and optionally sync to Supabase:
+```bash
+cd cardsense-extractor && uv run python import_jsonl_to_db.py outputs/ctbc-targeted-{timestamp}.jsonl
+```
+
+To verify results:
+```python
+import json
+with open('outputs/ctbc-targeted-{timestamp}.jsonl', 'r', encoding='utf-8') as f:
+    promos = [json.loads(line) for line in f if line.strip()]
+print(f'Total: {len(promos)}')
+from collections import Counter
+print(Counter(p['cardName'] for p in promos))
+```
+
+## Additional Benefits Page
+The CTBC additional benefits page (`cc_add_index.html`) contains service-type perks (airport lounge, parking, roadside assistance) — these are card features, not cashback promotions, and are NOT extracted by this pipeline.
+
+## Key Files
+- `extractor/ctbc_real.py` — Main extractor (card listing, page parsing, promotion normalization)
+- `jobs/run_ctbc_real_job.py` — Full extraction job runner
+- `jobs/run_ctbc_targeted.py` — Targeted extraction job runner
+- `jobs/run_real_bank_job.py` — Shared job runner framework
