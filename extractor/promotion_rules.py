@@ -50,6 +50,18 @@ CAP_VALUE_TOKENS = (
     "最高回饋",
 )
 
+BANK_WIDE_PROMOTION_MARKER = "BANK_WIDE_PROMOTION"
+BANK_WIDE_SUPPLEMENT_MARKER = "BANK_WIDE_SUPPLEMENT"
+BANK_WIDE_SOURCE_MARKER_PREFIX = "BANK_WIDE_SOURCE_CARD_"
+BANK_WIDE_TEXT_TOKENS = (
+    "全卡適用",
+    "不限卡別",
+    "不限卡種",
+    "所有卡別",
+    "全行卡",
+    "全卡回饋",
+)
+
 
 @dataclass
 class RewardCandidate:
@@ -1057,6 +1069,120 @@ def build_conditions(
         seen.add(key)
         deduped.append(condition)
     return deduped
+
+
+def append_catalog_review_conditions(
+    title: str,
+    text: str,
+    recommendation_scope: str,
+    conditions: List[Dict[str, str]],
+    *,
+    requires_registration: bool = False,
+    plan_id: str | None = None,
+) -> List[Dict[str, str]]:
+    if recommendation_scope != "CATALOG_ONLY":
+        return conditions
+
+    review_conditions = list(conditions)
+    combined = f"{title} {text}"
+
+    if requires_registration:
+        review_conditions.append({
+            "type": "TEXT",
+            "value": "CATALOG_ONLY_REASON_REGISTRATION",
+            "label": "Catalog only: requires registration",
+        })
+
+    if plan_id:
+        review_conditions.append({
+            "type": "TEXT",
+            "value": "CATALOG_ONLY_REASON_PLAN_SWITCH",
+            "label": "Catalog only: reward depends on active plan",
+        })
+
+    if any(token in combined for token in ("切換", "方案", "權益", "月結", "回饋方案")):
+        review_conditions.append({
+            "type": "TEXT",
+            "value": "CATALOG_ONLY_REVIEW_PLAN_CONTEXT",
+            "label": "Review context: plan selection wording detected",
+        })
+
+    deduped: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for condition in review_conditions:
+        key = (condition["type"], condition["value"])
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(condition)
+    return deduped
+
+
+def is_registration_heavy_catalog_offer(text: str) -> bool:
+    if "??駁?" not in text and "摰??駁?" not in text and "登錄" not in text:
+        return False
+    return any(
+        token in text
+        for token in (
+            "瘥???",
+            "瘥?Ⅳ銝?",
+            "瘥瘥???銝?",
+            "瘥犖??擖?甈?",
+            "??",
+            "??擖?",
+            "?瑕??擖?",
+            "每戶限",
+            "限量",
+            "名額",
+            "回饋上限",
+            "每月上限",
+            "每季上限",
+            "限回饋",
+        )
+    )
+
+
+def append_bank_wide_promotion_condition(
+    title: str,
+    text: str,
+    recommendation_scope: str,
+    conditions: List[Dict[str, str]],
+    *,
+    requires_registration: bool = False,
+    plan_id: str | None = None,
+    subcategory: str | None = None,
+) -> List[Dict[str, str]]:
+    if recommendation_scope != "RECOMMENDABLE" or requires_registration or plan_id:
+        return conditions
+    if subcategory and subcategory.upper() != "GENERAL":
+        return conditions
+
+    normalized_conditions = list(conditions)
+    has_designated_merchant_condition = any(
+        str(condition.get("type", "")).upper() in {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM"}
+        for condition in normalized_conditions
+    )
+    if has_designated_merchant_condition:
+        return conditions
+
+    combined = f"{title} {text}"
+    if not any(token in combined for token in BANK_WIDE_TEXT_TOKENS):
+        return conditions
+
+    marker = {
+        "type": "TEXT",
+        "value": BANK_WIDE_PROMOTION_MARKER,
+        "label": "Bank-wide promotion candidate",
+    }
+    if any(
+        str(condition.get("type", "")).upper() == marker["type"]
+        and str(condition.get("value", "")).upper() == marker["value"]
+        for condition in normalized_conditions
+    ):
+        return normalized_conditions
+
+    normalized_conditions.append(marker)
+    return normalized_conditions
 
 
 def to_condition_value(text: str) -> str:

@@ -4,6 +4,7 @@ from collections import Counter
 from datetime import datetime
 from typing import Callable
 
+from extractor.bank_wide_promotions import apply_bank_wide_promotion_supplements
 from extractor import load, validate, versioning
 from pydantic import ValidationError
 
@@ -41,6 +42,7 @@ def run_real_bank_job(
     failed_count = 0
     category_counter: Counter[str] = Counter()
     scope_counter: Counter[str] = Counter()
+    extracted_cards_with_promotions: list[tuple[object, list[dict[str, object]]]] = []
 
     for index, card in enumerate(selected_cards, start=1):
         _console_print(f"\n--- Card {index}/{len(selected_cards)}: {card.card_name} ---")
@@ -52,14 +54,7 @@ def run_real_bank_job(
             _console_print(f"Application Requirements: {len(enriched_card.application_requirements)}")
             _console_print(f"Sections: {', '.join(enriched_card.sections)}")
             _console_print(f"Promotions Extracted: {len(promotions)}")
-
-            for promotion in promotions:
-                payload = versioning.assign_version_ids(promotion, promotion["summary"])
-                validated = validate.validate_promotion(payload)
-                load.load_promotion(validated)
-                loaded_count += 1
-                category_counter[validated.category] += 1
-                scope_counter[validated.recommendationScope] += 1
+            extracted_cards_with_promotions.append((enriched_card, promotions))
         except ValidationError as error:
             failed_count += 1
             _console_print(f">>> Validation failed for {card.detail_url}")
@@ -68,9 +63,21 @@ def run_real_bank_job(
             failed_count += 1
             _console_print(f">>> Unexpected error for {card.detail_url}: {error}")
 
+    extracted_cards_with_promotions, supplement_count = apply_bank_wide_promotion_supplements(extracted_cards_with_promotions)
+
+    for _, promotions in extracted_cards_with_promotions:
+        for promotion in promotions:
+            payload = versioning.assign_version_ids(promotion, promotion["summary"])
+            validated = validate.validate_promotion(payload)
+            load.load_promotion(validated)
+            loaded_count += 1
+            category_counter[validated.category] += 1
+            scope_counter[validated.recommendationScope] += 1
+
     _console_print(f"\n=== {bank_label} REAL EXTRACTION SUMMARY ===")
     _console_print(f"Cards processed: {len(selected_cards)}")
     _console_print(f"Promotions loaded: {loaded_count}")
+    _console_print(f"Bank-wide supplements added: {supplement_count}")
     _console_print(f"Card failures: {failed_count}")
     _console_print(f"Category distribution: {dict(category_counter)}")
     _console_print(f"Scope distribution: {dict(scope_counter)}")

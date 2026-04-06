@@ -26,6 +26,8 @@ from extractor.promotion_rules import (
     normalize_promotion_title,
     append_inferred_subcategory_conditions,
     append_inferred_payment_method_conditions,
+    append_catalog_review_conditions,
+    append_bank_wide_promotion_condition,
     canonicalize_subcategory,
     sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
@@ -574,6 +576,23 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
         conditions = _append_unicard_plan_conditions(plan_id, subcategory, conditions)
         conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
+        conditions = append_bank_wide_promotion_condition(
+            clean_title,
+            clean_body,
+            recommendation_scope,
+            conditions,
+            requires_registration=requires_registration,
+            plan_id=plan_id,
+            subcategory=subcategory,
+        )
+        conditions = append_catalog_review_conditions(
+            clean_title,
+            clean_body,
+            recommendation_scope,
+            conditions,
+            requires_registration=requires_registration,
+            plan_id=plan_id,
+        )
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         base_promotion = {

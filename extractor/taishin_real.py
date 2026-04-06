@@ -26,7 +26,10 @@ from extractor.promotion_rules import (
     normalize_promotion_title,
     append_inferred_subcategory_conditions,
     append_inferred_payment_method_conditions,
+    append_catalog_review_conditions,
+    append_bank_wide_promotion_condition,
     canonicalize_subcategory,
+    is_registration_heavy_catalog_offer,
     sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
 )
@@ -353,6 +356,23 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
         conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
         conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
+        conditions = append_bank_wide_promotion_condition(
+            clean_title,
+            clean_body,
+            recommendation_scope,
+            conditions,
+            requires_registration=requires_registration,
+            plan_id=plan_id,
+            subcategory=subcategory,
+        )
+        conditions = append_catalog_review_conditions(
+            clean_title,
+            clean_body,
+            recommendation_scope,
+            conditions,
+            requires_registration=requires_registration,
+            plan_id=plan_id,
+        )
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
         promotions.append(
@@ -902,6 +922,23 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
     conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
     conditions = sanitize_payment_conditions(title, focused_text, conditions)
+    conditions = append_bank_wide_promotion_condition(
+        title,
+        focused_text,
+        recommendation_scope,
+        conditions,
+        requires_registration=requires_registration,
+        plan_id=plan_id,
+        subcategory=subcategory,
+    )
+    conditions = append_catalog_review_conditions(
+        title,
+        focused_text,
+        recommendation_scope,
+        conditions,
+        requires_registration=requires_registration,
+        plan_id=plan_id,
+    )
     subcategory = canonicalize_subcategory(category, subcategory, conditions)
     summary = build_summary(
         title,
@@ -1065,10 +1102,11 @@ def _should_skip_richart_marketing(title: str, text: str) -> bool:
 
 def _resolve_richart_marketing_scope(title: str, text: str, category: str, requires_registration: bool) -> str:
     combined = f"{title} {text}"
-    if any(token in combined for token in RICHART_CATALOG_ONLY_TOKENS):
+    hard_catalog_tokens = [token for token in RICHART_CATALOG_ONLY_TOKENS if token not in REGISTRATION_TOKENS]
+    if any(token in combined for token in hard_catalog_tokens):
         return "CATALOG_ONLY"
     scope = classify_recommendation_scope(title, text, category)
-    if requires_registration and scope == "RECOMMENDABLE":
+    if requires_registration and scope == "RECOMMENDABLE" and is_registration_heavy_catalog_offer(combined):
         return "CATALOG_ONLY"
     return scope
 

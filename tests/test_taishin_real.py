@@ -322,6 +322,32 @@ def test_resolve_richart_plan_id_does_not_affect_other_cards():
     assert plan_id is None
 
 
+def test_resolve_richart_marketing_scope_keeps_simple_registration_offer_recommendable():
+    from extractor.taishin_real import _resolve_richart_marketing_scope
+
+    scope = _resolve_richart_marketing_scope(
+        "Richart 指定通路 3%",
+        "2026/1/1~2026/6/30 Richart 指定通路 3% 回饋，需登錄後享加碼。",
+        "ONLINE",
+        True,
+    )
+
+    assert scope == "RECOMMENDABLE"
+
+
+def test_resolve_richart_marketing_scope_downgrades_registration_heavy_offer():
+    from extractor.taishin_real import _resolve_richart_marketing_scope
+
+    scope = _resolve_richart_marketing_scope(
+        "Richart 指定通路 3%",
+        "2026/1/1~2026/6/30 Richart 指定通路 3% 回饋，需登錄，每月上限 300 元，限量名額。",
+        "ONLINE",
+        True,
+    )
+
+    assert scope == "CATALOG_ONLY"
+
+
 def test_postprocess_taishin_promotions_downgrades_installment_offers():
     from extractor.taishin_real import CardRecord, _postprocess_taishin_promotions
 
