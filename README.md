@@ -46,6 +46,11 @@ uv run python jobs/run_taishin_real_job.py         # 台新（Cloudflare Browser
 uv run python jobs/run_fubon_real_job.py           # 富邦（Cloudflare Browser Rendering）
 uv run python jobs/run_ctbc_real_job.py            # 中信（JSON API + Playwright）
 
+# CTBC targeted extraction (specific cards)
+uv run python jobs/run_ctbc_targeted.py                              # 預設 8 張卡
+uv run python jobs/run_ctbc_targeted.py B_Cashback_Signature B_SLV   # 指定 slugs
+CTBC_TARGET_SLUGS=B_Cashback_Signature,B_SLV uv run python jobs/run_ctbc_targeted.py  # env var
+
 # 匯入 SQLite
 uv run python jobs/import_jsonl_to_db.py \
   --input outputs/fubon-real-*.jsonl \
@@ -109,7 +114,8 @@ cardsense-extractor/
 │   ├── run_cathay_real_job.py     # Cathay runner
 │   ├── run_taishin_real_job.py    # Taishin runner
 │   ├── run_fubon_real_job.py      # Fubon runner
-│   ├── run_ctbc_real_job.py       # CTBC runner
+│   ├── run_ctbc_real_job.py       # CTBC runner (all cards)
+│   ├── run_ctbc_targeted.py      # CTBC targeted runner (specific cards by slug)
 │   ├── run_sample_job.py          # mock pipeline runner
 │   ├── import_jsonl_to_db.py      # JSONL → SQLite importer
 │   ├── refresh_and_deploy.py      # 全銀行 extract → import → deploy 一鍵流程

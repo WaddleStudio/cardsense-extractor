@@ -137,6 +137,47 @@ A rule may look deterministic in marketing copy while actually depending on:
 - plan catalog is usually compatible
 - many detailed bonuses need approximation or `CATALOG_ONLY`
 
+## CTBC (中國信託)
+
+### Why it matters
+
+CTBC is the largest issuer in Taiwan by card count (47+ cards). It demonstrates how to handle a bank with heavy bot protection (F5 BIG-IP ASM) and a mix of general-cashback cards and co-brand cards with very different promotion structures.
+
+### Important traits
+
+- F5 BIG-IP ASM bot protection — only Playwright with stealth works; plain HTTP and Cloudflare Browser Rendering both blocked
+- card listing available via JSON API (`creditcards.cardlist.json`), detail pages are AEM-rendered HTML
+- general cashback cards (御璽卡, 鈦金卡) have base rewards that apply across all categories
+- co-brand cards (秀泰, Global Mall, 南紡, 學學) tend to have merchant-specific perks not structured as cashback
+- additional benefits page contains service perks (airport, parking, roadside assistance), not cashback promotions
+
+### What CardSense handles well
+
+- JSON API card discovery + Playwright detail page scraping
+- general reward expansion: base cashback (e.g. 0.5%) fanned out into per-category rows (7 rows for 6 domestic + overseas)
+- CTBC-specific condition refinement: SOGO store promos, Hami Pay, e-commerce platforms (蝦皮/momo/Coupang/淘寶)
+- registration-heavy campaign downgrade to `CATALOG_ONLY`
+- targeted extraction by card slug (CLI args or env var)
+
+### Main caution
+
+- co-brand cards often yield only 1 promotion because merchant-specific perks lack structured cashback data
+- some cards (分期紅利卡) are primarily installment/points products where the "reward" is points redemption, not straightforward cashback
+- the additional benefits page is dynamic (JS-loaded sections) and contains non-promotion card features — do not attempt to extract as promotions
+
+### Current implementation pattern
+
+- `run_ctbc_real_job.py` for full bank extraction (all cards)
+- `run_ctbc_targeted.py` for specific cards by slug (supports CLI args, env var, or defaults)
+- `_refine_ctbc_promotion()` handles CTBC-specific post-processing (SOGO, Hami Pay, e-commerce reshaping)
+- `expand_general_reward_promotions()` fans out base cashback into per-category rows
+
+### Extraction statistics (2026-04-06)
+
+- Full extraction: 54 promotions across all CTBC cards
+- Targeted extraction (8 cards): 26 promotions (15 RECOMMENDABLE, 11 CATALOG_ONLY)
+- Category distribution: OVERSEAS 5, DINING 4, TRANSPORT 4, ONLINE 3, SHOPPING 3, GROCERY 3, ENTERTAINMENT 3, OTHER 1
+
 ## Reusable lesson
 
 When a new bank card resembles:
@@ -144,5 +185,7 @@ When a new bank card resembles:
 - `CUBE`: think `tiered plan + merchant-aware cluster promo + scoped rollout`
 - `Unicard`: think `runtime plan-state`
 - `Richart`: think `rail / classification / routing sensitivity`
+- `CTBC cashback`: think `general reward expansion + bot protection + targeted extraction`
+- `CTBC co-brand`: think `sparse promotions + merchant-specific perks outside cashback schema`
 
 Use the closest case as your first review template.

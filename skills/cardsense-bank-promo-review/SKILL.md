@@ -285,6 +285,18 @@ If you want a fixed review deliverable format, use:
   - broad coupon pages where CardSense cannot safely infer a durable merchant cluster
 - after changing Unicard heuristics, rerun extractor and validate `ESUN_UNICARD` rows in SQLite rather than relying only on fixture tests
 
+### CTBC (中國信託)
+
+- CTBC pages are protected by F5 BIG-IP ASM; only Playwright with stealth can bypass (plain HTTP and Cloudflare Browser Rendering both blocked)
+- card listing comes from JSON API (`creditcards.cardlist.json`), detail pages are AEM-rendered HTML
+- general cashback cards (御璽卡 0.5%, 鈦金卡 0.5%) have base rewards that apply across all categories — use `expand_general_reward_promotions` to fan out into per-category rows
+- CTBC co-brand cards (秀泰聯名卡, Global Mall聯名卡, 南紡購物中心聯名卡, 學學認同卡) often have only 1 extractable promotion because most benefits are merchant-specific perks not structured as cashback
+- registration-heavy catalog offers (每月限量, 每戶加碼上限, 限量) should be downgraded to `CATALOG_ONLY`
+- the additional benefits page (`cc_add_index.html`) contains service-type perks (airport lounge, parking, roadside assistance) — these are card features, not cashback promotions, and are not extracted
+- targeted extraction supports specific card slugs via CLI or env var: `uv run python jobs/run_ctbc_targeted.py B_Cashback_Signature B_SLV`
+- CTBC-specific refinement rules handle SOGO store promos, Hami Pay conditions, and e-commerce platform conditions (蝦皮/momo/Coupang/淘寶)
+- after extraction, validate that general-reward cards have per-category fan-out rows (expect 7 rows for 6 domestic categories + overseas)
+
 ### Taishin Richart
 
 - distinguish benefit plans from short-term plan-specific campaigns
