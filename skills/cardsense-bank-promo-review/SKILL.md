@@ -297,6 +297,15 @@ If you want a fixed review deliverable format, use:
 - CTBC-specific refinement rules handle SOGO store promos, Hami Pay conditions, and e-commerce platform conditions (蝦皮/momo/Coupang/淘寶)
 - after extraction, validate that general-reward cards have per-category fan-out rows (expect 7 rows for 6 domestic categories + overseas)
 
+### Taishin (feature extractor pattern)
+
+- Taishin cards use per-card feature extractors registered in a `builders` dict within `taishin_real.py`
+- Each feature extractor function (e.g. `_extract_gogoro_feature_promotions`, `_extract_friday_feature_promotions`) adds manual promotions based on known card-specific rewards
+- This pattern is useful when the card's detail page doesn't contain structured promotion data parseable by the generic extractor
+- The same pattern has been adopted in `cathay_real.py` (Shopee, EVA, Dual Currency, Asia Miles) and `fubon_real.py` (Insurance, Lifestyle, Open Possible)
+- Feature extractors use `_build_manual_promotion()` helper and should include accurate `valid_from`/`valid_until` dates
+- Targeted extraction jobs (`run_taishin_targeted.py`) filter to specific cards and support extra promo URLs
+
 ### Taishin Richart
 
 - distinguish benefit plans from short-term plan-specific campaigns

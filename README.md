@@ -116,6 +116,7 @@ cardsense-extractor/
 │   ├── run_fubon_real_job.py      # Fubon runner
 │   ├── run_ctbc_real_job.py       # CTBC runner (all cards)
 │   ├── run_ctbc_targeted.py      # CTBC targeted runner (specific cards by slug)
+│   ├── run_taishin_targeted.py    # Taishin targeted runner (12 priority cards)
 │   ├── run_sample_job.py          # mock pipeline runner
 │   ├── import_jsonl_to_db.py      # JSONL → SQLite importer
 │   ├── refresh_and_deploy.py      # 全銀行 extract → import → deploy 一鍵流程

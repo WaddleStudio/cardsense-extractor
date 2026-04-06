@@ -178,6 +178,76 @@ CTBC is the largest issuer in Taiwan by card count (47+ cards). It demonstrates 
 - Targeted extraction (8 cards): 26 promotions (15 RECOMMENDABLE, 11 CATALOG_ONLY)
 - Category distribution: OVERSEAS 5, DINING 4, TRANSPORT 4, ONLINE 3, SHOPPING 3, GROCERY 3, ENTERTAINMENT 3, OTHER 1
 
+## Cathay Non-CUBE Feature Extractors
+
+### Why it matters
+
+Cathay has 30 cards but many (Shopee, EVA, Asia Miles, Dual Currency) extract 0 promotions from generic parsing because their page JSON structure lacks structured promo components. Feature extractors fill this gap.
+
+### Current implementation pattern
+
+Feature extractors are registered in `feature_builders` dict within `extract_card_promotions()`. Each adds manual promotions via `_build_manual_promotion()`.
+
+Cards covered:
+- `CATHAY_SHOPEE`: 蝦皮站內4%蝦幣 + 站外0.5% + 外送交通旅遊7%
+- `CATHAY_EVA`: 消費最優NT$10/哩 + Expedia/Hotels.com NT$8/哩 + 機上免稅品9折
+- `CATHAY_DUAL_CURRENCY`: 海外消費最高1.5%回饋
+- `CATHAY_ASIA_MILES`: 哩程加速器最優NT$10/里數
+
+### MILES cashback type
+
+`MILES` was added to `CashbackTypeEnum` to properly represent airline mileage rewards. The `value` field represents miles earned per NTD spent (e.g., 0.1 = NT$10 per mile).
+
+### Extraction statistics (2026-04-07)
+
+- CATHAY total: 126 promos, 45 RECOMMENDABLE, 8 cards in DB
+- CUBE: 29p (27 REC) — plan-based extraction
+- 現金回饋御璽卡: 10p (7 REC) — colorbanner extraction
+- 世界卡: 70p (3 REC) — many CATALOG_ONLY (expected for premium card)
+
+## Fubon Feature Extractors
+
+### Why it matters
+
+Many Fubon cards (Insurance, Lifestyle, Open Possible) have clear reward structures on their pages but the generic sectioned-page extractor misses them.
+
+### Cards covered
+
+- `FUBON_INSURANCE`: 一般消費0.7%現金回饋無上限 + 保費0.5%回饋
+- `FUBON_LIFESTYLE`: 8大生活消費紅利5倍（NT$20=5點）
+- `FUBON_OPENPOSSIBLE`: myfone購物最高5%回饋
+
+### Extraction statistics (2026-04-07)
+
+- FUBON total: 100 promos, 36 RECOMMENDABLE, 18 cards in DB
+- J卡: 24p (10 REC), Costco: 7p (7 REC), DDM: 14p (7 REC)
+
+## Taishin Feature Extractors
+
+### Why it matters
+
+Taishin cards with dedicated promo pages (Gogoro, friDay, 街口, PX_MART, etc.) contain card-specific rewards not captured by generic extraction.
+
+### Cards covered
+
+9 feature extractor families: JKOPay, PX_MART, friDay, Gogoro, Dual Currency, Infinite, Shin Kong (御璽/無限), Tsann Kuen
+
+### Extraction statistics (2026-04-07)
+
+- TAISHIN total: 45 promos, 20 RECOMMENDABLE, 12 cards
+- Targeted extraction job: `run_taishin_targeted.py` with 12 priority cards and extra promo URLs
+
+## E.SUN Re-extraction
+
+### Why it matters
+
+E.SUN full re-extraction (2026-04-07) dramatically improved coverage from 14→45 cards and 85→271 RECOMMENDABLE promotions, picking up many cards that were previously missing.
+
+### Extraction statistics (2026-04-07)
+
+- ESUN total: 420 promos, 271 RECOMMENDABLE, 45 cards in DB
+- Top cards: 熊本熊卡 (18 REC), Unicard (16 REC), Pi拍兔 (15 REC), 世界卡 (14 REC)
+
 ## Reusable lesson
 
 When a new bank card resembles:
@@ -187,5 +257,8 @@ When a new bank card resembles:
 - `Richart`: think `rail / classification / routing sensitivity`
 - `CTBC cashback`: think `general reward expansion + bot protection + targeted extraction`
 - `CTBC co-brand`: think `sparse promotions + merchant-specific perks outside cashback schema`
+- `Cathay Shopee / EVA / Asia Miles`: think `feature extractor for pages with unstructured promo data`
+- `Fubon Insurance / Lifestyle`: think `feature extractor for clear rewards missed by generic parser`
+- `Taishin card families`: think `per-card feature extractor + targeted extraction with extra promo URLs`
 
 Use the closest case as your first review template.
