@@ -436,9 +436,13 @@ def test_extract_px_mart_feature_promotions_adds_store_and_full_pay_rows():
 
     promotions = _extract_px_mart_feature_promotions(card, lines)
 
-    assert len(promotions) == 2
+    assert len(promotions) == 3
+    base_promo = next(promo for promo in promotions if "其他一般消費" in promo["title"])
     store_promo = next(promo for promo in promotions if "大全聯店內消費" in promo["title"])
     full_pay_promo = next(promo for promo in promotions if "全支付店外消費" in promo["title"])
+
+    assert base_promo["cashbackValue"] == 0.3
+    assert base_promo["recommendationScope"] == "RECOMMENDABLE"
 
     assert store_promo["subcategory"] == "SUPERMARKET"
     assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "PXMART" for condition in store_promo["conditions"])

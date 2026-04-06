@@ -464,6 +464,10 @@ def _extract_card_feature_promotions(card: CardRecord, lines: Sequence[str]) -> 
         "TAISHIN_FRIDAY": _extract_friday_feature_promotions,
         "TAISHIN_GOGORO": _extract_gogoro_feature_promotions,
         "TAISHIN_DUAL_CURRENCY": _extract_dual_currency_feature_promotions,
+        "TAISHIN_INFINITE": _extract_infinite_feature_promotions,
+        "TAISHIN_SHIN_KONG": _extract_shin_kong_feature_promotions,
+        "TAISHIN_SHIN_KONG_WORLD": _extract_shin_kong_world_feature_promotions,
+        "TAISHIN_TSANN_KUEN": _extract_tsann_kuen_feature_promotions,
     }
     builder = builders.get(card.card_code)
     if builder is None:
@@ -578,6 +582,23 @@ def _extract_jkopay_feature_promotions(card: CardRecord, lines: Sequence[str]) -
 
 def _extract_px_mart_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
     promotions: List[Dict[str, object]] = []
+
+    # Base reward: 其他一般消費0.3%福利點
+    promotions.append(
+        _build_manual_promotion(
+            card,
+            title="其他一般消費0.3%福利點",
+            body="大全聯信用卡其他一般消費(不含全支付、大全聯、全聯福利中心消費)每消費100元給3點福利點(最高0.3%)。無需登錄，店外全支付消費及其他一般消費合計每期最高回饋福利點15,000點。適用期間2026/4/1-2026/6/30。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 0.3},
+            valid_from="2026-04-01",
+            valid_until="2026-06-30",
+        )
+    )
+
     feature_body = _collect_line_window(
         lines,
         "大全聯JCB卡最高8.5% 福利點限時送",
@@ -623,6 +644,23 @@ def _extract_px_mart_feature_promotions(card: CardRecord, lines: Sequence[str]) 
 
 def _extract_friday_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
     promotions: List[Dict[str, object]] = []
+
+    # Base reward: 一般消費1%遠傳幣無上限
+    promotions.append(
+        _build_manual_promotion(
+            card,
+            title="一般消費1%遠傳幣無上限",
+            body="一般消費基本回饋1%遠傳幣，回饋無上限。活動期間2025/1/1~2026/5/31結帳帳單。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 1.0},
+            valid_from="2025-01-01",
+            valid_until="2026-05-31",
+        )
+    )
+
     telecom_body = _collect_line_window(
         lines,
         "電信帳單代扣繳最高3%、指定通路會員日最高8%",
@@ -671,6 +709,49 @@ def _extract_friday_feature_promotions(card: CardRecord, lines: Sequence[str]) -
 
 def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
     promotions: List[Dict[str, object]] = []
+
+    # Base reward: 一般消費0.3%無上限
+    promotions.append(
+        _build_manual_promotion(
+            card,
+            title="一般消費0.3% Gogoro Smart Points無上限",
+            body="持台新Gogoro Rewards聯名卡一般消費享0.3% Gogoro Smart Points回饋無上限。活動期間2026/1/1~2026/12/31。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 0.3},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+        )
+    )
+
+    # Gogoro Rewards夥伴商家加碼（7-ELEVEN、全家、高鐵、Uber、Uber Eats、foodpanda、Klook、KKday）
+    promotions.append(
+        _build_manual_promotion(
+            card,
+            title="Gogoro Rewards夥伴商家最高4%",
+            body="於Gogoro Rewards商家夥伴(7-ELEVEN、全家便利商店、高鐵、Uber、Uber Eats、foodpanda、Klook、KKday)使用聯名卡消費，享最高4%回饋。含一般消費0.3%無上限+指定任務加碼3.7%，加碼單筆上限100點，每月上限500點。活動期間2026/2/1~2026/6/30。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="CATALOG_ONLY",
+            reward={"type": "PERCENT", "value": 4.0},
+            valid_from="2026-02-01",
+            valid_until="2026-06-30",
+            extra_conditions=[
+                {"type": "MERCHANT", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+                {"type": "MERCHANT", "value": "FAMILY_MART", "label": "全家便利商店"},
+                {"type": "MERCHANT", "value": "THSR", "label": "高鐵"},
+                {"type": "MERCHANT", "value": "UBER", "label": "Uber"},
+                {"type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
+                {"type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+                {"type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
+                {"type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
+            ],
+        )
+    )
+
     battery_body = _collect_line_window(
         lines,
         "1. 電池資費最高享 4% 回饋無上限",
@@ -741,6 +822,123 @@ def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -
 
 def _extract_dual_currency_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
     return []
+
+
+def _extract_infinite_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    """卓富無限卡：現金回饋無上限（from MKP page: 2026/1/1-2027/1/31）。"""
+    return [
+        _build_manual_promotion(
+            card,
+            title="一般消費現金回饋無上限",
+            body="卓富無限卡一般消費享現金回饋無上限。適用期間2026/1/1-2027/1/31結帳帳單。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 0.3},
+            valid_from="2026-01-01",
+            valid_until="2027-01-31",
+        ),
+    ]
+
+
+def _extract_shin_kong_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    """新光三越御璽/鈦金/白金卡：一般消費0.3%無上限 + 週五~日店內最高1%。"""
+    return [
+        _build_manual_promotion(
+            card,
+            title="一般消費0.3%台新Point回饋無上限",
+            body="新光三越聯名卡一般消費享0.3%台新Point(信用卡)回饋無上限。2026/1/1~2026/12/31結帳帳單。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 0.3},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+        ),
+        _build_manual_promotion(
+            card,
+            title="週五~日新光三越店內消費最高1%",
+            body="週五~日於新光三越百貨店內消費，筆筆享最高1%台新Point(信用卡)回饋。御璽/鈦金卡一般消費0.3%無上限+店內加碼0.7%(每月上限1,000點)。2026/1/1~2026/12/31結帳帳單。",
+            category="SHOPPING",
+            subcategory="DEPARTMENT",
+            channel="OFFLINE",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 1.0},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+            extra_conditions=[
+                {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+            ],
+        ),
+    ]
+
+
+def _extract_shin_kong_world_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    """新光三越無限/世界卡：一般消費0.3%無上限 + 週五~日店內最高1.2%。"""
+    return [
+        _build_manual_promotion(
+            card,
+            title="一般消費0.3%台新Point回饋無上限",
+            body="新光三越聯名卡一般消費享0.3%台新Point(信用卡)回饋無上限。2026/1/1~2026/12/31結帳帳單。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 0.3},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+        ),
+        _build_manual_promotion(
+            card,
+            title="週五~日新光三越店內消費最高1.2%",
+            body="週五~日於新光三越百貨店內消費，筆筆享最高1.2%台新Point(信用卡)回饋。一般消費0.3%無上限+店內加碼0.9%(每月上限10,000點)。2026/1/1~2026/12/31結帳帳單。",
+            category="SHOPPING",
+            subcategory="DEPARTMENT",
+            channel="OFFLINE",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 1.2},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+            extra_conditions=[
+                {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+            ],
+        ),
+    ]
+
+
+def _extract_tsann_kuen_feature_promotions(card: CardRecord, lines: Sequence[str]) -> List[Dict[str, object]]:
+    """燦坤聯名卡：一般消費0.3%無上限 + 燦坤店內平日1%/週末2%。"""
+    return [
+        _build_manual_promotion(
+            card,
+            title="一般消費0.3%燦坤K幣回饋無上限",
+            body="燦坤聯名卡一般消費享0.3%燦坤K幣回饋無上限。2026/1/1~2026/12/31。",
+            category="OTHER",
+            subcategory="GENERAL",
+            channel="ALL",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 0.3},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+        ),
+        _build_manual_promotion(
+            card,
+            title="燦坤店內消費平日1%/週末最高2%",
+            body="持燦坤聯名卡於燦坤店內消費，平日(週一~五)享1%燦坤K幣回饋無上限，週末(週六~日)享2%燦坤K幣回饋無上限。2026/1/1~2026/12/31。",
+            category="SHOPPING",
+            subcategory="ELECTRONICS",
+            channel="OFFLINE",
+            recommendation_scope="RECOMMENDABLE",
+            reward={"type": "PERCENT", "value": 2.0},
+            valid_from="2026-01-01",
+            valid_until="2026-12-31",
+            extra_conditions=[
+                {"type": "RETAIL_CHAIN", "value": "TSANN_KUEN", "label": "燦坤"},
+            ],
+        ),
+    ]
 
 
 def _collect_line_window(
