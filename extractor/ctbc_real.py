@@ -40,6 +40,7 @@ from extractor.promotion_rules import (
     append_catalog_review_conditions,
     append_bank_wide_promotion_condition,
     canonicalize_subcategory,
+    expand_general_reward_promotions,
     sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
 )
@@ -346,36 +347,36 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             conditions=conditions,
         )
 
-        promotions.append(
-            {
-                "title": f"{enriched_card.card_name} {clean_title}",
-                "cardCode": enriched_card.card_code,
-                "cardName": enriched_card.card_name,
-                "cardStatus": "ACTIVE",
-                "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
-                "applyUrl": enriched_card.apply_url,
-                "bankCode": BANK_CODE,
-                "bankName": BANK_NAME,
-                "category": category,
-                "subcategory": subcategory,
-                "channel": channel,
-                "cashbackType": reward["type"],
-                "cashbackValue": reward["value"],
-                "minAmount": min_amount,
-                "maxCashback": max_cashback,
-                "frequencyLimit": frequency_limit,
-                "requiresRegistration": requires_registration,
-                "recommendationScope": recommendation_scope,
-                "eligibilityType": eligibility_type,
-                "validFrom": valid_from,
-                "validUntil": valid_until,
-                "conditions": conditions,
-                "excludedConditions": [],
-                "sourceUrl": card.detail_url,
-                "summary": summary,
-                "status": "ACTIVE",
-            }
-        )
+        base_promotion = {
+            "title": f"{enriched_card.card_name} {clean_title}",
+            "cardCode": enriched_card.card_code,
+            "cardName": enriched_card.card_name,
+            "cardStatus": "ACTIVE",
+            "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
+            "applyUrl": enriched_card.apply_url,
+            "bankCode": BANK_CODE,
+            "bankName": BANK_NAME,
+            "category": category,
+            "subcategory": subcategory,
+            "channel": channel,
+            "cashbackType": reward["type"],
+            "cashbackValue": reward["value"],
+            "minAmount": min_amount,
+            "maxCashback": max_cashback,
+            "frequencyLimit": frequency_limit,
+            "requiresRegistration": requires_registration,
+            "recommendationScope": recommendation_scope,
+            "eligibilityType": eligibility_type,
+            "validFrom": valid_from,
+            "validUntil": valid_until,
+            "conditions": conditions,
+            "excludedConditions": [],
+            "sourceUrl": card.detail_url,
+            "summary": summary,
+            "status": "ACTIVE",
+        }
+
+        promotions.extend(expand_general_reward_promotions(base_promotion, clean_title, clean_body))
 
     return enriched_card, _dedupe_promotions(promotions)
 

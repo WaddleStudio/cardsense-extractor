@@ -29,6 +29,7 @@ from extractor.promotion_rules import (
     append_catalog_review_conditions,
     append_bank_wide_promotion_condition,
     canonicalize_subcategory,
+    expand_general_reward_promotions,
     is_registration_heavy_catalog_offer,
     sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
@@ -375,37 +376,37 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         )
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
 
-        promotions.append(
-            {
-                "title": f"{enriched_card.card_name} {clean_title}",
-                "cardCode": enriched_card.card_code,
-                "cardName": enriched_card.card_name,
-                "cardStatus": "ACTIVE",
-                "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
-                "applyUrl": enriched_card.apply_url,
-                "bankCode": BANK_CODE,
-                "bankName": BANK_NAME,
-                "category": category,
-                "subcategory": subcategory,
-                "channel": _infer_channel(clean_title, clean_body),
-                "cashbackType": reward["type"],
-                "cashbackValue": reward["value"],
-                "minAmount": min_amount,
-                "maxCashback": max_cashback,
-                "frequencyLimit": frequency_limit,
-                "requiresRegistration": requires_registration,
-                "recommendationScope": recommendation_scope,
-                "eligibilityType": eligibility_type,
-                "validFrom": valid_from,
-                "validUntil": valid_until,
-                "conditions": conditions,
-                "excludedConditions": [],
-                "sourceUrl": enriched_card.detail_url,
-                "summary": summary,
-                "status": "ACTIVE",
-                "planId": plan_id,
-            }
-        )
+        base_promotion = {
+            "title": f"{enriched_card.card_name} {clean_title}",
+            "cardCode": enriched_card.card_code,
+            "cardName": enriched_card.card_name,
+            "cardStatus": "ACTIVE",
+            "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
+            "applyUrl": enriched_card.apply_url,
+            "bankCode": BANK_CODE,
+            "bankName": BANK_NAME,
+            "category": category,
+            "subcategory": subcategory,
+            "channel": _infer_channel(clean_title, clean_body),
+            "cashbackType": reward["type"],
+            "cashbackValue": reward["value"],
+            "minAmount": min_amount,
+            "maxCashback": max_cashback,
+            "frequencyLimit": frequency_limit,
+            "requiresRegistration": requires_registration,
+            "recommendationScope": recommendation_scope,
+            "eligibilityType": eligibility_type,
+            "validFrom": valid_from,
+            "validUntil": valid_until,
+            "conditions": conditions,
+            "excludedConditions": [],
+            "sourceUrl": enriched_card.detail_url,
+            "summary": summary,
+            "status": "ACTIVE",
+            "planId": plan_id,
+        }
+
+        promotions.extend(expand_general_reward_promotions(base_promotion, clean_title, clean_body))
 
     promotions.extend(_extract_card_feature_promotions(enriched_card, lines))
 
@@ -858,7 +859,13 @@ def _extract_richart_bonus_promotions(card: CardRecord, detail_links: Iterable[D
 
         promotion = _extract_marketing_promotion(card, html, url)
         if promotion is not None:
-            promotions.append(promotion)
+            promotions.extend(
+                expand_general_reward_promotions(
+                    promotion,
+                    str(promotion.get("title", "") or ""),
+                    str(promotion.get("summary", "") or ""),
+                )
+            )
 
     return promotions
 

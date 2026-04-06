@@ -74,6 +74,61 @@ def test_cathay_model_json_parser_extracts_card_and_promotion(monkeypatch):
     assert all(not promotion.get("planId") for promotion in promotions)
 
 
+def test_cash_rebate_signature_extracts_base_general_rewards_from_colorbanner(monkeypatch):
+    card = cathay_real.CardRecord(
+        card_code="CATHAY_CASH_REBATE_SIGNATURE",
+        card_name="現金回饋御璽卡",
+        detail_url="https://www.cathay-cube.com.tw/cathaybk/personal/product/credit-card/cards/cash-rebate-signature/",
+        apply_url="https://apply.example/cash-rebate-signature",
+        annual_fee_summary="免年費條件",
+        application_requirements=[],
+        sections=[],
+    )
+
+    detail_payload = {
+        ":items": {
+            "applyInfo": {
+                ":type": "cathay/components/content/creditcardapplyinfo",
+                "mainBtnLink": "https://apply.example/cash-rebate-signature",
+                "information": ["<p>成年人可申請正卡。</p>"],
+            },
+            "baseBenefit": {
+                ":type": "cub-aem-cs/components/cub-content/cub-colorbanner/v1/cub-colorbanner",
+                "title": "不限通路．最高2%現金回饋",
+                "description": "<p>國外消費享2%現金回饋、國內消費享0.5%現金回饋，無通路限制、無回饋上限。</p>",
+                "noticeGroup": {
+                    "notice1": {
+                        "noticeContent": (
+                            "<p>2026/12/31前，無通路限制、無級距門檻、無回饋上限。</p>"
+                            "<ul>"
+                            "<li>國外刷一般消費享2%現金回饋</li>"
+                            "<li>國內刷一般消費享0.5%現金回饋</li>"
+                            "</ul>"
+                        )
+                    }
+                },
+            },
+        }
+    }
+
+    def fake_fetch_json(url: str):
+        if url.endswith("/cash-rebate-signature.model.json"):
+            return detail_payload
+        raise AssertionError(f"unexpected url: {url}")
+
+    monkeypatch.setattr(cathay_real, "_fetch_json", fake_fetch_json)
+
+    enriched_card, promotions = cathay_real.extract_card_promotions(card)
+    base_rows = [promotion for promotion in promotions if "不限通路" in promotion["title"]]
+
+    assert enriched_card.apply_url == "https://apply.example/cash-rebate-signature"
+    assert any(promotion["category"] == "OVERSEAS" and promotion["cashbackValue"] == 2.0 for promotion in base_rows)
+    assert any(promotion["category"] == "ONLINE" and promotion["cashbackValue"] == 0.5 for promotion in base_rows)
+    assert any(promotion["category"] == "DINING" and promotion["cashbackValue"] == 0.5 for promotion in base_rows)
+    assert all(promotion["validFrom"] == "2026-01-01" for promotion in base_rows)
+    assert all(promotion["validUntil"] == "2026-12-31" for promotion in base_rows)
+
+
 def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
     card = cathay_real.CardRecord(
         card_code="CATHAY_CUBE",

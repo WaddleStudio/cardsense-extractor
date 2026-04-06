@@ -29,6 +29,7 @@ from extractor.promotion_rules import (
     append_catalog_review_conditions,
     append_bank_wide_promotion_condition,
     canonicalize_subcategory,
+    expand_general_reward_promotions,
     sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
     to_condition_value,
@@ -625,7 +626,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             "planId": plan_id,
         }
 
-        promotions.extend(_expand_card_specific_promotions(enriched_card.card_code, clean_title, clean_body, base_promotion))
+        for expanded_promotion in _expand_card_specific_promotions(enriched_card.card_code, clean_title, clean_body, base_promotion):
+            promotions.extend(expand_general_reward_promotions(expanded_promotion, clean_title, clean_body))
 
     promotions.extend(_extract_unicard_hundred_store_promotions(lines, enriched_card, eligibility_type))
 

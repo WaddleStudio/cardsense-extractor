@@ -2,6 +2,7 @@ from extractor.promotion_rules import (
     SUBCATEGORY_SIGNALS,
     build_conditions,
     classify_recommendation_scope,
+    expand_general_reward_promotions,
     extract_reward,
     infer_channel,
     infer_subcategory,
@@ -264,3 +265,113 @@ def test_infer_subcategory_matches_charity_donation_terms_under_other():
     )
 
     assert subcategory == "CHARITY_DONATION"
+
+
+def test_expand_general_reward_promotions_splits_plain_general_reward_into_all_spend_categories():
+    promotion = {
+        "title": "玉山悠遊聯名卡 累積玉山e point",
+        "category": "OTHER",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "cashbackType": "POINTS",
+        "cashbackValue": "0.20",
+        "requiresRegistration": False,
+        "conditions": [],
+        "planId": None,
+    }
+
+    expanded = expand_general_reward_promotions(
+        promotion,
+        "累積玉山e point",
+        "新增一般消費單筆以實際刷卡請款金額乘以0.2%後計算無條件捨去至整數回饋玉山e point。",
+    )
+
+    categories = {(row["category"], row["channel"]) for row in expanded}
+
+    assert ("ONLINE", "ONLINE") in categories
+    assert ("DINING", "ALL") in categories
+    assert ("TRANSPORT", "ALL") in categories
+    assert ("SHOPPING", "ALL") in categories
+    assert ("GROCERY", "ALL") in categories
+    assert ("ENTERTAINMENT", "ALL") in categories
+    assert ("OVERSEAS", "ALL") in categories
+
+
+def test_expand_general_reward_promotions_splits_domestic_and_overseas_rewards_separately():
+    promotion = {
+        "title": "中信現金回饋御璽卡 刷卡消費現金回饋",
+        "category": "OTHER",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "cashbackType": "PERCENT",
+        "cashbackValue": "2.50",
+        "requiresRegistration": False,
+        "conditions": [],
+        "planId": None,
+    }
+
+    expanded = expand_general_reward_promotions(
+        promotion,
+        "刷卡消費現金回饋",
+        "國內消費不分級距享0.5%回饋，回饋無上限。國內月消費滿額，國外消費最高享2.5%回饋，回饋無上限。",
+    )
+
+    domestic = [row for row in expanded if row["category"] != "OVERSEAS"]
+    overseas = [row for row in expanded if row["category"] == "OVERSEAS"]
+
+    assert domestic
+    assert overseas
+    assert all(float(row["cashbackValue"]) == 0.5 for row in domestic)
+    assert all(float(row["cashbackValue"]) == 2.5 for row in overseas)
+
+
+def test_expand_general_reward_promotions_skips_signup_bonus_that_only_mentions_general_spend_threshold():
+    promotion = {
+        "title": "新戶首刷加贈玉山e point 200點",
+        "category": "OTHER",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "cashbackType": "POINTS",
+        "cashbackValue": "200.00",
+        "requiresRegistration": False,
+        "conditions": [],
+        "planId": None,
+    }
+
+    expanded = expand_general_reward_promotions(
+        promotion,
+        "新戶首刷加贈玉山e point 200點",
+        "須於2026/3/31前新申辦卡片，並於核卡後30天內新增一般消費不限金額，始符合回饋資格，每歸戶限回饋1次。",
+    )
+
+    assert expanded == [promotion]
+
+
+def test_expand_general_reward_promotions_splits_point_accumulation_when_general_spend_definition_is_present():
+    promotion = {
+        "title": "Angel天使公益認同卡 刷卡賺紅利 輕鬆享回饋",
+        "category": "OTHER",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "cashbackType": "POINTS",
+        "cashbackValue": "1.00",
+        "requiresRegistration": False,
+        "conditions": [],
+        "planId": None,
+    }
+
+    expanded = expand_general_reward_promotions(
+        promotion,
+        "刷卡賺紅利 輕鬆享回饋",
+        "活動期間：2026/1/1~2026/12/31 刷Angel天使公益認同卡每消費 NT$20 可累積 1點富邦紅利點數。一般消費定義：不包含指定網路平台交易、歐洲經濟區實體商店交易。",
+    )
+
+    categories = {(row["category"], row["channel"]) for row in expanded}
+
+    assert ("ONLINE", "ONLINE") in categories
+    assert ("DINING", "ALL") in categories
+    assert ("TRANSPORT", "ALL") in categories
+    assert ("SHOPPING", "ALL") in categories
+    assert ("GROCERY", "ALL") in categories
+    assert ("ENTERTAINMENT", "ALL") in categories
+    assert ("OVERSEAS", "ALL") in categories

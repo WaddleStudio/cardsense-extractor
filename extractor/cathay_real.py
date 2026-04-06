@@ -30,6 +30,7 @@ from extractor.promotion_rules import (
     append_catalog_review_conditions,
     append_bank_wide_promotion_condition,
     canonicalize_subcategory,
+    expand_general_reward_promotions,
     sanitize_payment_conditions,
     SUBCATEGORY_SIGNALS,
 )
@@ -561,50 +562,166 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
                 conditions,
             )
 
-            promotions.append(
-                {
-                    "title": f"{enriched_card.card_name} {clean_title}",
-                    "cardCode": enriched_card.card_code,
-                    "cardName": enriched_card.card_name,
-                    "cardStatus": "ACTIVE",
-                    "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
-                    "applyUrl": enriched_card.apply_url,
-                    "bankCode": BANK_CODE,
-                    "bankName": BANK_NAME,
-                    "category": category,
-                    "subcategory": subcategory,
-                    "channel": channel,
-                    "cashbackType": reward["type"],
-                    "cashbackValue": reward["value"],
-                    "minAmount": min_amount,
-                    "maxCashback": max_cashback,
-                    "frequencyLimit": extract_frequency_limit(candidate["body"]),
-                    "requiresRegistration": requires_registration,
-                    "recommendationScope": recommendation_scope,
-                    "eligibilityType": eligibility_type,
-                    "validFrom": valid_from,
-                    "validUntil": valid_until,
-                    "conditions": conditions,
-                    "excludedConditions": [],
-                    "sourceUrl": enriched_card.detail_url,
-                    "summary": build_summary(
-                        clean_title,
-                        clean_body,
-                        valid_from,
-                        valid_until,
-                        min_amount,
-                        max_cashback,
-                        requires_registration,
-                        summary_noise_tokens=SUMMARY_NOISE_TOKENS,
-                    ),
-                    "status": "ACTIVE",
-                }
-            )
+            base_promotion = {
+                "title": f"{enriched_card.card_name} {clean_title}",
+                "cardCode": enriched_card.card_code,
+                "cardName": enriched_card.card_name,
+                "cardStatus": "ACTIVE",
+                "annualFee": _extract_annual_fee_amount(enriched_card.annual_fee_summary),
+                "applyUrl": enriched_card.apply_url,
+                "bankCode": BANK_CODE,
+                "bankName": BANK_NAME,
+                "category": category,
+                "subcategory": subcategory,
+                "channel": channel,
+                "cashbackType": reward["type"],
+                "cashbackValue": reward["value"],
+                "minAmount": min_amount,
+                "maxCashback": max_cashback,
+                "frequencyLimit": extract_frequency_limit(candidate["body"]),
+                "requiresRegistration": requires_registration,
+                "recommendationScope": recommendation_scope,
+                "eligibilityType": eligibility_type,
+                "validFrom": valid_from,
+                "validUntil": valid_until,
+                "conditions": conditions,
+                "excludedConditions": [],
+                "sourceUrl": enriched_card.detail_url,
+                "summary": build_summary(
+                    clean_title,
+                    clean_body,
+                    valid_from,
+                    valid_until,
+                    min_amount,
+                    max_cashback,
+                    requires_registration,
+                    summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+                ),
+                "status": "ACTIVE",
+            }
+
+            promotions.extend(expand_general_reward_promotions(base_promotion, clean_title, clean_body))
+
+    promotions.extend(_extract_cash_rebate_signature_base_promotions(enriched_card, components, eligibility_type))
 
     plan_promotions = _extract_plan_promotions(enriched_card)
     promotions.extend(plan_promotions)
 
     return enriched_card, dedupe_promotions(promotions)
+
+
+def _extract_cash_rebate_signature_base_promotions(
+    card: CardRecord,
+    components: list[dict[str, Any]],
+    eligibility_type: str,
+) -> list[dict[str, object]]:
+    if card.card_code != "CATHAY_CASH_REBATE_SIGNATURE":
+        return []
+
+    promotions: list[dict[str, object]] = []
+    for component in components:
+        if "colorbanner" not in _component_type(component):
+            continue
+
+        raw_title = collapse_text(str(component.get("title") or ""))
+        description_parts = _collect_text_list(component.get("description"))
+        notice_parts: list[str] = []
+        notice_group = component.get("noticeGroup")
+        if isinstance(notice_group, dict):
+            for notice in notice_group.values():
+                notice_parts.extend(_collect_text_list(notice))
+        context_text = collapse_text("；".join(part for part in (*description_parts, *notice_parts) if part))
+        reward_lines = [
+            line
+            for line in (*description_parts, *notice_parts)
+            if "現金回饋" in line and any(token in line for token in ("一般消費", "國內消費", "國外消費", "海外消費"))
+        ]
+        raw_body = collapse_text("；".join(reward_lines or [context_text]))
+        combined = f"{raw_title} {context_text}"
+        if "現金回饋" not in combined:
+            continue
+        if not any(token in combined for token in ("一般消費", "國內消費", "國外消費", "海外消費")):
+            continue
+
+        clean_title = normalize_promotion_title(
+            card.card_name,
+            raw_title,
+            raw_body,
+            generic_title_tokens=GENERIC_TITLE_TOKENS,
+            summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+            bank_suffixes=(BANK_NAME, "國泰世華銀行"),
+        )
+        clean_body = clean_offer_text(raw_body)
+        reward = extract_reward(clean_title, clean_body)
+        if reward is None:
+            continue
+
+        date_match = re.search(r"(20\d{2}/\d{1,2}/\d{1,2})前", combined) or re.search(r"(20\d{2}/\d{1,2}/\d{1,2})", combined)
+        valid_until = _normalize_date(date_match.group(1)) if date_match else None
+        if not valid_until:
+            continue
+        valid_from = f"{valid_until[:4]}-01-01"
+
+        requires_registration = "登錄" in clean_body
+        min_amount = extract_min_amount(clean_body)
+        max_cashback = extract_cap(clean_body)
+        category = "OTHER"
+        subcategory = "GENERAL"
+        recommendation_scope = classify_recommendation_scope(clean_title, clean_body, category)
+        conditions = build_conditions(clean_body, card.application_requirements, requires_registration)
+        conditions = append_inferred_subcategory_conditions(clean_title, clean_body, category, subcategory, conditions)
+        conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
+        conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
+        conditions = append_catalog_review_conditions(
+            clean_title,
+            clean_body,
+            recommendation_scope,
+            conditions,
+            requires_registration=requires_registration,
+        )
+        subcategory = canonicalize_subcategory(category, subcategory, conditions)
+
+        base_promotion = {
+            "title": f"{card.card_name} {clean_title}",
+            "cardCode": card.card_code,
+            "cardName": card.card_name,
+            "cardStatus": "ACTIVE",
+            "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+            "applyUrl": card.apply_url,
+            "bankCode": BANK_CODE,
+            "bankName": BANK_NAME,
+            "category": category,
+            "subcategory": subcategory,
+            "channel": "ALL",
+            "cashbackType": reward["type"],
+            "cashbackValue": reward["value"],
+            "minAmount": min_amount,
+            "maxCashback": max_cashback,
+            "frequencyLimit": extract_frequency_limit(clean_body),
+            "requiresRegistration": requires_registration,
+            "recommendationScope": recommendation_scope,
+            "eligibilityType": eligibility_type,
+            "validFrom": valid_from,
+            "validUntil": valid_until,
+            "conditions": conditions,
+            "excludedConditions": [],
+            "sourceUrl": card.detail_url,
+            "summary": build_summary(
+                clean_title,
+                clean_body,
+                valid_from,
+                valid_until,
+                min_amount,
+                max_cashback,
+                requires_registration,
+                summary_noise_tokens=SUMMARY_NOISE_TOKENS,
+            ),
+            "status": "ACTIVE",
+        }
+        promotions.extend(expand_general_reward_promotions(base_promotion, clean_title, clean_body))
+        break
+
+    return promotions
 
 
 def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:

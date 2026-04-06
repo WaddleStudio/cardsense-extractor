@@ -61,6 +61,16 @@ BANK_WIDE_TEXT_TOKENS = (
     "全行卡",
     "全卡回饋",
 )
+GENERAL_REWARD_DECOMPOSITION_MARKER = "GENERAL_REWARD_DECOMPOSED"
+GENERAL_REWARD_SCOPE_MARKER_PREFIX = "GENERAL_REWARD_SCOPE_"
+GENERAL_REWARD_TARGET_CATEGORIES = (
+    "ONLINE",
+    "DINING",
+    "TRANSPORT",
+    "SHOPPING",
+    "GROCERY",
+    "ENTERTAINMENT",
+)
 
 
 @dataclass
@@ -1183,6 +1193,252 @@ def append_bank_wide_promotion_condition(
 
     normalized_conditions.append(marker)
     return normalized_conditions
+
+
+def expand_general_reward_promotions(
+    promotion: Dict[str, object],
+    title: str,
+    text: str,
+) -> List[Dict[str, object]]:
+    subcategory = str(promotion.get("subcategory", "GENERAL") or "GENERAL").upper()
+    if subcategory not in {"", "GENERAL"}:
+        return [promotion]
+    if bool(promotion.get("requiresRegistration")) or promotion.get("planId"):
+        return [promotion]
+
+    conditions = promotion.get("conditions") or []
+    if any(
+        str(condition.get("type", "")).upper() in {
+            "MERCHANT",
+            "RETAIL_CHAIN",
+            "ECOMMERCE_PLATFORM",
+            "PAYMENT_METHOD",
+            "PAYMENT_PLATFORM",
+        }
+        for condition in conditions
+    ):
+        return [promotion]
+
+    fragments = _general_reward_candidate_fragments(title, text)
+    if not fragments:
+        return [promotion]
+
+    has_explicit_overseas_scope = any(
+        _infer_general_reward_scope(fragment, has_explicit_overseas_scope=False) == "OVERSEAS_ONLY"
+        for fragment in fragments
+    )
+
+    expanded: List[Dict[str, object]] = []
+    seen: set[tuple[object, ...]] = set()
+    for fragment in fragments:
+        scope_kind = _infer_general_reward_scope(fragment, has_explicit_overseas_scope=has_explicit_overseas_scope)
+        if scope_kind is None:
+            continue
+
+        reward = extract_reward("", fragment)
+        if reward is None:
+            reward_value = promotion.get("cashbackValue")
+            try:
+                normalized_value = float(reward_value) if reward_value is not None else None
+            except (TypeError, ValueError):
+                normalized_value = None
+            if normalized_value is None:
+                continue
+            reward = {
+                "type": str(promotion.get("cashbackType", "") or ""),
+                "value": normalized_value,
+            }
+
+        scope_label = _general_reward_scope_label(scope_kind)
+        for target_category, target_channel in _general_reward_targets(scope_kind):
+            clone = dict(promotion)
+            clone["title"] = _append_scope_suffix(str(promotion.get("title", "") or ""), scope_label)
+            clone["summary"] = collapse_text(f"{scope_label}；{fragment}")[:300]
+            clone["category"] = target_category
+            clone["subcategory"] = "GENERAL"
+            clone["channel"] = target_channel
+            clone["cashbackType"] = reward["type"]
+            clone["cashbackValue"] = reward["value"]
+            clone["conditions"] = _append_general_reward_conditions(
+                conditions,
+                scope_kind=scope_kind,
+                scope_label=scope_label,
+                fragment=fragment,
+            )
+
+            dedupe_key = (
+                clone.get("title"),
+                clone.get("category"),
+                clone.get("subcategory"),
+                clone.get("channel"),
+                clone.get("cashbackType"),
+                clone.get("cashbackValue"),
+                clone.get("planId"),
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            expanded.append(clone)
+
+    return expanded or [promotion]
+
+
+def _general_reward_candidate_fragments(title: str, text: str) -> List[str]:
+    combined = collapse_text(f"{title} {text}")
+    trigger_tokens = (
+        "國外刷一般消費",
+        "海外刷一般消費",
+        "國內刷一般消費",
+        "線上刷一般消費",
+        "一般消費",
+        "刷卡消費",
+        "國內消費",
+        "國外消費",
+        "海外消費",
+        "國內外消費",
+        "海外一般消費",
+        "國內外一般消費",
+        "店外一般消費",
+        "線上一般消費",
+    )
+    general_definition_tokens = ("一般消費定義", "一般消費")
+    generic_spend_reward_tokens = ("每消費", "消費每", "刷卡每消費", "刷卡消費每", "可累積", "自動累積")
+    exclusion_tokens = (
+        "新戶",
+        "首刷",
+        "核卡後",
+        "核卡日後",
+        "新申辦",
+        "完成任務",
+        "限回饋1次",
+        "每歸戶限回饋1次",
+        "加贈",
+        "首刷禮",
+        "申辦",
+    )
+    if any(token in combined for token in exclusion_tokens):
+        return []
+    has_trigger_token = any(token in combined for token in trigger_tokens)
+    has_general_definition = any(token in combined for token in general_definition_tokens)
+    has_generic_spend_reward = any(token in combined for token in generic_spend_reward_tokens)
+    if not has_trigger_token and not (has_general_definition and has_generic_spend_reward):
+        return []
+
+    fragments = [fragment for fragment in extract_bullets(text) if any(token in fragment for token in trigger_tokens)]
+    token_pattern = re.compile(
+        r"(線上刷一般消費|國外刷一般消費|海外刷一般消費|國內刷一般消費|線上一般消費|海外一般消費|國外一般消費|國內外一般消費|店外一般消費|國內一般消費|國外消費|海外消費|國內外消費|一般消費|刷卡消費)"
+    )
+    token_matches = list(token_pattern.finditer(combined))
+    for index, match in enumerate(token_matches):
+        next_start = token_matches[index + 1].start() if index + 1 < len(token_matches) else len(combined)
+        fragment = combined[match.start():next_start].strip(" ，、；;。")
+        if fragment:
+            fragments.append(fragment)
+    if not fragments and has_general_definition and has_generic_spend_reward:
+        fragments = [combined]
+    if not fragments and has_trigger_token:
+        fragments = [combined]
+
+    deduped: List[str] = []
+    seen: set[str] = set()
+    for fragment in fragments:
+        normalized = collapse_text(fragment)
+        if not normalized:
+            continue
+        if "一般消費定義" in normalized and not any(token in normalized for token in generic_spend_reward_tokens):
+            continue
+        if extract_reward("", normalized) is None and not any(token in normalized for token in generic_spend_reward_tokens):
+            continue
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    if not deduped and has_general_definition and has_generic_spend_reward:
+        return [combined]
+    return deduped
+
+
+def _infer_general_reward_scope(fragment: str, *, has_explicit_overseas_scope: bool) -> str | None:
+    if any(token in fragment for token in ("線上刷一般消費", "線上一般消費")):
+        return "ONLINE_ONLY"
+    if any(token in fragment for token in ("國外刷一般消費", "海外刷一般消費", "海外一般消費", "國外一般消費", "海外消費", "國外消費")):
+        return "OVERSEAS_ONLY"
+    if any(token in fragment for token in ("國內外一般消費", "國內外消費")):
+        return "ALL_WITH_OVERSEAS"
+    if any(token in fragment for token in ("國內刷一般消費", "國內一般消費", "國內消費", "店外一般消費")):
+        return "ALL_DOMESTIC"
+    if any(token in fragment for token in ("一般消費", "刷卡消費")):
+        return "ALL_DOMESTIC" if has_explicit_overseas_scope else "ALL_WITH_OVERSEAS"
+    return None
+
+
+def _general_reward_targets(scope_kind: str) -> List[tuple[str, str]]:
+    targets: List[tuple[str, str]] = []
+    if scope_kind == "ONLINE_ONLY":
+        return [("ONLINE", "ONLINE")]
+    if scope_kind == "OVERSEAS_ONLY":
+        return [("OVERSEAS", "ALL")]
+
+    for category in GENERAL_REWARD_TARGET_CATEGORIES:
+        targets.append((category, "ONLINE" if category == "ONLINE" else "ALL"))
+    if scope_kind == "ALL_WITH_OVERSEAS":
+        targets.append(("OVERSEAS", "ALL"))
+    return targets
+
+
+def _general_reward_scope_label(scope_kind: str) -> str:
+    labels = {
+        "ONLINE_ONLY": "線上一般消費",
+        "OVERSEAS_ONLY": "國外消費",
+        "ALL_WITH_OVERSEAS": "一般消費",
+        "ALL_DOMESTIC": "國內一般消費",
+    }
+    return labels.get(scope_kind, "一般消費")
+
+
+def _append_scope_suffix(title: str, scope_label: str) -> str:
+    normalized_title = collapse_text(title)
+    suffix = f"（{scope_label}）"
+    return normalized_title if normalized_title.endswith(suffix) else f"{normalized_title}{suffix}"
+
+
+def _append_general_reward_conditions(
+    conditions: Sequence[Dict[str, object]],
+    *,
+    scope_kind: str,
+    scope_label: str,
+    fragment: str,
+) -> List[Dict[str, object]]:
+    merged = [dict(condition) for condition in conditions]
+    extras = [
+        {
+            "type": "TEXT",
+            "value": GENERAL_REWARD_DECOMPOSITION_MARKER,
+            "label": "General reward decomposed for runtime matching",
+        },
+        {
+            "type": "TEXT",
+            "value": f"{GENERAL_REWARD_SCOPE_MARKER_PREFIX}{scope_kind}",
+            "label": f"General reward scope: {scope_label}",
+        },
+        {
+            "type": "TEXT",
+            "value": f"GENERAL_REWARD_FRAGMENT_{to_condition_value(fragment)}",
+            "label": fragment[:120],
+        },
+    ]
+
+    seen = {
+        (str(condition.get("type", "")).upper(), str(condition.get("value", "")).upper())
+        for condition in merged
+    }
+    for extra in extras:
+        key = (extra["type"].upper(), extra["value"].upper())
+        if key in seen:
+            continue
+        merged.append(extra)
+        seen.add(key)
+    return merged
 
 
 def to_condition_value(text: str) -> str:
