@@ -30,6 +30,8 @@ from extractor.promotion_rules import (
     canonicalize_subcategory,
     expand_general_reward_promotions,
     sanitize_payment_conditions,
+    append_inferred_cobranded_conditions,
+    append_inferred_date_conditions,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -270,6 +272,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = append_inferred_subcategory_conditions(clean_title, clean_body, category, subcategory, conditions)
         conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, clean_title, clean_body)
         conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
+        conditions = append_inferred_cobranded_conditions(clean_title, clean_body, conditions)
+        conditions = append_inferred_date_conditions(clean_title, clean_body, conditions)
         conditions = append_bank_wide_promotion_condition(
             clean_title,
             clean_body,

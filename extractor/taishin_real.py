@@ -32,6 +32,8 @@ from extractor.promotion_rules import (
     expand_general_reward_promotions,
     is_registration_heavy_catalog_offer,
     sanitize_payment_conditions,
+    append_inferred_cobranded_conditions,
+    append_inferred_date_conditions,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -357,6 +359,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
         conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
         conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
         conditions = sanitize_payment_conditions(clean_title, clean_body, conditions)
+        conditions = append_inferred_cobranded_conditions(clean_title, clean_body, conditions)
+        conditions = append_inferred_date_conditions(clean_title, clean_body, conditions)
         conditions = append_bank_wide_promotion_condition(
             clean_title,
             clean_body,
@@ -1127,6 +1131,8 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
     conditions = _append_richart_plan_conditions(plan_id, subcategory, conditions)
     conditions = _append_richart_tier_conditions(plan_id, reward["value"], conditions)
     conditions = sanitize_payment_conditions(title, focused_text, conditions)
+    conditions = append_inferred_cobranded_conditions(title, focused_text, conditions)
+    conditions = append_inferred_date_conditions(title, focused_text, conditions)
     conditions = append_bank_wide_promotion_condition(
         title,
         focused_text,
