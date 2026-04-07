@@ -75,7 +75,7 @@ def _is_bank_wide_candidate(promotion: dict[str, object]) -> bool:
     for condition in conditions:
         condition_type = str(condition.get("type", "")).upper()
         condition_value = str(condition.get("value", "")).upper()
-        if condition_type in {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM"}:
+        if condition_type in {"VENUE"}:
             return False
         if condition_type == "TEXT" and condition_value == BANK_WIDE_PROMOTION_MARKER:
             return True

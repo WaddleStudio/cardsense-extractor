@@ -245,115 +245,115 @@ CUBE_PLAN_VARIANTS: dict[str, list[dict[str, str]]] = {
 
 CUBE_VARIANT_CONDITIONS: dict[tuple[str, str], list[dict[str, str]]] = {
     ("玩數位", "AI_TOOL"): [
-        {"type": "MERCHANT", "value": "CHATGPT", "label": "ChatGPT"},
-        {"type": "MERCHANT", "value": "CANVA", "label": "Canva"},
-        {"type": "MERCHANT", "value": "CLAUDE", "label": "Claude"},
-        {"type": "MERCHANT", "value": "CURSOR", "label": "Cursor"},
-        {"type": "MERCHANT", "value": "DUOLINGO", "label": "Duolingo"},
-        {"type": "MERCHANT", "value": "GAMMA", "label": "Gamma"},
-        {"type": "MERCHANT", "value": "GEMINI", "label": "Gemini"},
-        {"type": "MERCHANT", "value": "NOTION", "label": "Notion"},
-        {"type": "MERCHANT", "value": "PERPLEXITY", "label": "Perplexity"},
-        {"type": "MERCHANT", "value": "SPEAK", "label": "Speak"},
+        {"type": "VENUE", "value": "CHATGPT", "label": "ChatGPT"},
+        {"type": "VENUE", "value": "CANVA", "label": "Canva"},
+        {"type": "VENUE", "value": "CLAUDE", "label": "Claude"},
+        {"type": "VENUE", "value": "CURSOR", "label": "Cursor"},
+        {"type": "VENUE", "value": "DUOLINGO", "label": "Duolingo"},
+        {"type": "VENUE", "value": "GAMMA", "label": "Gamma"},
+        {"type": "VENUE", "value": "GEMINI", "label": "Gemini"},
+        {"type": "VENUE", "value": "NOTION", "label": "Notion"},
+        {"type": "VENUE", "value": "PERPLEXITY", "label": "Perplexity"},
+        {"type": "VENUE", "value": "SPEAK", "label": "Speak"},
     ],
     ("玩數位", "STREAMING"): [
-        {"type": "MERCHANT", "value": "APPLE_MEDIA_SERVICES", "label": "Apple 媒體服務"},
-        {"type": "MERCHANT", "value": "GOOGLE_PLAY", "label": "Google Play"},
-        {"type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
-        {"type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
-        {"type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
-        {"type": "MERCHANT", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
-        {"type": "MERCHANT", "value": "MAX", "label": "Max"},
+        {"type": "VENUE", "value": "APPLE_MEDIA_SERVICES", "label": "Apple 媒體服務"},
+        {"type": "VENUE", "value": "GOOGLE_PLAY", "label": "Google Play"},
+        {"type": "VENUE", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"type": "VENUE", "value": "NETFLIX", "label": "Netflix"},
+        {"type": "VENUE", "value": "SPOTIFY", "label": "Spotify"},
+        {"type": "VENUE", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
+        {"type": "VENUE", "value": "MAX", "label": "Max"},
     ],
     ("玩數位", "ECOMMERCE"): [
-        {"type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮購物"},
-        {"type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo購物網"},
-        {"type": "ECOMMERCE_PLATFORM", "value": "PCHOME_24H", "label": "PChome 24h購物"},
-        {"type": "ECOMMERCE_PLATFORM", "value": "CUBE_SHOP", "label": "小樹購"},
+        {"type": "VENUE", "value": "SHOPEE", "label": "蝦皮購物"},
+        {"type": "VENUE", "value": "MOMO", "label": "momo購物網"},
+        {"type": "VENUE", "value": "PCHOME_24H", "label": "PChome 24h購物"},
+        {"type": "VENUE", "value": "CUBE_SHOP", "label": "小樹購"},
     ],
     ("玩數位", "INTERNATIONAL_ECOMMERCE"): [
-        {"type": "ECOMMERCE_PLATFORM", "value": "COUPANG", "label": "Coupang 酷澎"},
-        {"type": "ECOMMERCE_PLATFORM", "value": "TAOBAO", "label": "淘寶"},
-        {"type": "ECOMMERCE_PLATFORM", "value": "TMALL", "label": "天貓"},
+        {"type": "VENUE", "value": "COUPANG", "label": "Coupang 酷澎"},
+        {"type": "VENUE", "value": "TAOBAO", "label": "淘寶"},
+        {"type": "VENUE", "value": "TMALL", "label": "天貓"},
     ],
     ("樂饗購", "DELIVERY"): [
-        {"type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
-        {"type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+        {"type": "VENUE", "value": "UBER_EATS", "label": "Uber Eats"},
+        {"type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
     ],
     ("樂饗購", "DEPARTMENT"): [
-        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "遠東SOGO百貨"},
-        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
-        {"type": "RETAIL_CHAIN", "value": "BREEZE", "label": "微風廣場"},
-        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
-        {"type": "RETAIL_CHAIN", "value": "TAIPEI_101", "label": "台北101"},
+        {"type": "VENUE", "value": "SOGO", "label": "遠東SOGO百貨"},
+        {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"type": "VENUE", "value": "BREEZE", "label": "微風廣場"},
+        {"type": "VENUE", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+        {"type": "VENUE", "value": "TAIPEI_101", "label": "台北101"},
     ],
     ("樂饗購", "DRUGSTORE"): [
-        {"type": "RETAIL_CHAIN", "value": "COSMED", "label": "康是美"},
-        {"type": "RETAIL_CHAIN", "value": "WATSONS", "label": "屈臣氏"},
+        {"type": "VENUE", "value": "COSMED", "label": "康是美"},
+        {"type": "VENUE", "value": "WATSONS", "label": "屈臣氏"},
     ],
     ("趣旅行", "RIDESHARE"): [
-        {"type": "MERCHANT", "value": "UBER", "label": "Uber"},
-        {"type": "MERCHANT", "value": "GRAB", "label": "Grab"},
-        {"type": "MERCHANT", "value": "YOXI", "label": "yoxi"},
-        {"type": "MERCHANT", "value": "TAIWAN_TAXI", "label": "台灣大車隊"},
-        {"type": "MERCHANT", "value": "IRENT", "label": "iRent"},
+        {"type": "VENUE", "value": "UBER", "label": "Uber"},
+        {"type": "VENUE", "value": "GRAB", "label": "Grab"},
+        {"type": "VENUE", "value": "YOXI", "label": "yoxi"},
+        {"type": "VENUE", "value": "TAIWAN_TAXI", "label": "台灣大車隊"},
+        {"type": "VENUE", "value": "IRENT", "label": "iRent"},
     ],
     ("趣旅行", "AIRLINE"): [
-        {"type": "MERCHANT", "value": "CHINA_AIRLINES", "label": "中華航空"},
-        {"type": "MERCHANT", "value": "CAL", "label": "華航"},
-        {"type": "MERCHANT", "value": "EVA_AIR", "label": "長榮航空"},
-        {"type": "MERCHANT", "value": "STARLUX", "label": "星宇航空"},
-        {"type": "MERCHANT", "value": "CATHAY_PACIFIC", "label": "國泰航空"},
-        {"type": "MERCHANT", "value": "JAPAN_AIRLINES", "label": "日本航空"},
-        {"type": "MERCHANT", "value": "ANA", "label": "ANA 全日空"},
-        {"type": "MERCHANT", "value": "SINGAPORE_AIRLINES", "label": "新加坡航空"},
+        {"type": "VENUE", "value": "CHINA_AIRLINES", "label": "中華航空"},
+        {"type": "VENUE", "value": "CAL", "label": "華航"},
+        {"type": "VENUE", "value": "EVA_AIR", "label": "長榮航空"},
+        {"type": "VENUE", "value": "STARLUX", "label": "星宇航空"},
+        {"type": "VENUE", "value": "CATHAY_PACIFIC", "label": "國泰航空"},
+        {"type": "VENUE", "value": "JAPAN_AIRLINES", "label": "日本航空"},
+        {"type": "VENUE", "value": "ANA", "label": "ANA 全日空"},
+        {"type": "VENUE", "value": "SINGAPORE_AIRLINES", "label": "新加坡航空"},
     ],
     ("趣旅行", "TRAVEL_PLATFORM"): [
-        {"type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
-        {"type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
-        {"type": "MERCHANT", "value": "AGODA", "label": "Agoda"},
-        {"type": "MERCHANT", "value": "AIRBNB", "label": "Airbnb"},
-        {"type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
-        {"type": "MERCHANT", "value": "TRIP_COM", "label": "Trip.com"},
-        {"type": "MERCHANT", "value": "EZTRAVEL", "label": "ezTravel"},
+        {"type": "VENUE", "value": "KKDAY", "label": "KKday"},
+        {"type": "VENUE", "value": "KLOOK", "label": "Klook"},
+        {"type": "VENUE", "value": "AGODA", "label": "Agoda"},
+        {"type": "VENUE", "value": "AIRBNB", "label": "Airbnb"},
+        {"type": "VENUE", "value": "BOOKING", "label": "Booking.com"},
+        {"type": "VENUE", "value": "TRIP_COM", "label": "Trip.com"},
+        {"type": "VENUE", "value": "EZTRAVEL", "label": "ezTravel"},
     ],
     ("集精選", "SUPERMARKET"): [
-        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
-        {"type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
-        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯福利中心"},
-        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
+        {"type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
+        {"type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
+        {"type": "VENUE", "value": "PXMART", "label": "全聯福利中心"},
+        {"type": "VENUE", "value": "PXMART", "label": "全聯"},
     ],
     ("集精選", "CONVENIENCE_STORE"): [
-        {"type": "RETAIL_CHAIN", "value": "7_ELEVEN", "label": "7-ELEVEN"},
-        {"type": "RETAIL_CHAIN", "value": "FAMILYMART", "label": "全家便利商店"},
+        {"type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"type": "VENUE", "value": "FAMILYMART", "label": "全家便利商店"},
     ],
     ("集精選", "EV_CHARGING"): [
-        {"type": "MERCHANT", "value": "U_POWER", "label": "U-POWER"},
-        {"type": "MERCHANT", "value": "EVOASIS", "label": "EVOASIS"},
-        {"type": "MERCHANT", "value": "EVALUE", "label": "EVALUE"},
-        {"type": "MERCHANT", "value": "TAIL", "label": "TAIL"},
-        {"type": "MERCHANT", "value": "ICHARGING", "label": "iCharging"},
+        {"type": "VENUE", "value": "U_POWER", "label": "U-POWER"},
+        {"type": "VENUE", "value": "EVOASIS", "label": "EVOASIS"},
+        {"type": "VENUE", "value": "EVALUE", "label": "EVALUE"},
+        {"type": "VENUE", "value": "TAIL", "label": "TAIL"},
+        {"type": "VENUE", "value": "ICHARGING", "label": "iCharging"},
     ],
     ("集精選", "PARKING"): [
-        {"type": "MERCHANT", "value": "CHEMAJI", "label": "車麻吉"},
-        {"type": "MERCHANT", "value": "UTAGGO", "label": "uTagGo"},
+        {"type": "VENUE", "value": "CHEMAJI", "label": "車麻吉"},
+        {"type": "VENUE", "value": "UTAGGO", "label": "uTagGo"},
     ],
     ("集精選", "HOME_LIVING"): [
-        {"type": "RETAIL_CHAIN", "value": "IKEA", "label": "IKEA"},
+        {"type": "VENUE", "value": "IKEA", "label": "IKEA"},
     ],
 }
 
 FORMOSA_GAS_STATION_CONDITIONS: tuple[dict[str, str], ...] = (
-    {"type": "RETAIL_CHAIN", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
-    {"type": "RETAIL_CHAIN", "value": "TAIA", "label": "台亞"},
-    {"type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "福懋"},
+    {"type": "VENUE", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
+    {"type": "VENUE", "value": "TAIA", "label": "台亞"},
+    {"type": "VENUE", "value": "FORMOZA", "label": "福懋"},
 )
 
 FORMOSA_AFFILIATE_CONDITIONS: tuple[dict[str, str], ...] = (
-    {"type": "MERCHANT", "value": "FORMOSA_BIOMEDICAL", "label": "台塑生醫"},
-    {"type": "MERCHANT", "value": "CHANG_GUNG_BIOTECH", "label": "長庚生技"},
-    {"type": "MERCHANT", "value": "FORMOSA_SHOPPING", "label": "台塑購物網"},
-    {"type": "MERCHANT", "value": "FORMOSA_TRAVEL", "label": "台塑網旅行社"},
+    {"type": "VENUE", "value": "FORMOSA_BIOMEDICAL", "label": "台塑生醫"},
+    {"type": "VENUE", "value": "CHANG_GUNG_BIOTECH", "label": "長庚生技"},
+    {"type": "VENUE", "value": "FORMOSA_SHOPPING", "label": "台塑購物網"},
+    {"type": "VENUE", "value": "FORMOSA_TRAVEL", "label": "台塑網旅行社"},
 )
 
 FORMOSA_PROMO_DEFAULTS: dict[str, dict[str, object]] = {
@@ -1083,7 +1083,7 @@ def _extract_shopee_feature_promotions(card: CardRecord, eligibility_type: str) 
         reward={"type": "PERCENT", "value": 4.0},
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
-        conditions=[{"type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮購物"}],
+        conditions=[{"type": "VENUE", "value": "SHOPEE", "label": "蝦皮購物"}],
     ))
     promotions.append(_build_manual_promotion(
         card,
@@ -1105,8 +1105,8 @@ def _extract_shopee_feature_promotions(card: CardRecord, eligibility_type: str) 
         valid_from="2026-01-01", valid_until="2026-06-30",
         eligibility_type=eligibility_type,
         conditions=[
-            {"type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
-            {"type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+            {"type": "VENUE", "value": "UBER_EATS", "label": "Uber Eats"},
+            {"type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
         ],
     ))
     promotions.append(_build_manual_promotion(
@@ -1136,7 +1136,7 @@ def _extract_eva_feature_promotions(card: CardRecord, eligibility_type: str) -> 
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
         conditions=[
-            {"type": "MERCHANT", "value": "EVA_AIR", "label": "長榮航空"},
+            {"type": "VENUE", "value": "EVA_AIR", "label": "長榮航空"},
             {"type": "TEXT", "value": "需登錄", "label": "需登錄"},
         ],
     ))
@@ -1149,7 +1149,7 @@ def _extract_eva_feature_promotions(card: CardRecord, eligibility_type: str) -> 
         reward={"type": "MILES", "value": 0.125},
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
-        conditions=[{"type": "MERCHANT", "value": "EXPEDIA", "label": "Expedia"}],
+        conditions=[{"type": "VENUE", "value": "EXPEDIA", "label": "Expedia"}],
     ))
     promotions.append(_build_manual_promotion(
         card,
@@ -1160,7 +1160,7 @@ def _extract_eva_feature_promotions(card: CardRecord, eligibility_type: str) -> 
         reward={"type": "MILES", "value": 0.125},
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
-        conditions=[{"type": "MERCHANT", "value": "HOTELS_COM", "label": "Hotels.com"}],
+        conditions=[{"type": "VENUE", "value": "HOTELS_COM", "label": "Hotels.com"}],
     ))
     promotions.append(_build_manual_promotion(
         card,
@@ -1171,7 +1171,7 @@ def _extract_eva_feature_promotions(card: CardRecord, eligibility_type: str) -> 
         reward={"type": "PERCENT", "value": 10.0},
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
-        conditions=[{"type": "MERCHANT", "value": "EVA_AIR_DUTY_FREE", "label": "長榮航空機上免稅品"}],
+        conditions=[{"type": "VENUE", "value": "EVA_AIR_DUTY_FREE", "label": "長榮航空機上免稅品"}],
     ))
     return promotions
 
@@ -1228,7 +1228,7 @@ def _extract_asia_miles_feature_promotions(card: CardRecord, eligibility_type: s
         reward={"type": "PERCENT", "value": 8.0},
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
-        conditions=[{"type": "MERCHANT", "value": "CATHAY_PACIFIC", "label": "國泰航空"}],
+        conditions=[{"type": "VENUE", "value": "CATHAY_PACIFIC", "label": "國泰航空"}],
     ))
     return promotions
 
@@ -1284,7 +1284,7 @@ def _apply_card_specific_overrides(
             merged_conditions = [
                 condition
                 for condition in merged_conditions
-                if str(condition.get("type", "")).upper() not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"}
+                if str(condition.get("type", "")).upper() not in {"PAYMENT"}
             ]
             merged_conditions = _merge_conditions(
                 merged_conditions,
@@ -1302,7 +1302,7 @@ def _apply_card_specific_overrides(
         merged_conditions = [
             condition
             for condition in merged_conditions
-            if str(condition.get("type", "")).upper() not in {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM", "PAYMENT_METHOD", "PAYMENT_PLATFORM"}
+            if str(condition.get("type", "")).upper() not in {"VENUE", "PAYMENT"}
         ]
         return ("OTHER", "GENERAL", "ALL", recommendation_scope, merged_conditions)
 

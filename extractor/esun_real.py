@@ -48,60 +48,60 @@ UNICARD_TRANSPORT_CLUSTERS = (
         "RIDESHARE",
         "共享交通",
         (
-            {"type": "MERCHANT", "value": "GOSHARE", "label": "GoShare"},
-            {"type": "MERCHANT", "value": "WEMO", "label": "WeMo"},
+            {"type": "VENUE", "value": "GOSHARE", "label": "GoShare"},
+            {"type": "VENUE", "value": "WEMO", "label": "WeMo"},
         ),
     ),
     (
         "EV_CHARGING",
         "充電通路",
         (
-            {"type": "MERCHANT", "value": "U_POWER", "label": "U-POWER"},
-            {"type": "MERCHANT", "value": "EVOASIS", "label": "EVOASIS"},
-            {"type": "MERCHANT", "value": "AMPGO", "label": "AmpGO"},
-            {"type": "MERCHANT", "value": "NATIONWIDE_FAST_CHARGING", "label": "全國特急電"},
+            {"type": "VENUE", "value": "U_POWER", "label": "U-POWER"},
+            {"type": "VENUE", "value": "EVOASIS", "label": "EVOASIS"},
+            {"type": "VENUE", "value": "AMPGO", "label": "AmpGO"},
+            {"type": "VENUE", "value": "NATIONWIDE_FAST_CHARGING", "label": "全國特急電"},
         ),
     ),
 )
 
 UNICARD_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
     ("ESUN_UNICARD_FLEXIBLE", "MOBILE_PAY"): (
-        {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-        {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "街口支付"},
-        {"type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+        {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+        {"type": "PAYMENT", "value": "JKOPAY", "label": "街口支付"},
+        {"type": "PAYMENT", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
     ),
     ("ESUN_UNICARD_FLEXIBLE", "STREAMING"): (
-        {"type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
-        {"type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
-        {"type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
-        {"type": "MERCHANT", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
+        {"type": "VENUE", "value": "NETFLIX", "label": "Netflix"},
+        {"type": "VENUE", "value": "SPOTIFY", "label": "Spotify"},
+        {"type": "VENUE", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"type": "VENUE", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
     ),
     ("ESUN_UNICARD_SIMPLE", "SUPERMARKET"): (
-        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
-        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
-        {"type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
+        {"type": "VENUE", "value": "PXMART", "label": "全聯"},
+        {"type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
+        {"type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
     ),
     ("ESUN_UNICARD_SIMPLE", "DEPARTMENT"): (
-        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
-        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "遠東SOGO"},
-        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+        {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"type": "VENUE", "value": "SOGO", "label": "遠東SOGO"},
+        {"type": "VENUE", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
     ),
     ("ESUN_UNICARD_SIMPLE", "GAS_STATION"): (
-        {"type": "RETAIL_CHAIN", "value": "CPC", "label": "台灣中油"},
-        {"type": "RETAIL_CHAIN", "value": "NATIONWIDE_GAS", "label": "全國加油"},
-        {"type": "RETAIL_CHAIN", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
-        {"type": "RETAIL_CHAIN", "value": "TAIA", "label": "台亞"},
-        {"type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "福懋"},
+        {"type": "VENUE", "value": "CPC", "label": "台灣中油"},
+        {"type": "VENUE", "value": "NATIONWIDE_GAS", "label": "全國加油"},
+        {"type": "VENUE", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
+        {"type": "VENUE", "value": "TAIA", "label": "台亞"},
+        {"type": "VENUE", "value": "FORMOZA", "label": "福懋"},
     ),
     ("ESUN_UNICARD_UP", "SUPERMARKET"): (
-        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
-        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
-        {"type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
+        {"type": "VENUE", "value": "PXMART", "label": "全聯"},
+        {"type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
+        {"type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
     ),
     ("ESUN_UNICARD_UP", "DEPARTMENT"): (
-        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
-        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "遠東SOGO"},
-        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+        {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"type": "VENUE", "value": "SOGO", "label": "遠東SOGO"},
+        {"type": "VENUE", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
     ),
 }
 
@@ -110,49 +110,49 @@ UNICARD_HUNDRED_STORE_CLUSTER_META: dict[str, dict[str, str]] = {
         "category": "ONLINE",
         "subcategory": "GENERAL",
         "channel": "ONLINE",
-        "condition_type": "PAYMENT_PLATFORM",
+        "condition_type": "PAYMENT",
     },
     "加油交通": {
         "category": "TRANSPORT",
         "subcategory": "GENERAL",
         "channel": "ALL",
-        "condition_type": "MERCHANT",
+        "condition_type": "VENUE",
     },
     "國內百貨": {
         "category": "SHOPPING",
         "subcategory": "DEPARTMENT",
         "channel": "OFFLINE",
-        "condition_type": "RETAIL_CHAIN",
+        "condition_type": "VENUE",
     },
     "餐飲美食": {
         "category": "DINING",
         "subcategory": "GENERAL",
         "channel": "ALL",
-        "condition_type": "MERCHANT",
+        "condition_type": "VENUE",
     },
     "航空旅遊": {
         "category": "OVERSEAS",
         "subcategory": "GENERAL",
         "channel": "ALL",
-        "condition_type": "MERCHANT",
+        "condition_type": "VENUE",
     },
     "精選商家": {
         "category": "SHOPPING",
         "subcategory": "GENERAL",
         "channel": "ALL",
-        "condition_type": "RETAIL_CHAIN",
+        "condition_type": "VENUE",
     },
     "生活採買": {
         "category": "GROCERY",
         "subcategory": "GENERAL",
         "channel": "ALL",
-        "condition_type": "RETAIL_CHAIN",
+        "condition_type": "VENUE",
     },
     "電商平台": {
         "category": "ONLINE",
         "subcategory": "ECOMMERCE",
         "channel": "ONLINE",
-        "condition_type": "ECOMMERCE_PLATFORM",
+        "condition_type": "VENUE",
     },
     "國外實體": {
         "category": "OVERSEAS",
@@ -164,7 +164,7 @@ UNICARD_HUNDRED_STORE_CLUSTER_META: dict[str, dict[str, str]] = {
         "category": "OTHER",
         "subcategory": "GENERAL",
         "channel": "ALL",
-        "condition_type": "MERCHANT",
+        "condition_type": "VENUE",
     },
 }
 
@@ -175,7 +175,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "TRANSPORT",
             "subcategory": "GAS_STATION",
             "channel": "ALL",
-            "condition_type": "RETAIL_CHAIN",
+            "condition_type": "VENUE",
             "match_tokens": ("台灣中油", "中油", "全國加油", "台塑石油", "台亞", "福懋"),
             "condition_overrides": {
                 "台灣中油": ("CPC", "台灣中油"),
@@ -191,7 +191,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "TRANSPORT",
             "subcategory": "PUBLIC_TRANSIT",
             "channel": "ALL",
-            "condition_type": "MERCHANT",
+            "condition_type": "VENUE",
             "match_tokens": ("台鐵", "臺鐵", "高鐵"),
             "condition_overrides": {
                 "台鐵": ("TRA", "台鐵"),
@@ -204,7 +204,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "TRANSPORT",
             "subcategory": "RIDESHARE",
             "channel": "ALL",
-            "condition_type": "MERCHANT",
+            "condition_type": "VENUE",
             "match_tokens": ("UBER", "YOXI", "55688", "台灣大車隊"),
             "condition_overrides": {
                 "UBER": ("UBER", "Uber"),
@@ -220,7 +220,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "DINING",
             "subcategory": "DELIVERY",
             "channel": "ONLINE",
-            "condition_type": "MERCHANT",
+            "condition_type": "VENUE",
             "match_tokens": ("UBER EATS", "FOODPANDA"),
             "condition_overrides": {
                 "UBER EATS": ("UBER_EATS", "Uber Eats"),
@@ -232,7 +232,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "DINING",
             "subcategory": "RESTAURANT",
             "channel": "ALL",
-            "condition_type": "MERCHANT",
+            "condition_type": "VENUE",
             "exclude_tokens": ("UBER EATS", "FOODPANDA"),
             "condition_overrides": {
                 "EZTABLE": ("EZTABLE", "EZTABLE"),
@@ -245,7 +245,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "TRANSPORT",
             "subcategory": "AIRLINE",
             "channel": "ALL",
-            "condition_type": "MERCHANT",
+            "condition_type": "VENUE",
             "match_tokens": ("中華航空", "長榮航空", "日本航空", "台灣虎航", "樂桃航空", "酷航"),
             "condition_overrides": {
                 "中華航空": ("CHINA_AIRLINES", "中華航空"),
@@ -261,7 +261,7 @@ UNICARD_HUNDRED_STORE_VARIANTS: dict[str, tuple[dict[str, object], ...]] = {
             "category": "ONLINE",
             "subcategory": "TRAVEL_PLATFORM",
             "channel": "ONLINE",
-            "condition_type": "MERCHANT",
+            "condition_type": "VENUE",
             "exclude_tokens": ("中華航空", "長榮航空", "日本航空", "台灣虎航", "樂桃航空", "酷航"),
             "condition_overrides": {
                 "TRIP.COM": ("TRIP_COM", "Trip.com"),
@@ -285,7 +285,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "SHOPPING",
                 "subcategory": "ELECTRONICS",
                 "channel": "ALL",
-                "condition_type": "RETAIL_CHAIN",
+                "condition_type": "VENUE",
                 "match_tokens": ("APPLE", "小米", "全國電子", "燦坤"),
                 "condition_overrides": {
                     "APPLE": ("APPLE_STORE", "Apple直營店"),
@@ -299,7 +299,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "SHOPPING",
                 "subcategory": "SPORTING_GOODS",
                 "channel": "ALL",
-                "condition_type": "RETAIL_CHAIN",
+                "condition_type": "VENUE",
                 "match_tokens": ("迪卡儂",),
                 "condition_overrides": {
                     "迪卡儂": ("DECATHLON", "迪卡儂"),
@@ -312,7 +312,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "GROCERY",
                 "subcategory": "SUPERMARKET",
                 "channel": "ALL",
-                "condition_type": "RETAIL_CHAIN",
+                "condition_type": "VENUE",
                 "match_tokens": ("家樂福",),
                 "condition_overrides": {
                     "家樂福": ("CARREFOUR", "家樂福"),
@@ -323,7 +323,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "SHOPPING",
                 "subcategory": "DRUGSTORE",
                 "channel": "ALL",
-                "condition_type": "RETAIL_CHAIN",
+                "condition_type": "VENUE",
                 "match_tokens": ("屈臣氏", "康是美", "大樹藥局", "丁丁藥妝"),
                 "condition_overrides": {
                     "屈臣氏": ("WATSONS", "屈臣氏"),
@@ -337,7 +337,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "OTHER",
                 "subcategory": "HOME_LIVING",
                 "channel": "ALL",
-                "condition_type": "RETAIL_CHAIN",
+                "condition_type": "VENUE",
                 "match_tokens": ("特力屋", "HOLA", "HOI"),
                 "condition_overrides": {
                     "特力屋": ("TR_PLUS", "特力屋"),
@@ -350,7 +350,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "SHOPPING",
                 "subcategory": "APPAREL",
                 "channel": "ALL",
-                "condition_type": "RETAIL_CHAIN",
+                "condition_type": "VENUE",
                 "match_tokens": ("UNIQLO", "NET"),
                 "condition_overrides": {
                     "UNIQLO": ("UNIQLO", "UNIQLO"),
@@ -364,7 +364,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "OTHER",
                 "subcategory": "EV_CHARGING",
                 "channel": "ALL",
-                "condition_type": "MERCHANT",
+                "condition_type": "VENUE",
                 "match_tokens": ("特斯拉", "GOGORO"),
                 "condition_overrides": {
                     "特斯拉": ("TESLA_SUPERCHARGER", "特斯拉"),
@@ -376,7 +376,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "TRANSPORT",
                 "subcategory": "PUBLIC_TRANSIT",
                 "channel": "ALL",
-                "condition_type": "MERCHANT",
+                "condition_type": "VENUE",
                 "match_tokens": ("YOUBIKE",),
                 "condition_overrides": {
                     "YOUBIKE": ("YOUBIKE_2_0", "YouBike 2.0"),
@@ -387,7 +387,7 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "category": "OTHER",
                 "subcategory": "CHARITY_DONATION",
                 "channel": "ALL",
-                "condition_type": "MERCHANT",
+                "condition_type": "VENUE",
                 "match_tokens": ("愛心捐款",),
                 "condition_overrides": {
                     "單筆捐款": ("ESUN_WALLET_DONATION_SINGLE", "玉山Wallet愛心捐款-單筆捐款"),
@@ -839,8 +839,8 @@ def _build_unicard_hundred_store_promotion(
         {"type": "TEXT", "value": "UNICARD_HUNDRED_STORE_CATALOG", "label": notes},
         *_build_unicard_hundred_store_conditions(condition_type, merchant_labels, condition_overrides=condition_overrides),
     ]
-    if condition_type == "PAYMENT_PLATFORM":
-        conditions.insert(1, {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"})
+    if condition_type == "PAYMENT":
+        conditions.insert(1, {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"})
 
     summary = (
         f"{title_suffix}百大指定消費，{rate_summary}，"

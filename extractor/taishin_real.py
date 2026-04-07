@@ -104,35 +104,35 @@ RICHART_PLAN_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 RICHART_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
     ("TAISHIN_RICHART_PAY", "MOBILE_PAY"): (
-        {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-        {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "JKOPay"},
-        {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-        {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
+        {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+        {"type": "PAYMENT", "value": "JKOPAY", "label": "JKOPay"},
+        {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+        {"type": "PAYMENT", "value": "GOOGLE_PAY", "label": "Google Pay"},
     ),
     ("TAISHIN_RICHART_DAILY", "SUPERMARKET"): (
-        {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "PX Mart"},
-        {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "Carrefour"},
-        {"type": "RETAIL_CHAIN", "value": "RT_MART", "label": "RT-Mart"},
+        {"type": "VENUE", "value": "PXMART", "label": "PX Mart"},
+        {"type": "VENUE", "value": "CARREFOUR", "label": "Carrefour"},
+        {"type": "VENUE", "value": "RT_MART", "label": "RT-Mart"},
     ),
     ("TAISHIN_RICHART_BIG", "DEPARTMENT"): (
-        {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "Shin Kong Mitsukoshi"},
-        {"type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"},
-        {"type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "Far Eastern"},
+        {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "Shin Kong Mitsukoshi"},
+        {"type": "VENUE", "value": "SOGO", "label": "SOGO"},
+        {"type": "VENUE", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "Far Eastern"},
     ),
     ("TAISHIN_RICHART_DIGITAL", "STREAMING"): (
-        {"type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
-        {"type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
-        {"type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
-        {"type": "MERCHANT", "value": "FRIDAY_VIDEO", "label": "friDay Video"},
+        {"type": "VENUE", "value": "NETFLIX", "label": "Netflix"},
+        {"type": "VENUE", "value": "SPOTIFY", "label": "Spotify"},
+        {"type": "VENUE", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"type": "VENUE", "value": "FRIDAY_VIDEO", "label": "friDay Video"},
     ),
     ("TAISHIN_RICHART_TRAVEL", "TRAVEL_PLATFORM"): (
-        {"type": "MERCHANT", "value": "AGODA", "label": "Agoda"},
-        {"type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
-        {"type": "MERCHANT", "value": "HOTELS_COM", "label": "Hotels.com"},
-        {"type": "MERCHANT", "value": "TRIP_COM", "label": "Trip.com"},
-        {"type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
-        {"type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
-        {"type": "MERCHANT", "value": "ASIAYO", "label": "AsiaYo"},
+        {"type": "VENUE", "value": "AGODA", "label": "Agoda"},
+        {"type": "VENUE", "value": "BOOKING", "label": "Booking.com"},
+        {"type": "VENUE", "value": "HOTELS_COM", "label": "Hotels.com"},
+        {"type": "VENUE", "value": "TRIP_COM", "label": "Trip.com"},
+        {"type": "VENUE", "value": "KLOOK", "label": "Klook"},
+        {"type": "VENUE", "value": "KKDAY", "label": "KKday"},
+        {"type": "VENUE", "value": "ASIAYO", "label": "AsiaYo"},
     ),
 }
 RICHART_TIERED_PLAN_IDS = {
@@ -555,8 +555,8 @@ def _extract_jkopay_feature_promotions(card: CardRecord, lines: Sequence[str]) -
                 valid_from="2026-01-01",
                 valid_until="2026-12-31",
                 extra_conditions=[
-                    {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "街口支付"},
-                    {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+                    {"type": "PAYMENT", "value": "JKOPAY", "label": "街口支付"},
+                    {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
                 ],
             )
         )
@@ -619,7 +619,7 @@ def _extract_px_mart_feature_promotions(card: CardRecord, lines: Sequence[str]) 
                 channel="OFFLINE",
                 recommendation_scope="RECOMMENDABLE",
                 extra_conditions=[
-                    {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "大全聯"},
+                    {"type": "VENUE", "value": "PXMART", "label": "大全聯"},
                 ],
                 valid_from="2026-04-01",
                 valid_until="2026-06-30",
@@ -635,8 +635,8 @@ def _extract_px_mart_feature_promotions(card: CardRecord, lines: Sequence[str]) 
                 channel="ALL",
                 recommendation_scope="RECOMMENDABLE",
                 extra_conditions=[
-                    {"type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
-                    {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+                    {"type": "PAYMENT", "value": "全支付", "label": "全支付"},
+                    {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
                 ],
                 valid_from="2026-04-01",
                 valid_until="2026-06-30",
@@ -699,11 +699,11 @@ def _extract_friday_feature_promotions(card: CardRecord, lines: Sequence[str]) -
                 channel="OFFLINE",
                 recommendation_scope="CATALOG_ONLY",
                 extra_conditions=[
-                    {"type": "MERCHANT", "value": "WOWPRIME", "label": "王品集團"},
-                    {"type": "MERCHANT", "value": "TOFU_RESTAURANTS", "label": "豆府餐飲集團"},
-                    {"type": "MERCHANT", "value": "VOLTERRA_GROUP", "label": "瓦城泰統集團"},
-                    {"type": "MERCHANT", "value": "SABOTEN", "label": "勝博殿"},
-                    {"type": "MERCHANT", "value": "COLD_STONE", "label": "COLD STONE"},
+                    {"type": "VENUE", "value": "WOWPRIME", "label": "王品集團"},
+                    {"type": "VENUE", "value": "TOFU_RESTAURANTS", "label": "豆府餐飲集團"},
+                    {"type": "VENUE", "value": "VOLTERRA_GROUP", "label": "瓦城泰統集團"},
+                    {"type": "VENUE", "value": "SABOTEN", "label": "勝博殿"},
+                    {"type": "VENUE", "value": "COLD_STONE", "label": "COLD STONE"},
                 ],
             )
         )
@@ -744,14 +744,14 @@ def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -
             valid_from="2026-02-01",
             valid_until="2026-06-30",
             extra_conditions=[
-                {"type": "MERCHANT", "value": "7_ELEVEN", "label": "7-ELEVEN"},
-                {"type": "MERCHANT", "value": "FAMILY_MART", "label": "全家便利商店"},
-                {"type": "MERCHANT", "value": "THSR", "label": "高鐵"},
-                {"type": "MERCHANT", "value": "UBER", "label": "Uber"},
-                {"type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
-                {"type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
-                {"type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
-                {"type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
+                {"type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+                {"type": "VENUE", "value": "FAMILY_MART", "label": "全家便利商店"},
+                {"type": "VENUE", "value": "THSR", "label": "高鐵"},
+                {"type": "VENUE", "value": "UBER", "label": "Uber"},
+                {"type": "VENUE", "value": "UBER_EATS", "label": "Uber Eats"},
+                {"type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
+                {"type": "VENUE", "value": "KLOOK", "label": "Klook"},
+                {"type": "VENUE", "value": "KKDAY", "label": "KKday"},
             ],
         )
     )
@@ -772,7 +772,7 @@ def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -
                 channel="ALL",
                 recommendation_scope="CATALOG_ONLY",
                 extra_conditions=[
-                    {"type": "MERCHANT", "value": "GOGORO", "label": "Gogoro"},
+                    {"type": "VENUE", "value": "GOGORO", "label": "Gogoro"},
                 ],
             )
         )
@@ -793,7 +793,7 @@ def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -
                 channel="ALL",
                 recommendation_scope="CATALOG_ONLY",
                 extra_conditions=[
-                    {"type": "MERCHANT", "value": "GOGORO", "label": "Gogoro"},
+                    {"type": "VENUE", "value": "GOGORO", "label": "Gogoro"},
                 ],
             )
         )
@@ -814,7 +814,7 @@ def _extract_gogoro_feature_promotions(card: CardRecord, lines: Sequence[str]) -
                 channel="ALL",
                 recommendation_scope="CATALOG_ONLY",
                 extra_conditions=[
-                    {"type": "MERCHANT", "value": "GOGORO", "label": "Gogoro"},
+                    {"type": "VENUE", "value": "GOGORO", "label": "Gogoro"},
                 ],
                 valid_from="2026-02-01",
                 valid_until="2026-06-30",
@@ -873,7 +873,7 @@ def _extract_shin_kong_feature_promotions(card: CardRecord, lines: Sequence[str]
             valid_from="2026-01-01",
             valid_until="2026-12-31",
             extra_conditions=[
-                {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+                {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
             ],
         ),
     ]
@@ -906,7 +906,7 @@ def _extract_shin_kong_world_feature_promotions(card: CardRecord, lines: Sequenc
             valid_from="2026-01-01",
             valid_until="2026-12-31",
             extra_conditions=[
-                {"type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+                {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
             ],
         ),
     ]
@@ -939,7 +939,7 @@ def _extract_tsann_kuen_feature_promotions(card: CardRecord, lines: Sequence[str
             valid_from="2026-01-01",
             valid_until="2026-12-31",
             extra_conditions=[
-                {"type": "RETAIL_CHAIN", "value": "TSANN_KUEN", "label": "燦坤"},
+                {"type": "VENUE", "value": "TSANN_KUEN", "label": "燦坤"},
             ],
         ),
     ]

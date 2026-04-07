@@ -452,7 +452,7 @@ def _extract_openpossible_feature_promotions(card: CardRecord, eligibility_type:
         reward={"type": "PERCENT", "value": 5.0},
         valid_from="2026-01-01", valid_until="2026-12-31",
         eligibility_type=eligibility_type,
-        conditions=[{"type": "ECOMMERCE_PLATFORM", "value": "MYFONE", "label": "myfone購物"}],
+        conditions=[{"type": "VENUE", "value": "MYFONE", "label": "myfone購物"}],
     ))
     return promotions
 
@@ -557,17 +557,17 @@ def _apply_card_specific_overrides(
     merged_conditions = [dict(condition) for condition in conditions]
 
     if _should_drop_exclusion_only_payment_conditions(title, body):
-        merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM"})
+        merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT"})
 
     if "高鐵除外" in text and category == "TRANSPORT" and subcategory == "PUBLIC_TRANSIT":
-        merged_conditions = _drop_condition_types(merged_conditions, {"MERCHANT"})
+        merged_conditions = _drop_condition_types(merged_conditions, {"VENUE"})
 
     if any(token in text for token in ("即享券適用範圍", "即享券適用通路")) and any(
         token in text for token in ("推薦", "新戶", "專屬連結")
     ):
         merged_conditions = _drop_condition_types(
             merged_conditions,
-            {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM"},
+            {"VENUE"},
         )
         return ("OTHER", "GENERAL", "ALL", recommendation_scope, merged_conditions)
 
@@ -582,31 +582,31 @@ def _apply_card_specific_overrides(
                 condition
                 for condition in merged_conditions
                 if not (
-                    str(condition.get("type", "")).upper() == "ECOMMERCE_PLATFORM"
+                    str(condition.get("type", "")).upper() == "VENUE"
                     and str(condition.get("value", "")).upper() == "MOMO"
                 )
             ]
             return (category, "GENERAL", "ONLINE", recommendation_scope, merged_conditions)
 
         if "店外滿額" in title and "店內最高" in title:
-            merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM"})
+            merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT"})
             return ("ONLINE", "GENERAL", "ALL", "CATALOG_ONLY", merged_conditions)
 
     if card_code == "FUBON_OMIYAGE":
         if any(token in text for token in ("日本三大交通卡", "Suica", "PASMO", "ICOCA")) and "Apple Pay" in text:
             merged_conditions = _merge_conditions(
-                _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM", "MERCHANT"}),
+                _drop_condition_types(merged_conditions, {"PAYMENT", "VENUE"}),
                 [
-                    {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-                    {"type": "MERCHANT", "value": "SUICA", "label": "Suica"},
-                    {"type": "MERCHANT", "value": "PASMO", "label": "PASMO"},
-                    {"type": "MERCHANT", "value": "ICOCA", "label": "ICOCA"},
+                    {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+                    {"type": "VENUE", "value": "SUICA", "label": "Suica"},
+                    {"type": "VENUE", "value": "PASMO", "label": "PASMO"},
+                    {"type": "VENUE", "value": "ICOCA", "label": "ICOCA"},
                 ],
             )
             return ("TRANSPORT", "PUBLIC_TRANSIT", "ONLINE", recommendation_scope, merged_conditions)
 
         if "活動餐廳：" in text or "指定餐廳" in title:
-            merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT_METHOD", "PAYMENT_PLATFORM"})
+            merged_conditions = _drop_condition_types(merged_conditions, {"PAYMENT"})
             return ("DINING", "GENERAL", "OFFLINE", "CATALOG_ONLY", merged_conditions)
 
     return category, subcategory, channel, recommendation_scope, merged_conditions

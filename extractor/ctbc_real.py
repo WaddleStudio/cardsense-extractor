@@ -487,18 +487,18 @@ def _refine_ctbc_promotion(
         refined_conditions = _replace_payment_conditions(
             refined_conditions,
             [
-                {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-                {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
-                {"type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+                {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+                {"type": "PAYMENT", "value": "GOOGLE_PAY", "label": "Google Pay"},
+                {"type": "PAYMENT", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
             ],
         )
         refined_conditions = _merge_conditions(
             refined_conditions,
             [
-                {"type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮購物"},
-                {"type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo"},
-                {"type": "ECOMMERCE_PLATFORM", "value": "COUPANG", "label": "Coupang"},
-                {"type": "ECOMMERCE_PLATFORM", "value": "TAOBAO", "label": "淘寶"},
+                {"type": "VENUE", "value": "SHOPEE", "label": "蝦皮購物"},
+                {"type": "VENUE", "value": "MOMO", "label": "momo"},
+                {"type": "VENUE", "value": "COUPANG", "label": "Coupang"},
+                {"type": "VENUE", "value": "TAOBAO", "label": "淘寶"},
             ],
         )
 
@@ -509,21 +509,21 @@ def _refine_ctbc_promotion(
         refined_conditions = _replace_payment_conditions(
             refined_conditions,
             [
-                {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-                {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
-                {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-                {"type": "PAYMENT_PLATFORM", "value": "HAPPY_GO_PAY", "label": "HAPPY GO Pay"},
+                {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+                {"type": "PAYMENT", "value": "GOOGLE_PAY", "label": "Google Pay"},
+                {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+                {"type": "PAYMENT", "value": "HAPPY_GO_PAY", "label": "HAPPY GO Pay"},
             ],
         )
         refined_conditions = _merge_conditions(
             refined_conditions,
-            [{"type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"}],
+            [{"type": "VENUE", "value": "SOGO", "label": "SOGO"}],
         )
 
     if "Hami Pay掃碼支付" in text and "始符合回饋資格" in text:
         refined_conditions = _merge_conditions(
             refined_conditions,
-            [{"type": "PAYMENT_PLATFORM", "value": "HAMI_PAY", "label": "Hami Pay"}],
+            [{"type": "PAYMENT", "value": "HAMI_PAY", "label": "Hami Pay"}],
         )
 
     if "遠東SOGO百貨即享券專區" in text and "核卡後 30天內" in text:
@@ -561,7 +561,7 @@ def _replace_payment_conditions(
     kept = [
         dict(condition)
         for condition in conditions
-        if str(condition.get("type", "")).upper() not in {"PAYMENT_PLATFORM", "PAYMENT_METHOD"}
+        if str(condition.get("type", "")).upper() not in {"PAYMENT"}
     ]
     return _merge_conditions(kept, replacements)
 
