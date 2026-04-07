@@ -1057,6 +1057,62 @@ def append_inferred_cobranded_conditions(
     return merged
 
 
+_DAY_OF_WEEK_MAP: Dict[str, str] = {
+    "一": "MON", "二": "TUE", "三": "WED", "四": "THU",
+    "五": "FRI", "六": "SAT", "日": "SUN",
+}
+
+_DAY_OF_WEEK_LABELS: Dict[str, str] = {
+    "MON": "每週一", "TUE": "每週二", "WED": "每週三", "THU": "每週四",
+    "FRI": "每週五", "SAT": "每週六", "SUN": "每週日", "WEEKEND": "週末限定",
+}
+
+_RE_DAY_OF_MONTH = re.compile(r"(?:每月)?(\d{1,2})號(?:卡友日)?")
+_RE_DAY_OF_WEEK = re.compile(r"(?:每)?週([一二三四五六日][、，,]?(?:[一二三四五六日][、，,]?)*)")
+_RE_WEEKEND = re.compile(r"週末|假日")
+
+
+def append_inferred_date_conditions(
+    title: str,
+    body: str,
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """Add DAY_OF_MONTH / DAY_OF_WEEK conditions from date patterns in title/body."""
+    text = f"{title} {body}"
+    merged = list(conditions)
+    seen = {
+        (str(c.get("type", "")).upper(), str(c.get("value", "")).upper())
+        for c in merged
+    }
+
+    # DAY_OF_MONTH: 每月13號, 13號卡友日
+    for match in _RE_DAY_OF_MONTH.finditer(text):
+        day = match.group(1)
+        key = ("DAY_OF_MONTH", day)
+        if key not in seen:
+            merged.append({"type": "DAY_OF_MONTH", "value": day, "label": f"每月{day}號"})
+            seen.add(key)
+
+    # DAY_OF_WEEK: 每週三, 週五, 週五六, 週五、六
+    for match in _RE_DAY_OF_WEEK.finditer(text):
+        day_chars = [ch for ch in match.group(1) if ch in _DAY_OF_WEEK_MAP]
+        for cn_day in day_chars:
+            value = _DAY_OF_WEEK_MAP[cn_day]
+            key = ("DAY_OF_WEEK", value)
+            if key not in seen:
+                merged.append({"type": "DAY_OF_WEEK", "value": value, "label": _DAY_OF_WEEK_LABELS[value]})
+                seen.add(key)
+
+    # WEEKEND: 週末, 假日
+    if _RE_WEEKEND.search(text):
+        key = ("DAY_OF_WEEK", "WEEKEND")
+        if key not in seen:
+            merged.append({"type": "DAY_OF_WEEK", "value": "WEEKEND", "label": "週末限定"})
+            seen.add(key)
+
+    return merged
+
+
 def canonicalize_subcategory(
     category: str | None,
     subcategory: str | None,
