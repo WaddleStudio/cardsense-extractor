@@ -784,6 +784,13 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
     ],
 }
 
+# Co-branded card retailer signals — matched against title+body regardless of subcategory.
+# Unlike STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS, these are NOT gated by subcategory != GENERAL.
+COBRANDED_RETAILER_SIGNALS: List[Dict[str, str]] = [
+    {"token": "中友百貨", "type": "RETAIL_CHAIN", "value": "CHUNGYO", "label": "中友百貨"},
+    {"token": "大江", "type": "RETAIL_CHAIN", "value": "METROWALK", "label": "大江購物中心"},
+]
+
 PAYMENT_METHOD_SUBCATEGORY_CONDITIONS: Dict[tuple[str, str], Dict[str, str]] = {
     ("ONLINE", "MOBILE_PAY"): {
         "type": "PAYMENT_METHOD",
@@ -1024,6 +1031,29 @@ def append_inferred_payment_method_conditions(
     has_existing_payment_condition = any(condition_type in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition_type, _ in seen)
     if key not in seen and (has_existing_payment_condition or _has_positive_payment_signal(text, inferred["value"].upper())):
         merged.append(dict(inferred))
+    return merged
+
+
+def append_inferred_cobranded_conditions(
+    title: str,
+    body: str,
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """Add RETAIL_CHAIN conditions when title/body mentions a co-branded retailer."""
+    text = f"{title} {body}"
+    merged = list(conditions)
+    seen = {
+        (str(c.get("type", "")).upper(), str(c.get("value", "")).upper())
+        for c in merged
+    }
+    for signal in COBRANDED_RETAILER_SIGNALS:
+        if signal["token"] not in text:
+            continue
+        key = (signal["type"].upper(), signal["value"].upper())
+        if key in seen:
+            continue
+        merged.append({"type": signal["type"], "value": signal["value"], "label": signal["label"]})
+        seen.add(key)
     return merged
 
 
