@@ -548,7 +548,8 @@ SUBCATEGORY_SIGNALS: Dict[str, Dict[str, List[tuple[str, int]]]] = {
     "ENTERTAINMENT": {
         "MOVIE":      [("電影", 5), ("影城", 5), ("威秀", 4), ("秀泰", 4), ("國賓", 4), ("影廳", 3)],
         "THEME_PARK": [("樂園", 5), ("遊樂", 5), ("麗寶", 4), ("六福村", 4), ("劍湖山", 4), ("門票", 3)],
-        "VENUE":      [("KTV", 5), ("好樂迪", 4), ("錢櫃", 4), ("桌遊", 3), ("保齡球", 3)],
+        "SINGING":    [("KTV", 5), ("好樂迪", 4), ("錢櫃", 4)],
+        "LIVE_EVENT": [("桌遊", 3), ("保齡球", 3), ("展演", 4), ("演唱會", 4), ("音樂祭", 3)],
         "STREAMING":  [("Netflix", 5), ("Spotify", 4), ("KKBOX", 4), ("串流", 4), ("Disney+", 4), ("訂閱", 2)],
     },
     "DINING": {
@@ -675,125 +676,125 @@ def infer_subcategory(
 
 STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, str]]] = {
     ("ONLINE", "ECOMMERCE"): [
-        {"token": "PChome 24h", "type": "ECOMMERCE_PLATFORM", "value": "PCHOME_24H", "label": "PChome 24h"},
-        {"token": "PChome", "type": "ECOMMERCE_PLATFORM", "value": "PCHOME_24H", "label": "PChome 24h"},
-        {"token": "momo", "type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo"},
-        {"token": "蝦皮", "type": "ECOMMERCE_PLATFORM", "value": "SHOPEE", "label": "蝦皮"},
-        {"token": "Yahoo", "type": "ECOMMERCE_PLATFORM", "value": "YAHOO", "label": "Yahoo"},
-        {"token": "Coupang", "type": "ECOMMERCE_PLATFORM", "value": "COUPANG", "label": "Coupang"},
-        {"token": "淘寶", "type": "ECOMMERCE_PLATFORM", "value": "TAOBAO", "label": "淘寶"},
-        {"token": "天貓", "type": "ECOMMERCE_PLATFORM", "value": "TMALL", "label": "天貓"},
+        {"token": "PChome 24h", "type": "VENUE", "value": "PCHOME_24H", "label": "PChome 24h"},
+        {"token": "PChome", "type": "VENUE", "value": "PCHOME_24H", "label": "PChome 24h"},
+        {"token": "momo", "type": "VENUE", "value": "MOMO", "label": "momo"},
+        {"token": "蝦皮", "type": "VENUE", "value": "SHOPEE", "label": "蝦皮"},
+        {"token": "Yahoo", "type": "VENUE", "value": "YAHOO", "label": "Yahoo"},
+        {"token": "Coupang", "type": "VENUE", "value": "COUPANG", "label": "Coupang"},
+        {"token": "淘寶", "type": "VENUE", "value": "TAOBAO", "label": "淘寶"},
+        {"token": "天貓", "type": "VENUE", "value": "TMALL", "label": "天貓"},
     ],
     ("ONLINE", "MOBILE_PAY"): [
-        {"token": "LINE Pay", "type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-        {"token": "Apple Pay", "type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-        {"token": "Google Pay", "type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
-        {"token": "Samsung Pay", "type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
-        {"token": "街口", "type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "JKOPay"},
-        {"token": "玉山WALLET電子支付", "type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
-        {"token": "玉山 Wallet電子支付", "type": "PAYMENT_PLATFORM", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
-        {"token": "全支付", "type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
-        {"token": "街口支付", "type": "PAYMENT_PLATFORM", "value": "街口支付", "label": "街口支付"},
-        {"token": "悠遊付", "type": "PAYMENT_PLATFORM", "value": "悠遊付", "label": "悠遊付"},
-        {"token": "全盈+PAY", "type": "PAYMENT_PLATFORM", "value": "全盈_PAY", "label": "全盈+PAY"},
-        {"token": "iPASS MONEY", "type": "PAYMENT_PLATFORM", "value": "IPASS_MONEY", "label": "iPASS MONEY"},
-        {"token": "icash Pay", "type": "PAYMENT_PLATFORM", "value": "ICASH_PAY", "label": "icash Pay"},
+        {"token": "LINE Pay", "type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+        {"token": "Apple Pay", "type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+        {"token": "Google Pay", "type": "PAYMENT", "value": "GOOGLE_PAY", "label": "Google Pay"},
+        {"token": "Samsung Pay", "type": "PAYMENT", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+        {"token": "街口", "type": "PAYMENT", "value": "JKOPAY", "label": "JKOPay"},
+        {"token": "玉山WALLET電子支付", "type": "PAYMENT", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+        {"token": "玉山 Wallet電子支付", "type": "PAYMENT", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+        {"token": "全支付", "type": "PAYMENT", "value": "全支付", "label": "全支付"},
+        {"token": "街口支付", "type": "PAYMENT", "value": "街口支付", "label": "街口支付"},
+        {"token": "悠遊付", "type": "PAYMENT", "value": "悠遊付", "label": "悠遊付"},
+        {"token": "全盈+PAY", "type": "PAYMENT", "value": "全盈_PAY", "label": "全盈+PAY"},
+        {"token": "iPASS MONEY", "type": "PAYMENT", "value": "IPASS_MONEY", "label": "iPASS MONEY"},
+        {"token": "icash Pay", "type": "PAYMENT", "value": "ICASH_PAY", "label": "icash Pay"},
     ],
     ("ONLINE", "AI_TOOL"): [
-        {"token": "ChatGPT", "type": "MERCHANT", "value": "CHATGPT", "label": "ChatGPT"},
-        {"token": "Claude", "type": "MERCHANT", "value": "CLAUDE", "label": "Claude"},
-        {"token": "Cursor", "type": "MERCHANT", "value": "CURSOR", "label": "Cursor"},
-        {"token": "Gemini", "type": "MERCHANT", "value": "GEMINI", "label": "Gemini"},
-        {"token": "Perplexity", "type": "MERCHANT", "value": "PERPLEXITY", "label": "Perplexity"},
-        {"token": "Notion", "type": "MERCHANT", "value": "NOTION", "label": "Notion"},
-        {"token": "Canva", "type": "MERCHANT", "value": "CANVA", "label": "Canva"},
-        {"token": "Gamma", "type": "MERCHANT", "value": "GAMMA", "label": "Gamma"},
+        {"token": "ChatGPT", "type": "VENUE", "value": "CHATGPT", "label": "ChatGPT"},
+        {"token": "Claude", "type": "VENUE", "value": "CLAUDE", "label": "Claude"},
+        {"token": "Cursor", "type": "VENUE", "value": "CURSOR", "label": "Cursor"},
+        {"token": "Gemini", "type": "VENUE", "value": "GEMINI", "label": "Gemini"},
+        {"token": "Perplexity", "type": "VENUE", "value": "PERPLEXITY", "label": "Perplexity"},
+        {"token": "Notion", "type": "VENUE", "value": "NOTION", "label": "Notion"},
+        {"token": "Canva", "type": "VENUE", "value": "CANVA", "label": "Canva"},
+        {"token": "Gamma", "type": "VENUE", "value": "GAMMA", "label": "Gamma"},
     ],
     ("ONLINE", "TRAVEL_PLATFORM"): [
-        {"token": "Hotels.com", "type": "MERCHANT", "value": "HOTELS_COM", "label": "Hotels.com"},
-        {"token": "Agoda", "type": "MERCHANT", "value": "AGODA", "label": "Agoda"},
-        {"token": "Booking.com", "type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
-        {"token": "Booking", "type": "MERCHANT", "value": "BOOKING", "label": "Booking.com"},
-        {"token": "Trip.com", "type": "MERCHANT", "value": "TRIP_COM", "label": "Trip.com"},
-        {"token": "AsiaYo", "type": "MERCHANT", "value": "ASIAYO", "label": "AsiaYo"},
-        {"token": "Klook", "type": "MERCHANT", "value": "KLOOK", "label": "Klook"},
-        {"token": "KKday", "type": "MERCHANT", "value": "KKDAY", "label": "KKday"},
-        {"token": "AIRSIM", "type": "MERCHANT", "value": "AIRSIM", "label": "AIRSIM"},
+        {"token": "Hotels.com", "type": "VENUE", "value": "HOTELS_COM", "label": "Hotels.com"},
+        {"token": "Agoda", "type": "VENUE", "value": "AGODA", "label": "Agoda"},
+        {"token": "Booking.com", "type": "VENUE", "value": "BOOKING", "label": "Booking.com"},
+        {"token": "Booking", "type": "VENUE", "value": "BOOKING", "label": "Booking.com"},
+        {"token": "Trip.com", "type": "VENUE", "value": "TRIP_COM", "label": "Trip.com"},
+        {"token": "AsiaYo", "type": "VENUE", "value": "ASIAYO", "label": "AsiaYo"},
+        {"token": "Klook", "type": "VENUE", "value": "KLOOK", "label": "Klook"},
+        {"token": "KKday", "type": "VENUE", "value": "KKDAY", "label": "KKday"},
+        {"token": "AIRSIM", "type": "VENUE", "value": "AIRSIM", "label": "AIRSIM"},
     ],
     ("ENTERTAINMENT", "STREAMING"): [
-        {"token": "Netflix", "type": "MERCHANT", "value": "NETFLIX", "label": "Netflix"},
-        {"token": "Spotify", "type": "MERCHANT", "value": "SPOTIFY", "label": "Spotify"},
-        {"token": "Disney+", "type": "MERCHANT", "value": "DISNEY_PLUS", "label": "Disney+"},
-        {"token": "YouTube Premium", "type": "MERCHANT", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
-        {"token": "friDay", "type": "MERCHANT", "value": "FRIDAY_VIDEO", "label": "friDay Video"},
-        {"token": "MyVideo", "type": "MERCHANT", "value": "MYVIDEO", "label": "MyVideo"},
+        {"token": "Netflix", "type": "VENUE", "value": "NETFLIX", "label": "Netflix"},
+        {"token": "Spotify", "type": "VENUE", "value": "SPOTIFY", "label": "Spotify"},
+        {"token": "Disney+", "type": "VENUE", "value": "DISNEY_PLUS", "label": "Disney+"},
+        {"token": "YouTube Premium", "type": "VENUE", "value": "YOUTUBE_PREMIUM", "label": "YouTube Premium"},
+        {"token": "friDay", "type": "VENUE", "value": "FRIDAY_VIDEO", "label": "friDay Video"},
+        {"token": "MyVideo", "type": "VENUE", "value": "MYVIDEO", "label": "MyVideo"},
     ],
     ("DINING", "DELIVERY"): [
-        {"token": "Uber Eats", "type": "MERCHANT", "value": "UBER_EATS", "label": "Uber Eats"},
-        {"token": "foodpanda", "type": "MERCHANT", "value": "FOODPANDA", "label": "foodpanda"},
+        {"token": "Uber Eats", "type": "VENUE", "value": "UBER_EATS", "label": "Uber Eats"},
+        {"token": "foodpanda", "type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
     ],
     ("TRANSPORT", "RIDESHARE"): [
-        {"token": "Uber", "type": "MERCHANT", "value": "UBER", "label": "Uber"},
-        {"token": "Grab", "type": "MERCHANT", "value": "GRAB", "label": "Grab"},
-        {"token": "yoxi", "type": "MERCHANT", "value": "YOXI", "label": "yoxi"},
-        {"token": "GoShare", "type": "MERCHANT", "value": "GOSHARE", "label": "GoShare"},
-        {"token": "WeMo", "type": "MERCHANT", "value": "WEMO", "label": "WeMo"},
+        {"token": "Uber", "type": "VENUE", "value": "UBER", "label": "Uber"},
+        {"token": "Grab", "type": "VENUE", "value": "GRAB", "label": "Grab"},
+        {"token": "yoxi", "type": "VENUE", "value": "YOXI", "label": "yoxi"},
+        {"token": "GoShare", "type": "VENUE", "value": "GOSHARE", "label": "GoShare"},
+        {"token": "WeMo", "type": "VENUE", "value": "WEMO", "label": "WeMo"},
     ],
     ("TRANSPORT", "PUBLIC_TRANSIT"): [
-        {"token": "台鐵", "type": "MERCHANT", "value": "TRA", "label": "台鐵"},
-        {"token": "臺鐵", "type": "MERCHANT", "value": "TRA", "label": "台鐵"},
-        {"token": "高鐵", "type": "MERCHANT", "value": "THSR", "label": "高鐵"},
-        {"token": "THSR", "type": "MERCHANT", "value": "THSR", "label": "高鐵"},
+        {"token": "台鐵", "type": "VENUE", "value": "TRA", "label": "台鐵"},
+        {"token": "臺鐵", "type": "VENUE", "value": "TRA", "label": "台鐵"},
+        {"token": "高鐵", "type": "VENUE", "value": "THSR", "label": "高鐵"},
+        {"token": "THSR", "type": "VENUE", "value": "THSR", "label": "高鐵"},
     ],
     ("TRANSPORT", "AIRLINE"): [
-        {"token": "華航", "type": "MERCHANT", "value": "CHINA_AIRLINES", "label": "華航"},
-        {"token": "長榮航空", "type": "MERCHANT", "value": "EVA_AIR", "label": "長榮航空"},
-        {"token": "星宇航空", "type": "MERCHANT", "value": "STARLUX", "label": "星宇航空"},
-        {"token": "國泰航空", "type": "MERCHANT", "value": "CATHAY_PACIFIC", "label": "國泰航空"},
-        {"token": "ANA", "type": "MERCHANT", "value": "ANA", "label": "ANA"},
+        {"token": "華航", "type": "VENUE", "value": "CHINA_AIRLINES", "label": "華航"},
+        {"token": "長榮航空", "type": "VENUE", "value": "EVA_AIR", "label": "長榮航空"},
+        {"token": "星宇航空", "type": "VENUE", "value": "STARLUX", "label": "星宇航空"},
+        {"token": "國泰航空", "type": "VENUE", "value": "CATHAY_PACIFIC", "label": "國泰航空"},
+        {"token": "ANA", "type": "VENUE", "value": "ANA", "label": "ANA"},
     ],
     ("GROCERY", "SUPERMARKET"): [
-        {"token": "全聯", "type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
-        {"token": "家樂福", "type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
-        {"token": "LOPIA", "type": "RETAIL_CHAIN", "value": "LOPIA", "label": "LOPIA"},
-        {"token": "RT-Mart", "type": "RETAIL_CHAIN", "value": "RT_MART", "label": "RT-Mart"},
+        {"token": "全聯", "type": "VENUE", "value": "PXMART", "label": "全聯"},
+        {"token": "家樂福", "type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
+        {"token": "LOPIA", "type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
+        {"token": "RT-Mart", "type": "VENUE", "value": "RT_MART", "label": "RT-Mart"},
     ],
     ("SHOPPING", "DEPARTMENT"): [
-        {"token": "SOGO", "type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"},
-        {"token": "新光三越", "type": "RETAIL_CHAIN", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
-        {"token": "遠東百貨", "type": "RETAIL_CHAIN", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
-        {"token": "微風", "type": "RETAIL_CHAIN", "value": "BREEZE", "label": "微風"},
-        {"token": "台北101", "type": "RETAIL_CHAIN", "value": "TAIPEI_101", "label": "台北101"},
+        {"token": "SOGO", "type": "VENUE", "value": "SOGO", "label": "SOGO"},
+        {"token": "新光三越", "type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "新光三越"},
+        {"token": "遠東百貨", "type": "VENUE", "value": "FAR_EAST_DEPARTMENT_STORE", "label": "遠東百貨"},
+        {"token": "微風", "type": "VENUE", "value": "BREEZE", "label": "微風"},
+        {"token": "台北101", "type": "VENUE", "value": "TAIPEI_101", "label": "台北101"},
     ],
     ("SHOPPING", "DRUGSTORE"): [
-        {"token": "康是美", "type": "RETAIL_CHAIN", "value": "COSMED", "label": "康是美"},
-        {"token": "屈臣氏", "type": "RETAIL_CHAIN", "value": "WATSONS", "label": "屈臣氏"},
+        {"token": "康是美", "type": "VENUE", "value": "COSMED", "label": "康是美"},
+        {"token": "屈臣氏", "type": "VENUE", "value": "WATSONS", "label": "屈臣氏"},
     ],
     ("OTHER", "EV_CHARGING"): [
-        {"token": "U-POWER", "type": "MERCHANT", "value": "U_POWER", "label": "U-POWER"},
-        {"token": "EVOASIS", "type": "MERCHANT", "value": "EVOASIS", "label": "EVOASIS"},
-        {"token": "AmpGO", "type": "MERCHANT", "value": "AMPGO", "label": "AmpGO"},
-        {"token": "iCharging", "type": "MERCHANT", "value": "ICHARGING", "label": "iCharging"},
+        {"token": "U-POWER", "type": "VENUE", "value": "U_POWER", "label": "U-POWER"},
+        {"token": "EVOASIS", "type": "VENUE", "value": "EVOASIS", "label": "EVOASIS"},
+        {"token": "AmpGO", "type": "VENUE", "value": "AMPGO", "label": "AmpGO"},
+        {"token": "iCharging", "type": "VENUE", "value": "ICHARGING", "label": "iCharging"},
     ],
     ("TRANSPORT", "GAS_STATION"): [
-        {"token": "台灣中油", "type": "RETAIL_CHAIN", "value": "CPC", "label": "台灣中油"},
-        {"token": "全國加油", "type": "RETAIL_CHAIN", "value": "NATIONWIDE_GAS", "label": "全國加油"},
-        {"token": "台塑石油", "type": "RETAIL_CHAIN", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
-        {"token": "台亞", "type": "RETAIL_CHAIN", "value": "TAIA", "label": "台亞"},
-        {"token": "福懋", "type": "RETAIL_CHAIN", "value": "FORMOZA", "label": "福懋"},
+        {"token": "台灣中油", "type": "VENUE", "value": "CPC", "label": "台灣中油"},
+        {"token": "全國加油", "type": "VENUE", "value": "NATIONWIDE_GAS", "label": "全國加油"},
+        {"token": "台塑石油", "type": "VENUE", "value": "FORMOSA_PETROCHEMICAL", "label": "台塑石油"},
+        {"token": "台亞", "type": "VENUE", "value": "TAIA", "label": "台亞"},
+        {"token": "福懋", "type": "VENUE", "value": "FORMOZA", "label": "福懋"},
     ],
 }
 
 # Co-branded card retailer signals — matched against title+body regardless of subcategory.
 # Unlike STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS, these are NOT gated by subcategory != GENERAL.
 COBRANDED_RETAILER_SIGNALS: List[Dict[str, str]] = [
-    {"token": "中友百貨", "type": "RETAIL_CHAIN", "value": "CHUNGYO", "label": "中友百貨"},
-    {"token": "大江", "type": "RETAIL_CHAIN", "value": "METROWALK", "label": "大江購物中心"},
+    {"token": "中友百貨", "type": "VENUE", "value": "CHUNGYO", "label": "中友百貨"},
+    {"token": "大江", "type": "VENUE", "value": "METROWALK", "label": "大江購物中心"},
 ]
 
 PAYMENT_METHOD_SUBCATEGORY_CONDITIONS: Dict[tuple[str, str], Dict[str, str]] = {
     ("ONLINE", "MOBILE_PAY"): {
-        "type": "PAYMENT_METHOD",
+        "type": "PAYMENT",
         "value": "MOBILE_PAY",
         "label": "行動支付",
     },
@@ -872,7 +873,7 @@ PAYMENT_NEGATION_TOKENS: tuple[str, ...] = (
 
 def _canonicalize_payment_condition(condition: Dict[str, str]) -> Dict[str, str]:
     normalized_type = str(condition.get("type", "")).upper()
-    if normalized_type != "PAYMENT_PLATFORM":
+    if normalized_type != "PAYMENT":
         return dict(condition)
 
     canonical = PAYMENT_PLATFORM_VALUE_ALIASES.get(str(condition.get("value", "")).strip())
@@ -881,7 +882,7 @@ def _canonicalize_payment_condition(condition: Dict[str, str]) -> Dict[str, str]
 
     return {
         **condition,
-        "type": "PAYMENT_PLATFORM",
+        "type": "PAYMENT",
         "value": canonical[0],
         "label": canonical[1],
     }
@@ -935,11 +936,11 @@ def sanitize_payment_conditions(
         normalized_type = str(condition.get("type", "")).upper()
         normalized_value = str(condition.get("value", "")).upper()
 
-        if normalized_type == "PAYMENT_PLATFORM" and not _has_positive_payment_signal(text, normalized_value):
+        if normalized_type == "PAYMENT" and not _has_positive_payment_signal(text, normalized_value):
             continue
-        if normalized_type == "PAYMENT_METHOD" and normalized_value == "MOBILE_PAY":
+        if normalized_type == "PAYMENT" and normalized_value == "MOBILE_PAY":
             has_positive_platform = any(
-                str(existing.get("type", "")).upper() == "PAYMENT_PLATFORM"
+                str(existing.get("type", "")).upper() == "PAYMENT"
                 for existing in merged
             )
             if not has_positive_platform and not _has_positive_payment_signal(text, "MOBILE_PAY"):
@@ -993,7 +994,7 @@ def append_inferred_subcategory_conditions(
                 "label": candidate["label"],
             }
         )
-        if candidate_condition["type"].upper() == "PAYMENT_PLATFORM" and not _has_positive_payment_signal(
+        if candidate_condition["type"].upper() == "PAYMENT" and not _has_positive_payment_signal(
             text,
             candidate_condition["value"].upper(),
         ):
@@ -1028,7 +1029,7 @@ def append_inferred_payment_method_conditions(
         for condition in merged
     }
     text = collapse_text(f"{title} {body}")
-    has_existing_payment_condition = any(condition_type in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition_type, _ in seen)
+    has_existing_payment_condition = any(condition_type in {"PAYMENT"} for condition_type, _ in seen)
     if key not in seen and (has_existing_payment_condition or _has_positive_payment_signal(text, inferred["value"].upper())):
         merged.append(dict(inferred))
     return merged
@@ -1039,7 +1040,7 @@ def append_inferred_cobranded_conditions(
     body: str,
     conditions: List[Dict[str, str]],
 ) -> List[Dict[str, str]]:
-    """Add RETAIL_CHAIN conditions when title/body mentions a co-branded retailer."""
+    """Add VENUE conditions when title/body mentions a co-branded retailer."""
     text = f"{title} {body}"
     merged = list(conditions)
     seen = {
@@ -1126,7 +1127,7 @@ def canonicalize_subcategory(
 
     normalized_conditions = conditions or []
     has_payment_condition = any(
-        str(condition.get("type", "")).upper() in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"}
+        str(condition.get("type", "")).upper() in {"PAYMENT"}
         for condition in normalized_conditions
     )
     # MOBILE_PAY is only an internal inference bridge for ONLINE promos.
@@ -1255,7 +1256,7 @@ def append_bank_wide_promotion_condition(
 
     normalized_conditions = list(conditions)
     has_designated_merchant_condition = any(
-        str(condition.get("type", "")).upper() in {"MERCHANT", "RETAIL_CHAIN", "ECOMMERCE_PLATFORM"}
+        str(condition.get("type", "")).upper() in {"VENUE"}
         for condition in normalized_conditions
     )
     if has_designated_merchant_condition:
@@ -1295,11 +1296,8 @@ def expand_general_reward_promotions(
     conditions = promotion.get("conditions") or []
     if any(
         str(condition.get("type", "")).upper() in {
-            "MERCHANT",
-            "RETAIL_CHAIN",
-            "ECOMMERCE_PLATFORM",
-            "PAYMENT_METHOD",
-            "PAYMENT_PLATFORM",
+            "VENUE",
+            "PAYMENT",
         }
         for condition in conditions
     ):
