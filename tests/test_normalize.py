@@ -28,7 +28,7 @@ def test_normalize_infers_plan_id_for_benefit_plan_cards():
     assert normalized["planId"] == "ESUN_UNICARD_FLEXIBLE"
     assert normalized["subcategory"] == "GENERAL"
     assert any(
-        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY"
         for condition in normalized["conditions"]
     )
 
@@ -140,7 +140,7 @@ def test_normalize_converts_mobile_pay_subcategory_into_payment_method_condition
     assert normalized["planId"] == "TAISHIN_RICHART_PAY"
     assert normalized["subcategory"] == "GENERAL"
     assert any(
-        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY"
         for condition in normalized["conditions"]
     )
 
@@ -164,7 +164,7 @@ def test_normalize_does_not_add_payment_condition_for_negated_mobile_pay_text():
         }
     )
 
-    assert all(condition["type"] not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition in normalized["conditions"])
+    assert all(condition["type"] not in {"PAYMENT"} for condition in normalized["conditions"])
 
 
 def test_normalize_does_not_treat_generic_esun_wallet_app_copy_as_payment_platform():
@@ -185,7 +185,7 @@ def test_normalize_does_not_treat_generic_esun_wallet_app_copy_as_payment_platfo
         }
     )
 
-    assert all(condition["type"] not in {"PAYMENT_METHOD", "PAYMENT_PLATFORM"} for condition in normalized["conditions"])
+    assert all(condition["type"] not in {"PAYMENT"} for condition in normalized["conditions"])
 
 
 def test_normalize_applies_category_specific_cube_shopping_hint():

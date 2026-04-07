@@ -17,9 +17,9 @@ def test_general_reward_exclusion_copy_drops_false_payment_and_online_bias():
         "ONLINE",
         "CATALOG_ONLY",
         [
-            {"type": "PAYMENT_PLATFORM", "value": "ICASH_PAY", "label": "icash Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "ICASH_PAY", "label": "icash Pay"},
+            {"type": "PAYMENT", "value": "全支付", "label": "全支付"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 
@@ -46,10 +46,10 @@ def test_jcard_apple_pay_suica_keeps_payment_and_adds_transit_structure():
     assert subcategory == "PUBLIC_TRANSIT"
     assert channel == "ONLINE"
     assert scope == "RECOMMENDABLE"
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "APPLE_PAY" for condition in conditions)
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "SUICA" for condition in conditions)
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "PASMO" for condition in conditions)
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "ICOCA" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "APPLE_PAY" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "SUICA" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "PASMO" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "ICOCA" for condition in conditions)
 
 
 def test_referral_coupon_copy_drops_false_grocery_merchants():
@@ -62,8 +62,8 @@ def test_referral_coupon_copy_drops_false_grocery_merchants():
         "ALL",
         "FUTURE_SCOPE",
         [
-            {"type": "RETAIL_CHAIN", "value": "PXMART", "label": "全聯"},
-            {"type": "RETAIL_CHAIN", "value": "CARREFOUR", "label": "家樂福"},
+            {"type": "VENUE", "value": "PXMART", "label": "全聯"},
+            {"type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
         ],
     )
 
@@ -84,8 +84,8 @@ def test_momo_public_transit_offer_drops_negated_high_speed_rail_merchants():
         "OFFLINE",
         "RECOMMENDABLE",
         [
-            {"type": "MERCHANT", "value": "TRA", "label": "台鐵"},
-            {"type": "MERCHANT", "value": "THSR", "label": "高鐵"},
+            {"type": "VENUE", "value": "TRA", "label": "台鐵"},
+            {"type": "VENUE", "value": "THSR", "label": "高鐵"},
         ],
     )
 
@@ -106,7 +106,7 @@ def test_momo_cross_border_online_offer_drops_false_momo_platform():
         "ALL",
         "RECOMMENDABLE",
         [
-            {"type": "ECOMMERCE_PLATFORM", "value": "MOMO", "label": "momo"},
+            {"type": "VENUE", "value": "MOMO", "label": "momo"},
         ],
     )
 
@@ -127,8 +127,8 @@ def test_momo_store_threshold_offer_moves_to_catalog_only():
         "ALL",
         "FUTURE_SCOPE",
         [
-            {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 

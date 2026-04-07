@@ -114,11 +114,11 @@ def test_unicard_plan_hint_appends_merchant_conditions_for_mobile_pay():
     conditions = _append_unicard_plan_conditions("ESUN_UNICARD_FLEXIBLE", "MOBILE_PAY", [])
 
     assert any(
-        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "LINE_PAY"
         for condition in conditions
     )
     assert any(
-        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "ESUN_WALLET"
+        condition["type"] == "PAYMENT" and condition["value"] == "ESUN_WALLET"
         for condition in conditions
     )
 
@@ -136,7 +136,7 @@ def test_mobile_pay_subcategory_is_canonicalized_after_payment_conditions_are_ad
 
     assert canonicalize_subcategory("ONLINE", "MOBILE_PAY", conditions) == "GENERAL"
     assert any(
-        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY"
         for condition in conditions
     )
 
@@ -200,9 +200,9 @@ def test_unicard_plan_hint_appends_streaming_merchants_after_subcategory_resolut
 
     conditions = _append_unicard_plan_conditions("ESUN_UNICARD_FLEXIBLE", "STREAMING", [])
 
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "NETFLIX" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "NETFLIX" for condition in conditions)
     assert any(
-        condition["type"] == "MERCHANT" and condition["value"] == "YOUTUBE_PREMIUM"
+        condition["type"] == "VENUE" and condition["value"] == "YOUTUBE_PREMIUM"
         for condition in conditions
     )
 

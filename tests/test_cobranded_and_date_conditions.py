@@ -14,7 +14,7 @@ def test_cobranded_adds_chungyo_retail_chain():
         [],
     )
     assert any(
-        c["type"] == "RETAIL_CHAIN" and c["value"] == "CHUNGYO"
+        c["type"] == "VENUE" and c["value"] == "CHUNGYO"
         for c in conditions
     )
 
@@ -26,7 +26,7 @@ def test_cobranded_adds_metrowalk_retail_chain():
         [],
     )
     assert any(
-        c["type"] == "RETAIL_CHAIN" and c["value"] == "METROWALK"
+        c["type"] == "VENUE" and c["value"] == "METROWALK"
         for c in conditions
     )
 
@@ -39,13 +39,13 @@ def test_cobranded_adds_chungyo_from_title():
         [],
     )
     assert any(
-        c["type"] == "RETAIL_CHAIN" and c["value"] == "CHUNGYO"
+        c["type"] == "VENUE" and c["value"] == "CHUNGYO"
         for c in conditions
     )
 
 
 def test_cobranded_does_not_duplicate_existing_condition():
-    existing = [{"type": "RETAIL_CHAIN", "value": "CHUNGYO", "label": "中友百貨"}]
+    existing = [{"type": "VENUE", "value": "CHUNGYO", "label": "中友百貨"}]
     conditions = append_inferred_cobranded_conditions(
         "中友百貨悠遊聯名卡 13號卡友日",
         "中友百貨館內消費",

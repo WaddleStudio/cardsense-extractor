@@ -214,9 +214,9 @@ def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
     supermarket = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_ESSENTIALS" and p["subcategory"] == "SUPERMARKET")
     airline = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_TRAVEL" and p["subcategory"] == "AIRLINE")
 
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "CHATGPT" for condition in ai_tool["conditions"])
-    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "PXMART" for condition in supermarket["conditions"])
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "CHINA_AIRLINES" for condition in airline["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "CHATGPT" for condition in ai_tool["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "PXMART" for condition in supermarket["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "CHINA_AIRLINES" for condition in airline["conditions"])
 
 
 def test_formosa_gas_promos_remove_payment_and_add_gas_station_conditions():
@@ -228,17 +228,17 @@ def test_formosa_gas_promos_remove_payment_and_add_gas_station_conditions():
         "GENERAL",
         "ONLINE",
         "RECOMMENDABLE",
-        [{"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"}],
+        [{"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"}],
     )
 
     assert category == "TRANSPORT"
     assert subcategory == "GAS_STATION"
     assert channel == "OFFLINE"
     assert scope == "CATALOG_ONLY"
-    assert all(condition["type"] != "PAYMENT_METHOD" for condition in conditions)
-    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "TAIA" for condition in conditions)
-    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "FORMOZA" for condition in conditions)
-    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "FORMOSA_PETROCHEMICAL" for condition in conditions)
+    assert all(condition["type"] != "PAYMENT" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "TAIA" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "FORMOZA" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "FORMOSA_PETROCHEMICAL" for condition in conditions)
 
 
 def test_cash_rebate_new_user_tasks_drop_false_merchant_structure():
@@ -250,7 +250,7 @@ def test_cash_rebate_new_user_tasks_drop_false_merchant_structure():
         "DEPARTMENT",
         "ONLINE",
         "FUTURE_SCOPE",
-        [{"type": "RETAIL_CHAIN", "value": "SOGO", "label": "SOGO"}],
+        [{"type": "VENUE", "value": "SOGO", "label": "SOGO"}],
     )
 
     assert category == "OTHER"
@@ -350,6 +350,6 @@ def test_formosa_page_extracts_four_major_promotions(monkeypatch):
     assert by_title["台塑聯名卡 站外高回饋 最高回饋1%加油金"]["validFrom"] == "2026-01-01"
     assert by_title["台塑聯名卡 站外高回饋 最高回饋1%加油金"]["validUntil"] == "2026-07-31"
     assert any(
-        condition["type"] == "MERCHANT" and condition["value"] == "FORMOSA_BIOMEDICAL"
+        condition["type"] == "VENUE" and condition["value"] == "FORMOSA_BIOMEDICAL"
         for condition in by_title["台塑聯名卡 站外高回饋 最高回饋1%加油金"]["conditions"]
     )

@@ -256,11 +256,11 @@ def test_extract_card_promotions_applies_plan_subcategory_hints_for_richart_mark
     assert promotion["planId"] == "TAISHIN_RICHART_PAY"
     assert promotion["subcategory"] == "GENERAL"
     assert any(
-        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY"
         for condition in promotion["conditions"]
     )
     assert any(
-        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "LINE_PAY"
         for condition in promotion["conditions"]
     )
     assert any(
@@ -274,8 +274,8 @@ def test_richart_plan_hint_appends_travel_platform_merchants():
 
     conditions = _append_richart_plan_conditions("TAISHIN_RICHART_TRAVEL", "TRAVEL_PLATFORM", [])
 
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "AGODA" for condition in conditions)
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "TRIP_COM" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "AGODA" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "TRIP_COM" for condition in conditions)
 
 
 def test_richart_plan_hint_appends_streaming_merchants():
@@ -283,9 +283,9 @@ def test_richart_plan_hint_appends_streaming_merchants():
 
     conditions = _append_richart_plan_conditions("TAISHIN_RICHART_DIGITAL", "STREAMING", [])
 
-    assert any(condition["type"] == "MERCHANT" and condition["value"] == "NETFLIX" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "NETFLIX" for condition in conditions)
     assert any(
-        condition["type"] == "MERCHANT" and condition["value"] == "DISNEY_PLUS"
+        condition["type"] == "VENUE" and condition["value"] == "DISNEY_PLUS"
         for condition in conditions
     )
 
@@ -459,8 +459,8 @@ def test_extract_px_mart_feature_promotions_adds_store_and_full_pay_rows():
     assert base_promo["recommendationScope"] == "RECOMMENDABLE"
 
     assert store_promo["subcategory"] == "SUPERMARKET"
-    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "PXMART" for condition in store_promo["conditions"])
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "全支付" for condition in full_pay_promo["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "PXMART" for condition in store_promo["conditions"])
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "全支付" for condition in full_pay_promo["conditions"])
 
 
 def test_extract_jkopay_feature_promotions_does_not_force_payment_for_generic_app_copy():
@@ -493,5 +493,5 @@ def test_extract_jkopay_feature_promotions_does_not_force_payment_for_generic_ap
     bill_pay = next(promo for promo in promotions if "街口APP繳費" in promo["title"])
     selected = next(promo for promo in promotions if "精選通路最高3.5%" in promo["title"])
 
-    assert not any(condition["type"] == "PAYMENT_PLATFORM" for condition in bill_pay["conditions"])
-    assert not any(condition["type"] == "PAYMENT_PLATFORM" for condition in selected["conditions"])
+    assert not any(condition["type"] == "PAYMENT" for condition in bill_pay["conditions"])
+    assert not any(condition["type"] == "PAYMENT" for condition in selected["conditions"])

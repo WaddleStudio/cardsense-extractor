@@ -41,7 +41,7 @@ def test_extract_unicard_hundred_store_promotions_parses_official_clusters():
     assert mobile_pay["subcategory"] == "GENERAL"
     assert mobile_pay["recommendationScope"] == "CATALOG_ONLY"
     assert any(
-        condition["type"] == "PAYMENT_METHOD" and condition["value"] == "MOBILE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY"
         for condition in mobile_pay["conditions"]
     )
     assert any(condition["value"] == "LINE_PAY" for condition in mobile_pay["conditions"])

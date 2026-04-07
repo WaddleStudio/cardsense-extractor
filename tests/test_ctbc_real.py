@@ -22,11 +22,11 @@ def test_ctbc_sogo_store_promo_keeps_only_positive_payment_platforms_and_store_s
         recommendation_scope="RECOMMENDABLE",
         requires_registration=False,
         conditions=[
-            {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+            {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+            {"type": "PAYMENT", "value": "GOOGLE_PAY", "label": "Google Pay"},
+            {"type": "PAYMENT", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 
@@ -34,11 +34,11 @@ def test_ctbc_sogo_store_promo_keeps_only_positive_payment_platforms_and_store_s
     assert subcategory == "DEPARTMENT"
     assert channel == "OFFLINE"
     assert scope == "RECOMMENDABLE"
-    assert any(condition["type"] == "RETAIL_CHAIN" and condition["value"] == "SOGO" for condition in conditions)
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "HAPPY_GO_PAY" for condition in conditions)
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY" for condition in conditions)
-    assert not any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "SAMSUNG_PAY" for condition in conditions)
-    assert not any(condition["type"] == "PAYMENT_METHOD" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "SOGO" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "HAPPY_GO_PAY" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "LINE_PAY" for condition in conditions)
+    assert not any(condition["type"] == "PAYMENT" and condition["value"] == "SAMSUNG_PAY" for condition in conditions)
+    assert not any(condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY" for condition in conditions)
 
 
 def test_ctbc_sogo_welcome_gift_promo_drops_false_positive_payment_conditions():
@@ -56,8 +56,8 @@ def test_ctbc_sogo_welcome_gift_promo_drops_false_positive_payment_conditions():
         recommendation_scope="FUTURE_SCOPE",
         requires_registration=False,
         conditions=[
-            {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 
@@ -82,14 +82,14 @@ def test_ctbc_ep_titanium_online_offer_keeps_positive_wallets_and_adds_ecommerce
         requires_registration=True,
         conditions=[
             {"type": "REGISTRATION_REQUIRED", "value": "true", "label": "需登錄活動"},
-            {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "GOOGLE_PAY", "label": "Google Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "JKOPAY", "label": "街口支付"},
-            {"type": "PAYMENT_PLATFORM", "value": "全支付", "label": "全支付"},
-            {"type": "PAYMENT_PLATFORM", "value": "悠遊付", "label": "悠遊付"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+            {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+            {"type": "PAYMENT", "value": "GOOGLE_PAY", "label": "Google Pay"},
+            {"type": "PAYMENT", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+            {"type": "PAYMENT", "value": "JKOPAY", "label": "街口支付"},
+            {"type": "PAYMENT", "value": "全支付", "label": "全支付"},
+            {"type": "PAYMENT", "value": "悠遊付", "label": "悠遊付"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 
@@ -97,13 +97,13 @@ def test_ctbc_ep_titanium_online_offer_keeps_positive_wallets_and_adds_ecommerce
     assert subcategory == "ECOMMERCE"
     assert channel == "ONLINE"
     assert scope == "CATALOG_ONLY"
-    assert any(condition["type"] == "ECOMMERCE_PLATFORM" and condition["value"] == "SHOPEE" for condition in conditions)
-    assert any(condition["type"] == "ECOMMERCE_PLATFORM" and condition["value"] == "MOMO" for condition in conditions)
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "APPLE_PAY" for condition in conditions)
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "SAMSUNG_PAY" for condition in conditions)
-    assert not any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY" for condition in conditions)
-    assert not any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "JKOPAY" for condition in conditions)
-    assert not any(condition["type"] == "PAYMENT_METHOD" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "SHOPEE" for condition in conditions)
+    assert any(condition["type"] == "VENUE" and condition["value"] == "MOMO" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "APPLE_PAY" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "SAMSUNG_PAY" for condition in conditions)
+    assert not any(condition["type"] == "PAYMENT" and condition["value"] == "LINE_PAY" for condition in conditions)
+    assert not any(condition["type"] == "PAYMENT" and condition["value"] == "JKOPAY" for condition in conditions)
+    assert not any(condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY" for condition in conditions)
 
 
 def test_ctbc_hami_pay_offer_keeps_required_payment_platform():
@@ -120,7 +120,7 @@ def test_ctbc_hami_pay_offer_keeps_required_payment_platform():
     )
 
     assert scope == "CATALOG_ONLY"
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "HAMI_PAY" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "HAMI_PAY" for condition in conditions)
 
 
 def test_ctbc_registration_heavy_campaigns_downgrade_to_catalog_only():

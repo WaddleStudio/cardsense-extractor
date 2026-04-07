@@ -21,7 +21,7 @@ def test_append_inferred_subcategory_conditions_adds_ecommerce_platform_conditio
     )
 
     assert any(
-        condition["type"] == "ECOMMERCE_PLATFORM" and condition["value"] == "PCHOME_24H"
+        condition["type"] == "VENUE" and condition["value"] == "PCHOME_24H"
         for condition in conditions
     )
 
@@ -36,7 +36,7 @@ def test_append_inferred_subcategory_conditions_adds_mobile_pay_platform_conditi
     )
 
     assert any(
-        condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "LINE_PAY"
+        condition["type"] == "PAYMENT" and condition["value"] == "LINE_PAY"
         for condition in conditions
     )
 
@@ -51,11 +51,11 @@ def test_append_inferred_subcategory_conditions_adds_travel_platform_merchant_co
     )
 
     assert any(
-        condition["type"] == "MERCHANT" and condition["value"] == "AGODA"
+        condition["type"] == "VENUE" and condition["value"] == "AGODA"
         for condition in conditions
     )
     assert any(
-        condition["type"] == "MERCHANT" and condition["value"] == "TRIP_COM"
+        condition["type"] == "VENUE" and condition["value"] == "TRIP_COM"
         for condition in conditions
     )
 
@@ -70,7 +70,7 @@ def test_append_inferred_payment_method_conditions_adds_mobile_pay_group_conditi
     )
 
     assert conditions == [
-        {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": conditions[0]["label"]},
+        {"type": "PAYMENT", "value": "MOBILE_PAY", "label": conditions[0]["label"]},
     ]
 
 
@@ -91,14 +91,14 @@ def test_sanitize_payment_conditions_canonicalizes_aliases():
         "行動支付加碼",
         "玉山WALLET電子支付、街口支付享加碼回饋",
         [
-            {"type": "PAYMENT_PLATFORM", "value": "玉山WALLET電子支付", "label": "玉山WALLET電子支付"},
-            {"type": "PAYMENT_PLATFORM", "value": "街口支付", "label": "街口支付"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "玉山WALLET電子支付", "label": "玉山WALLET電子支付"},
+            {"type": "PAYMENT", "value": "街口支付", "label": "街口支付"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "ESUN_WALLET" for condition in conditions)
-    assert any(condition["type"] == "PAYMENT_PLATFORM" and condition["value"] == "JKOPAY" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "ESUN_WALLET" for condition in conditions)
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "JKOPAY" for condition in conditions)
 
 
 def test_sanitize_payment_conditions_removes_negated_positive_payment_conditions():
@@ -106,9 +106,9 @@ def test_sanitize_payment_conditions_removes_negated_positive_payment_conditions
         "易遊網折扣碼",
         "若以 Apple Pay、Google Pay、LINE Pay 等相關綁定行動載具支付恕無法參加。",
         [
-            {"type": "PAYMENT_PLATFORM", "value": "LINE_PAY", "label": "LINE Pay"},
-            {"type": "PAYMENT_PLATFORM", "value": "APPLE_PAY", "label": "Apple Pay"},
-            {"type": "PAYMENT_METHOD", "value": "MOBILE_PAY", "label": "行動支付"},
+            {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+            {"type": "PAYMENT", "value": "APPLE_PAY", "label": "Apple Pay"},
+            {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"},
         ],
     )
 
