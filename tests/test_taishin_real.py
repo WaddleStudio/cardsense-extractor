@@ -348,6 +348,20 @@ def test_resolve_richart_marketing_scope_downgrades_registration_heavy_offer():
     assert scope == "CATALOG_ONLY"
 
 
+def test_resolve_richart_marketing_scope_keeps_plan_specific_offer_recommendable():
+    from extractor.taishin_real import _resolve_richart_marketing_scope
+
+    scope = _resolve_richart_marketing_scope(
+        "Hotels.com回饋最高8.3%，玩旅刷Richart卡",
+        "2026/1/1~2026/6/30 Hotels.com回饋最高8.3%，需登錄，每月上限 500 元。",
+        "OVERSEAS",
+        True,
+        plan_id="TAISHIN_RICHART_TRAVEL",
+    )
+
+    assert scope == "RECOMMENDABLE"
+
+
 def test_postprocess_taishin_promotions_downgrades_installment_offers():
     from extractor.taishin_real import CardRecord, _postprocess_taishin_promotions
 

@@ -1120,7 +1120,7 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
         title=title,
         body=focused_text,
     )
-    recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration)
+    recommendation_scope = _resolve_richart_marketing_scope(title, focused_text, category, requires_registration, plan_id=plan_id)
     conditions = build_conditions(focused_text, card.application_requirements, requires_registration)
     conditions = append_inferred_subcategory_conditions(title, focused_text, category, subcategory, conditions)
     conditions = append_inferred_payment_method_conditions(category, subcategory, conditions, title, focused_text)
@@ -1305,7 +1305,14 @@ def _should_skip_richart_marketing(title: str, text: str) -> bool:
     return any(token in combined for token in RICHART_EXCLUDED_ACTIVITY_TOKENS)
 
 
-def _resolve_richart_marketing_scope(title: str, text: str, category: str, requires_registration: bool) -> str:
+def _resolve_richart_marketing_scope(
+    title: str, text: str, category: str, requires_registration: bool,
+    *, plan_id: str | None = None,
+) -> str:
+    if plan_id and requires_registration:
+        scope = classify_recommendation_scope(title, text, category)
+        if scope != "FUTURE_SCOPE":
+            return "RECOMMENDABLE"
     combined = f"{title} {text}"
     hard_catalog_tokens = [token for token in RICHART_CATALOG_ONLY_TOKENS if token not in REGISTRATION_TOKENS]
     if any(token in combined for token in hard_catalog_tokens):
