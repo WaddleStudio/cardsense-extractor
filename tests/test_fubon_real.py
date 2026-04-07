@@ -139,6 +139,37 @@ def test_momo_store_threshold_offer_moves_to_catalog_only():
     assert conditions == []
 
 
+def test_insurance_feature_general_reward_expands_with_body_text():
+    from extractor.promotion_rules import expand_general_reward_promotions
+
+    card = fubon_real.CardRecord(
+        card_code="FUBON_INSURANCE",
+        card_name="富邦鑽保卡",
+        detail_url="https://example.com/insurance",
+        apply_url=None,
+        annual_fee_summary=None,
+        application_requirements=[],
+        sections=[],
+    )
+
+    promotions = fubon_real._extract_insurance_feature_promotions(card, "GENERAL")
+    general_promo = [p for p in promotions if float(p["cashbackValue"]) == 0.7][0]
+
+    # _body should be preserved for expansion
+    assert "_body" in general_promo
+
+    expanded = expand_general_reward_promotions(
+        general_promo, general_promo["title"], general_promo["_body"]
+    )
+
+    categories = {p["category"] for p in expanded}
+    assert "DINING" in categories
+    assert "SHOPPING" in categories
+    assert "ONLINE" in categories
+    assert "OVERSEAS" in categories
+    assert len(expanded) >= 7
+
+
 def test_extract_reward_falls_back_to_body_when_title_parses_zero():
     reward = fubon_real._extract_reward(
         "五大場域任一通路單筆消費達10,000元計算，每季活動期間每戶回饋乙次，上限50",

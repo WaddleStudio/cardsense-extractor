@@ -337,7 +337,9 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
     }
     builder = feature_builders.get(enriched_card.card_code)
     if builder:
-        promotions.extend(builder(enriched_card, eligibility_type))
+        for feature_promo in builder(enriched_card, eligibility_type):
+            body = feature_promo.pop("_body", "")
+            promotions.extend(expand_general_reward_promotions(feature_promo, feature_promo.get("title", ""), body))
 
     return enriched_card, _dedupe_promotions(promotions)
 
@@ -384,6 +386,7 @@ def _build_manual_promotion(
         "sourceUrl": card.detail_url,
         "summary": f"{card.card_name} {title}；期間 {valid_from}~{valid_until}",
         "status": "ACTIVE",
+        "_body": body,
     }
 
 
