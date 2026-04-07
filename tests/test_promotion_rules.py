@@ -375,3 +375,28 @@ def test_expand_general_reward_promotions_splits_point_accumulation_when_general
     assert ("GROCERY", "ALL") in categories
     assert ("ENTERTAINMENT", "ALL") in categories
     assert ("OVERSEAS", "ALL") in categories
+
+
+def test_expand_general_reward_promotions_promotes_catalog_only_clones_to_recommendable():
+    promotion = {
+        "title": "寶雅悠遊聯名卡 店內外點數累積",
+        "category": "OTHER",
+        "subcategory": "GENERAL",
+        "channel": "ALL",
+        "cashbackType": "POINTS",
+        "cashbackValue": "0.20",
+        "requiresRegistration": False,
+        "recommendationScope": "CATALOG_ONLY",
+        "conditions": [],
+        "planId": None,
+    }
+
+    expanded = expand_general_reward_promotions(
+        promotion,
+        "店內外點數累積",
+        "店外 消費：新增一般消費享0.2% 玉山e point回饋。",
+    )
+
+    assert len(expanded) > 1
+    for clone in expanded:
+        assert clone["recommendationScope"] == "RECOMMENDABLE"

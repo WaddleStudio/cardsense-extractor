@@ -1265,6 +1265,7 @@ def expand_general_reward_promotions(
                 scope_label=scope_label,
                 fragment=fragment,
             )
+            clone["recommendationScope"] = "RECOMMENDABLE"
 
             dedupe_key = (
                 clone.get("title"),
