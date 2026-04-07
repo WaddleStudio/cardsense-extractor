@@ -222,3 +222,29 @@ def test_unicard_theme_park_offer_infers_entertainment_theme_park():
 
 def test_clean_card_name_trims_unicard_page_selling_points():
     assert clean_card_name("玉山Unicard LINE Pay 最高回饋") == "玉山Unicard"
+
+
+def test_herbalife_general_reward_recategorized_for_expansion():
+    from extractor.esun_real import _expand_card_specific_promotions
+
+    promotion = {
+        "title": "賀寶芙悠遊聯名卡 累積玉山e point",
+        "category": "ONLINE",
+        "subcategory": "SUBSCRIPTION",
+        "channel": "ONLINE",
+        "cashbackType": "POINTS",
+        "cashbackValue": "0.20",
+        "conditions": [],
+    }
+
+    result = _expand_card_specific_promotions(
+        "ESUN_HERBALIFE_CARD",
+        "累積玉山e point",
+        "新增一般消費享0.2% 玉山e point回饋。",
+        promotion,
+    )
+
+    assert len(result) == 1
+    assert result[0]["category"] == "OTHER"
+    assert result[0]["subcategory"] == "GENERAL"
+    assert result[0]["channel"] == "ALL"

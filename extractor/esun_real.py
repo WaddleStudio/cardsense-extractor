@@ -719,6 +719,17 @@ def _expand_card_specific_promotions(
             expanded.append(clone)
         return expanded
 
+    if (
+        card_code == "ESUN_HERBALIFE_CARD"
+        and promotion.get("subcategory") != "GENERAL"
+        and "一般消費" in body
+    ):
+        clone = dict(promotion)
+        clone["category"] = "OTHER"
+        clone["subcategory"] = "GENERAL"
+        clone["channel"] = "ALL"
+        return [clone]
+
     return [promotion]
 
 
