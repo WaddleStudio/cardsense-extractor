@@ -33,6 +33,7 @@ from extractor.promotion_rules import (
     sanitize_payment_conditions,
     append_inferred_cobranded_conditions,
     append_inferred_date_conditions,
+    GENERAL_REWARD_DECOMPOSITION_MARKER,
     SUBCATEGORY_SIGNALS,
     to_condition_value,
 )
@@ -635,6 +636,8 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
 
     promotions.extend(_extract_unicard_hundred_store_promotions(lines, enriched_card, eligibility_type))
 
+    promotions = _postprocess_cobranded_conditions(promotions)
+
     return enriched_card, _dedupe_promotions(promotions)
 
 
@@ -701,6 +704,35 @@ def _infer_channel(title: str, body: str) -> str:
     if any(token in text for token in OFFLINE_PRIORITY_TOKENS) and not any(token in text for token in ONLINE_PRIORITY_TOKENS):
         return "OFFLINE"
     return infer_channel(title, body, CHANNEL_SIGNALS)
+
+
+def _postprocess_cobranded_conditions(
+    promotions: List[Dict[str, object]],
+) -> List[Dict[str, object]]:
+    """Add cobranded/date conditions using full title (card name + promo title).
+
+    Runs after general reward expansion so RETAIL_CHAIN doesn't block expansion.
+    Skips general reward decomposition clones (they're category-generic).
+    """
+    result = []
+    for promo in promotions:
+        conditions = list(promo.get("conditions") or [])
+        is_decomposed = any(
+            str(c.get("value", "")) == GENERAL_REWARD_DECOMPOSITION_MARKER
+            for c in conditions
+        )
+        if is_decomposed:
+            result.append(promo)
+            continue
+        title = str(promo.get("title", "") or "")
+        summary = str(promo.get("summary", "") or "")
+        new_conditions = append_inferred_cobranded_conditions(title, summary, conditions)
+        new_conditions = append_inferred_date_conditions(title, summary, new_conditions)
+        if len(new_conditions) != len(conditions):
+            promo = dict(promo)
+            promo["conditions"] = new_conditions
+        result.append(promo)
+    return result
 
 
 def _expand_card_specific_promotions(
