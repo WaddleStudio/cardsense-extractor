@@ -407,8 +407,10 @@ def classify_recommendation_scope(title: str, body: str, category: str | None = 
         "貴賓室",
         "停車",
         "專屬禮遇",
-        "禮遇",
-        "服務",
+        "禮賓服務",
+        "接送服務",
+        "泊車服務",
+        "行李服務",
         "借電券",
         "折扣券",
         "抵用券",
@@ -425,7 +427,7 @@ def classify_recommendation_scope(title: str, body: str, category: str | None = 
         return "FUTURE_SCOPE"
     if any(token in text for token in catalog_only_tokens):
         return "CATALOG_ONLY"
-    if category == "OTHER" and any(token in text for token in ("會員", "服務", "優惠券", "購票優惠")):
+    if category == "OTHER" and any(token in text for token in ("會員", "購票優惠")):
         return "CATALOG_ONLY"
     return "RECOMMENDABLE"
 
