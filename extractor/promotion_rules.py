@@ -817,6 +817,19 @@ COBRANDED_RETAILER_SIGNALS: List[Dict[str, str]] = [
     {"token": "馥蘭朵", "type": "VENUE", "value": "FUSHIN", "label": "馥森/馥蘭朵"},
     {"token": "馥森", "type": "VENUE", "value": "FUSHIN", "label": "馥森/馥蘭朵"},
     {"token": "承億", "type": "VENUE", "value": "HOTELDAY", "label": "承億酒店"},
+    # Standalone venues — individual hotels/restaurants not belonging to a chain
+    {"token": "水京棧", "type": "VENUE", "value": "H2O_HOTEL", "label": "水京棧國際酒店"},
+    {"token": "H2O Hotel", "type": "VENUE", "value": "H2O_HOTEL", "label": "水京棧國際酒店"},
+    {"token": "JR東日本大飯店", "type": "VENUE", "value": "JR_EAST_HOTEL", "label": "JR東日本大飯店"},
+    {"token": "Smith & Wollensky", "type": "VENUE", "value": "SMITH_WOLLENSKY", "label": "Smith & Wollensky"},
+    {"token": "北投大地", "type": "VENUE", "value": "BEITOU_DADI", "label": "北投大地酒店"},
+    {"token": "美福大飯店", "type": "VENUE", "value": "GRAND_MAYFULL", "label": "美福大飯店"},
+    {"token": "中山招待所", "type": "VENUE", "value": "ZHONGSHAN_CLUB", "label": "台中中山招待所"},
+    {"token": "然一酒店", "type": "VENUE", "value": "RAN_ONE", "label": "然一酒店"},
+    {"token": "犇鐵板燒", "type": "VENUE", "value": "BEN_TEPPANYAKI", "label": "犇鐵板燒"},
+    {"token": "犇 鐵板燒", "type": "VENUE", "value": "BEN_TEPPANYAKI", "label": "犇鐵板燒"},
+    {"token": "維多麗亞", "type": "VENUE", "value": "VICTORIA", "label": "維多麗亞酒店"},
+    {"token": "理想大地", "type": "VENUE", "value": "PROMISEDLAND", "label": "花蓮理想大地"},
 ]
 
 PAYMENT_METHOD_SUBCATEGORY_CONDITIONS: Dict[tuple[str, str], Dict[str, str]] = {
