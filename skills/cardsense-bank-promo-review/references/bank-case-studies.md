@@ -201,12 +201,14 @@ Cards covered:
 
 ### Extraction statistics (2026-04-08)
 
-- CATHAY total: ~220 promos, ~160 RECOMMENDABLE, 30 cards in DB
+- CATHAY total: ~120 promos, ~94 RECOMMENDABLE, 30 cards in DB
 - CUBE: 29p (27 REC) — plan-based extraction
 - 現金回饋御璽卡: 10p (7 REC) — colorbanner extraction
-- 世界卡: 71p (~56 REC) — classifier fix (`d31c495`) upgraded venue dining promos from CATALOG_ONLY
-  - 專屬優惠 venue promos (hotels, restaurants) now RECOMMENDABLE with correct DINING category
-  - 海外禮遇 3.5% cashback now RECOMMENDABLE
+- 世界卡: 64p (~46 with VENUE tags) — classifier fix + hotel merchant tagging
+  - 46/64 promos carry VENUE conditions (hotel groups + standalone venues)
+  - Hotel groups tagged at chain level (e.g., 萬怡/萬麗/Moxy → MARRIOTT)
+  - 11 standalone venues (犇鐵板燒, 美福大飯店, 北投大地, etc.) tagged individually
+  - Cross-category VENUE bypass in DecisionEngine ensures hotel promos surface across DINING/TRAVEL
 
 ## Fubon Feature Extractors
 
@@ -246,9 +248,9 @@ Taishin cards with dedicated promo pages (Gogoro, friDay, 街口, PX_MART, etc.)
 
 E.SUN full re-extraction (2026-04-07→08) dramatically improved coverage from 14→45 cards and 85→271→~350+ RECOMMENDABLE promotions, picking up many cards that were previously missing.
 
-### Extraction statistics (2026-04-08)
+### Extraction statistics (2026-04-08, re-extracted)
 
-- ESUN total: ~480 promos, ~350 RECOMMENDABLE, 45 cards in DB
+- ESUN total: ~534 promos, 45 cards in DB
 - Unicard 百大: 57 RECOMMENDABLE (3 plans × 19 clusters, was 17 CATALOG_ONLY)
 - Top cards: Unicard (57+ REC with 百大 expansion), 熊本熊卡 (18 REC), Pi拍兔 (15 REC), 世界卡 (14 REC)
 - Classifier fix: profession card dining promos (會計師/建築師/醫師等) now RECOMMENDABLE

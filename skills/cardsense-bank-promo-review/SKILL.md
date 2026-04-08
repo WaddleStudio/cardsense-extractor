@@ -99,7 +99,17 @@ If you need CardSense-specific field guidance, read:
 
 ### 4. Taxonomy policy
 
-Default to keeping existing top-level `category` values stable.
+Nine top-level categories: DINING, TRANSPORT, ONLINE, TRAVEL, OVERSEAS, SHOPPING, GROCERY, ENTERTAINMENT, OTHER.
+
+Key distinctions:
+
+- **TRAVEL** = domestic travel services (hotels, booking platforms, travel agencies)
+- **OVERSEAS** = foreign spending only (海外刷卡回饋, OVERSEAS_IN_STORE)
+- **TRANSPORT** includes AIRLINE, GAS_STATION, EV_CHARGING, PARKING
+- **SHOPPING** includes HOME_LIVING
+- **OTHER** is fallback only (GENERAL)
+
+Subcategory→category remapping is enforced in `db_store.py` and `normalize.py` via `_SUBCATEGORY_CATEGORY_REMAP`. If you assign subcategory HOTEL, TRAVEL_PLATFORM, or TRAVEL_AGENCY, the category will be overridden to TRAVEL regardless of what the extractor returns. Same for AIRLINE→TRANSPORT, GAS_STATION→TRANSPORT, HOME_LIVING→SHOPPING, etc.
 
 Prefer:
 
