@@ -12,6 +12,21 @@ from extractor.card_lifecycle import normalize_card_status, normalize_promotion_
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "cardsense_schema.sql"
 
+_SUBCATEGORY_CATEGORY_REMAP = {
+    "HOTEL": "TRAVEL",
+    "TRAVEL_PLATFORM": "TRAVEL",
+    "TRAVEL_AGENCY": "TRAVEL",
+    "EV_CHARGING": "TRANSPORT",
+    "PARKING": "TRANSPORT",
+    "GAS_STATION": "TRANSPORT",
+    "HOME_LIVING": "SHOPPING",
+}
+
+
+def _remap_category(category: str, subcategory: str) -> str:
+    """Override category when the subcategory has a canonical parent that differs from what the extractor assigned."""
+    return _SUBCATEGORY_CATEGORY_REMAP.get(subcategory, category)
+
 
 def initialize_database(db_path: str) -> sqlite3.Connection:
     target = Path(db_path)
@@ -179,7 +194,7 @@ def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:
         "card_status": card_status,
         "annual_fee": payload.get("annualFee", 0),
         "apply_url": payload.get("applyUrl"),
-        "category": payload["category"],
+        "category": _remap_category(payload["category"], payload.get("subcategory", "GENERAL")),
         "subcategory": payload.get("subcategory", "GENERAL"),
         "channel": payload.get("channel"),
         "cashback_type": payload["cashbackType"],

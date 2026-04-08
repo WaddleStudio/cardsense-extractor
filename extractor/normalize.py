@@ -15,7 +15,7 @@ from extractor.promotion_rules import (
 
 CATEGORY_ALIASES = {
     "DINING": "DINING",
-    "TRAVEL": "OTHER",
+    "TRAVEL": "TRAVEL",
     "ONLINE": "ONLINE",
     "ONLINE_SHOPPING": "ONLINE",
     "GROCERIES": "GROCERY",
@@ -25,6 +25,16 @@ CATEGORY_ALIASES = {
     "SHOPPING": "SHOPPING",
     "TRANSPORT": "TRANSPORT",
     "OTHER": "OTHER",
+}
+
+_SUBCATEGORY_CATEGORY_REMAP = {
+    "HOTEL": "TRAVEL",
+    "TRAVEL_PLATFORM": "TRAVEL",
+    "TRAVEL_AGENCY": "TRAVEL",
+    "EV_CHARGING": "TRANSPORT",
+    "PARKING": "TRANSPORT",
+    "GAS_STATION": "TRANSPORT",
+    "HOME_LIVING": "SHOPPING",
 }
 
 CHANNEL_ALIASES = {
@@ -177,6 +187,8 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         title_text or "", title_text or "", normalized_conditions
     )
     subcategory = canonicalize_subcategory(category, subcategory, normalized_conditions)
+
+    category = _SUBCATEGORY_CATEGORY_REMAP.get(subcategory, category)
 
     normalized = {
         "bankCode": _normalize_string(data.get("bank")),
