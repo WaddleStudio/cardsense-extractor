@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 
 from extractor.benefit_plans import apply_plan_subcategory_hint, infer_plan_id
 from extractor.promotion_rules import (
+    append_inferred_payment_conditions_from_text,
     append_inferred_payment_method_conditions,
     append_inferred_subcategory_conditions,
     append_inferred_cobranded_conditions,
@@ -164,6 +165,9 @@ def normalize_data(data: Dict[str, Any]) -> Dict[str, Any]:
         normalized_conditions,
         title_text or "",
         title_text or "",
+    )
+    normalized_conditions = append_inferred_payment_conditions_from_text(
+        title_text or "", title_text or "", normalized_conditions,
     )
     normalized_conditions = sanitize_payment_conditions(title_text or "", title_text or "", normalized_conditions)
     normalized_conditions = append_inferred_cobranded_conditions(

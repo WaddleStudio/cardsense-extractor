@@ -1035,6 +1035,63 @@ def append_inferred_payment_method_conditions(
     return merged
 
 
+BROAD_PAYMENT_INFERENCE_TOKENS: List[Dict[str, str]] = [
+    {"token": "LINE Pay", "value": "LINE_PAY", "label": "LINE Pay"},
+    {"token": "Apple Pay", "value": "APPLE_PAY", "label": "Apple Pay"},
+    {"token": "Google Pay", "value": "GOOGLE_PAY", "label": "Google Pay"},
+    {"token": "Samsung Pay", "value": "SAMSUNG_PAY", "label": "Samsung Pay"},
+    {"token": "街口支付", "value": "JKOPAY", "label": "街口支付"},
+    {"token": "JKOPay", "value": "JKOPAY", "label": "街口支付"},
+    {"token": "街口", "value": "JKOPAY", "label": "街口支付"},
+    {"token": "玉山Wallet電子支付", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+    {"token": "玉山 Wallet電子支付", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+    {"token": "玉山Wallet", "value": "ESUN_WALLET", "label": "玉山 Wallet"},
+    {"token": "全支付", "value": "全支付", "label": "全支付"},
+    {"token": "悠遊付", "value": "悠遊付", "label": "悠遊付"},
+    {"token": "全盈+PAY", "value": "全盈_PAY", "label": "全盈+PAY"},
+    {"token": "iPASS MONEY", "value": "IPASS_MONEY", "label": "iPASS MONEY"},
+    {"token": "icash Pay", "value": "ICASH_PAY", "label": "icash Pay"},
+    {"token": "TWQR", "value": "TWQR", "label": "TWQR"},
+    {"token": "HAPPY GO Pay", "value": "HAPPY_GO_PAY", "label": "HAPPY GO Pay"},
+    {"token": "Hami Pay", "value": "HAMI_PAY", "label": "Hami Pay"},
+    {"token": "台新Pay", "value": "TAISHIN_PAY", "label": "台新Pay"},
+]
+
+
+def append_inferred_payment_conditions_from_text(
+    title: str,
+    body: str,
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """Scan title+body for payment tool mentions and add PAYMENT conditions.
+
+    Runs on ALL promos regardless of category/subcategory. Uses existing
+    _has_positive_payment_signal + negation detection to avoid false positives.
+    """
+    text = collapse_text(f"{title} {body}")
+    merged = list(conditions)
+    seen = {
+        (str(c.get("type", "")).upper(), str(c.get("value", "")).upper())
+        for c in merged
+    }
+
+    for entry in BROAD_PAYMENT_INFERENCE_TOKENS:
+        if entry["token"] not in text:
+            continue
+        canonical = _canonicalize_payment_condition(
+            {"type": "PAYMENT", "value": entry["value"], "label": entry["label"]}
+        )
+        key = (canonical["type"].upper(), canonical["value"].upper())
+        if key in seen:
+            continue
+        if not _has_positive_payment_signal(text, canonical["value"].upper()):
+            continue
+        merged.append(canonical)
+        seen.add(key)
+
+    return merged
+
+
 def append_inferred_cobranded_conditions(
     title: str,
     body: str,
