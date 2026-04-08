@@ -166,12 +166,19 @@ Classify each extracted rule into one of:
 - `CATALOG_ONLY`
 - `FUTURE_SCOPE`
 
+The `classify_recommendation_scope` function in `promotion_rules.py` uses token matching:
+- `FUTURE_SCOPE` tokens: 新戶, 首刷, 首次申辦, 核卡後, 保費, 壽險, 保險, etc.
+- `CATALOG_ONLY` tokens: 道路救援, 機場接送, 貴賓室, 停車, 專屬禮遇, 禮賓服務, 接送服務, 借電券, 折扣券, 優惠券, 兌換碼, 抽獎, 名額, etc.
+
+Note: generic "服務" and "禮遇" were removed as tokens (2026-04-08) because they caused false positives — e.g., "不含10%服務費" in dining promos, "海外禮遇" in cashback promos. Specific patterns like "禮賓服務", "接送服務" are used instead.
+
 Prefer `CATALOG_ONLY` when:
 
 - registration is required and likely missing from runtime state
 - the user must pre-select merchant slots
 - the plan is resolved at month-end rather than per-transaction
 - the rule depends on payment-rail or MCC details CardSense cannot yet calculate safely
+- the promo involves coupons, lottery, limited quantity, or non-deterministic benefits
 
 ### 8. Tier policy
 
@@ -273,6 +280,11 @@ If you want a fixed review deliverable format, use:
 ### E.SUN Unicard
 
 - distinguish `簡單選`, `任意選`, `UP選`
+- **百大指定消費** promos are now expanded into 3 plan-specific RECOMMENDABLE promos per cluster:
+  - `ESUN_UNICARD_SIMPLE` (簡單選 3%, max 1,000/mo)
+  - `ESUN_UNICARD_FLEXIBLE` (任意選 3.5%, max 1,000/mo)
+  - `ESUN_UNICARD_UP` (UP選 4.5%, max 5,000/mo)
+  - Plan rates and caps defined in `_UNICARD_HUNDRED_STORE_PLANS` in `esun_real.py`
 - be careful with month-end final-plan settlement and user-selected merchant slots
 - review subscription/task-unlock behavior separately from plan catalog metadata
 - prefer `subcategory` cleanup before proposing new top-level taxonomy:

@@ -70,6 +70,19 @@ Preferred handling:
 - remove positive `PAYMENT_METHOD=MOBILE_PAY` if the sentence negates the whole mobile-pay path
 - if needed later, model these in `excludedConditions`
 
+## Automatic inference
+
+The extractor now has two layers of payment inference:
+
+1. **Subcategory-based** (`append_inferred_payment_method_conditions`): adds `PAYMENT_METHOD=MOBILE_PAY` for `MOBILE_PAY` subcategory promos
+2. **Text-based** (`append_inferred_payment_conditions_from_text`): scans all promo title+body for payment tool mentions and adds `PAYMENT` conditions with canonical values
+
+The text-based inference (`BROAD_PAYMENT_INFERENCE_TOKENS` in `promotion_rules.py`) covers 19 payment tools and runs after subcategory inference but before `sanitize_payment_conditions`. It uses:
+- `_has_positive_payment_signal()` — confirms the mention is in a positive reward context
+- `PAYMENT_NEGATION_TOKENS` — prevents false positives when the tool is mentioned in exclusion context
+
+This means most payment conditions are now automatically inferred. Manual payment condition assignment is only needed for edge cases the inference misses.
+
 ## Canonical platform values
 
 Keep platform values normalized across banks and extractors.
@@ -88,13 +101,18 @@ Current canonical examples:
 - `IPASS_MONEY`
 - `ICASH_PAY`
 - `TWQR`
+- `HAPPY_GO_PAY`
+- `HAMI_PAY`
+- `TAISHIN_PAY`
 
 Alias cleanup examples:
 
 - `街口支付` -> `JKOPAY`
 - `JKOPay` -> `JKOPAY`
+- `街口` -> `JKOPAY`
 - `玉山WALLET電子支付` -> `ESUN_WALLET`
 - `玉山 Wallet電子支付` -> `ESUN_WALLET`
+- `玉山Wallet` -> `ESUN_WALLET`
 
 Do not leave mixed aliases in production rows if one normalized value exists.
 

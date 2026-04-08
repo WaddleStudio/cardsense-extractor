@@ -74,6 +74,10 @@ Choose `CATALOG_ONLY` when:
 - the rule is useful to display but unsafe to rank
 - merchant slot or month-end state is unknown
 - coupon/registration behavior exists but is not reliably present in request state
+- the benefit is non-deterministic: coupons, lottery, limited quantity, voucher codes
+- the benefit involves non-cashback perks: parking, roadside assistance, lounge access
+
+Note: the automatic classifier (`classify_recommendation_scope`) uses token matching against the title+body text. It was refined (2026-04-08) to use specific service patterns instead of broad tokens like "服務" and "禮遇" that caused false positives on dining/hotel promos.
 
 Choose `FUTURE_SCOPE` when:
 

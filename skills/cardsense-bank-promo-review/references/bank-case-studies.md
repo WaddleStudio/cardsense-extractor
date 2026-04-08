@@ -70,21 +70,22 @@ Unicard is the strongest example of a card whose plan catalog fits the current m
 ### What CardSense handles well
 
 - plan catalog metadata
+- **百大指定消費 plan-specific expansion**: each cluster now produces 3 RECOMMENDABLE promos (簡單選 3% / 任意選 3.5% / UP選 4.5%) with correct `planId`, `cashbackValue`, and `maxCashback`
 - broad promotion display
-- some category and subcategory routing
+- category and subcategory routing (19 clusters × 3 plans = 57 promos)
 
 ### Main caution
 
 CardSense currently lacks a native way to model:
 
-- month-end final plan state
-- merchant-slot configuration
-- unlock or subscription state as runtime input
+- month-end final plan state (百大 uses month-end plan for calculation)
+- merchant-slot configuration (任意選 requires user to select up to 8 merchants)
+- unlock or subscription state as runtime input (UP選 requires task completion or subscription)
 
 ### Safe verdict
 
-- often `compatible with approximation`
-- or base promotions `CATALOG_ONLY` until runtime state is modeled
+- 百大 promos are now `RECOMMENDABLE` with plan-specific rates — the decision engine selects the best plan
+- campaign overlays and task-unlocked bonuses remain `CATALOG_ONLY` or `FUTURE_SCOPE`
 
 ### Payment review lesson
 
@@ -198,12 +199,14 @@ Cards covered:
 
 `MILES` was added to `CashbackTypeEnum` to properly represent airline mileage rewards. The `value` field represents miles earned per NTD spent (e.g., 0.1 = NT$10 per mile).
 
-### Extraction statistics (2026-04-07)
+### Extraction statistics (2026-04-08)
 
-- CATHAY total: 126 promos, 45 RECOMMENDABLE, 8 cards in DB
+- CATHAY total: ~220 promos, ~160 RECOMMENDABLE, 30 cards in DB
 - CUBE: 29p (27 REC) — plan-based extraction
 - 現金回饋御璽卡: 10p (7 REC) — colorbanner extraction
-- 世界卡: 70p (3 REC) — many CATALOG_ONLY (expected for premium card)
+- 世界卡: 71p (~56 REC) — classifier fix (`d31c495`) upgraded venue dining promos from CATALOG_ONLY
+  - 專屬優惠 venue promos (hotels, restaurants) now RECOMMENDABLE with correct DINING category
+  - 海外禮遇 3.5% cashback now RECOMMENDABLE
 
 ## Fubon Feature Extractors
 
@@ -241,19 +244,21 @@ Taishin cards with dedicated promo pages (Gogoro, friDay, 街口, PX_MART, etc.)
 
 ### Why it matters
 
-E.SUN full re-extraction (2026-04-07) dramatically improved coverage from 14→45 cards and 85→271 RECOMMENDABLE promotions, picking up many cards that were previously missing.
+E.SUN full re-extraction (2026-04-07→08) dramatically improved coverage from 14→45 cards and 85→271→~350+ RECOMMENDABLE promotions, picking up many cards that were previously missing.
 
-### Extraction statistics (2026-04-07)
+### Extraction statistics (2026-04-08)
 
-- ESUN total: 420 promos, 271 RECOMMENDABLE, 45 cards in DB
-- Top cards: 熊本熊卡 (18 REC), Unicard (16 REC), Pi拍兔 (15 REC), 世界卡 (14 REC)
+- ESUN total: ~480 promos, ~350 RECOMMENDABLE, 45 cards in DB
+- Unicard 百大: 57 RECOMMENDABLE (3 plans × 19 clusters, was 17 CATALOG_ONLY)
+- Top cards: Unicard (57+ REC with 百大 expansion), 熊本熊卡 (18 REC), Pi拍兔 (15 REC), 世界卡 (14 REC)
+- Classifier fix: profession card dining promos (會計師/建築師/醫師等) now RECOMMENDABLE
 
 ## Reusable lesson
 
 When a new bank card resembles:
 
 - `CUBE`: think `tiered plan + merchant-aware cluster promo + scoped rollout`
-- `Unicard`: think `runtime plan-state`
+- `Unicard`: think `plan-specific promo expansion + runtime plan-state`
 - `Richart`: think `rail / classification / routing sensitivity`
 - `CTBC cashback`: think `general reward expansion + bot protection + targeted extraction`
 - `CTBC co-brand`: think `sparse promotions + merchant-specific perks outside cashback schema`
