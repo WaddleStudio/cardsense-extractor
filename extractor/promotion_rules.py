@@ -792,6 +792,31 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
 COBRANDED_RETAILER_SIGNALS: List[Dict[str, str]] = [
     {"token": "中友百貨", "type": "VENUE", "value": "CHUNGYO", "label": "中友百貨"},
     {"token": "大江", "type": "VENUE", "value": "METROWALK", "label": "大江購物中心"},
+    # Hotel groups — match title mentions to group-level VENUE tag
+    {"token": "萬豪", "type": "VENUE", "value": "MARRIOTT", "label": "萬豪酒店"},
+    {"token": "萬怡", "type": "VENUE", "value": "MARRIOTT", "label": "萬豪酒店"},
+    {"token": "萬麗", "type": "VENUE", "value": "MARRIOTT", "label": "萬豪酒店"},
+    {"token": "Moxy", "type": "VENUE", "value": "MARRIOTT", "label": "萬豪酒店"},
+    {"token": "喜來登", "type": "VENUE", "value": "SHERATON", "label": "喜來登"},
+    {"token": "香格里拉", "type": "VENUE", "value": "SHANGRI_LA", "label": "香格里拉"},
+    {"token": "君悅", "type": "VENUE", "value": "HYATT", "label": "凱悅"},
+    {"token": "英迪格", "type": "VENUE", "value": "IHG", "label": "洲際酒店"},
+    {"token": "晶華", "type": "VENUE", "value": "REGENT", "label": "晶華酒店"},
+    {"token": "晶泉丰旅", "type": "VENUE", "value": "REGENT", "label": "晶華酒店"},
+    {"token": "寒舍艾美", "type": "VENUE", "value": "HUMBLE_HOUSE", "label": "寒舍集團"},
+    {"token": "寒居", "type": "VENUE", "value": "HUMBLE_HOUSE", "label": "寒舍集團"},
+    {"token": "慕軒", "type": "VENUE", "value": "HUMBLE_HOUSE", "label": "寒舍集團"},
+    {"token": "國賓大飯店", "type": "VENUE", "value": "AMBASSADOR", "label": "國賓飯店"},
+    {"token": "漢來", "type": "VENUE", "value": "HI_LAI", "label": "漢來飯店"},
+    {"token": "和逸", "type": "VENUE", "value": "COSMOS", "label": "天成飯店集團"},
+    {"token": "COZZI", "type": "VENUE", "value": "COSMOS", "label": "天成飯店集團"},
+    {"token": "天成逸旅", "type": "VENUE", "value": "COSMOS", "label": "天成飯店集團"},
+    {"token": "瑞穗天合", "type": "VENUE", "value": "COSMOS", "label": "天成飯店集團"},
+    {"token": "長榮酒店", "type": "VENUE", "value": "EVERGREEN", "label": "長榮酒店"},
+    {"token": "文華東方", "type": "VENUE", "value": "MANDARIN_ORIENTAL", "label": "文華東方"},
+    {"token": "馥蘭朵", "type": "VENUE", "value": "FUSHIN", "label": "馥森/馥蘭朵"},
+    {"token": "馥森", "type": "VENUE", "value": "FUSHIN", "label": "馥森/馥蘭朵"},
+    {"token": "承億", "type": "VENUE", "value": "HOTELDAY", "label": "承億酒店"},
 ]
 
 PAYMENT_METHOD_SUBCATEGORY_CONDITIONS: Dict[tuple[str, str], Dict[str, str]] = {
