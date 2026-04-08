@@ -33,18 +33,36 @@ def test_extract_unicard_hundred_store_promotions_parses_official_clusters():
 
     promotions = _extract_unicard_hundred_store_promotions(lines, card, "GENERAL")
 
-    assert len(promotions) == 3
-    mobile_pay = next(promo for promo in promotions if promo["title"].endswith("行動支付"))
-    ecommerce = next(promo for promo in promotions if promo["title"].endswith("電商平台"))
-    overseas = next(promo for promo in promotions if promo["title"].endswith("國外實體"))
+    # 3 clusters × 3 plans = 9 promos
+    assert len(promotions) == 9
 
-    assert mobile_pay["subcategory"] == "GENERAL"
-    assert mobile_pay["recommendationScope"] == "CATALOG_ONLY"
+    # Check plan expansion for mobile pay cluster
+    mobile_pay_promos = [p for p in promotions if "行動支付" in p["title"]]
+    assert len(mobile_pay_promos) == 3
+    simple = next(p for p in mobile_pay_promos if p["planId"] == "ESUN_UNICARD_SIMPLE")
+    flexible = next(p for p in mobile_pay_promos if p["planId"] == "ESUN_UNICARD_FLEXIBLE")
+    up = next(p for p in mobile_pay_promos if p["planId"] == "ESUN_UNICARD_UP")
+
+    assert simple["cashbackValue"] == 3.0
+    assert flexible["cashbackValue"] == 3.5
+    assert up["cashbackValue"] == 4.5
+    assert simple["maxCashback"] == 1000
+    assert up["maxCashback"] == 5000
+    assert all(p["recommendationScope"] == "RECOMMENDABLE" for p in mobile_pay_promos)
+    assert all(p["subcategory"] == "GENERAL" for p in mobile_pay_promos)
     assert any(
         condition["type"] == "PAYMENT" and condition["value"] == "MOBILE_PAY"
-        for condition in mobile_pay["conditions"]
+        for condition in simple["conditions"]
     )
-    assert any(condition["value"] == "LINE_PAY" for condition in mobile_pay["conditions"])
-    assert ecommerce["subcategory"] == "ECOMMERCE"
-    assert any(condition["value"] == "COUPANG酷澎" for condition in ecommerce["conditions"])
-    assert any(condition["type"] == "LOCATION_ONLY" and condition["value"] == "日本" for condition in overseas["conditions"])
+    assert any(condition["value"] == "LINE_PAY" for condition in simple["conditions"])
+
+    # Check ecommerce cluster
+    ecommerce_promos = [p for p in promotions if "電商平台" in p["title"]]
+    assert len(ecommerce_promos) == 3
+    assert all(p["subcategory"] == "ECOMMERCE" for p in ecommerce_promos)
+    assert any(condition["value"] == "COUPANG酷澎" for condition in ecommerce_promos[0]["conditions"])
+
+    # Check overseas cluster
+    overseas_promos = [p for p in promotions if "國外實體" in p["title"]]
+    assert len(overseas_promos) == 3
+    assert any(condition["type"] == "LOCATION_ONLY" and condition["value"] == "日本" for condition in overseas_promos[0]["conditions"])

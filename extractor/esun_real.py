@@ -816,14 +816,20 @@ def _filter_unicard_variant_labels(
     return filtered
 
 
-def _build_unicard_hundred_store_promotion(
+_UNICARD_HUNDRED_STORE_PLANS = (
+    ("ESUN_UNICARD_SIMPLE", "簡單選", 3.0, 1000),
+    ("ESUN_UNICARD_FLEXIBLE", "任意選", 3.5, 1000),
+    ("ESUN_UNICARD_UP", "UP選", 4.5, 5000),
+)
+
+
+def _build_unicard_hundred_store_promotions_for_cluster(
     *,
     card: CardRecord,
     eligibility_type: str,
     valid_from: str,
     valid_until: str,
     notes: str,
-    rate_summary: str,
     title_suffix: str,
     category: str,
     subcategory: str,
@@ -831,53 +837,56 @@ def _build_unicard_hundred_store_promotion(
     condition_type: str,
     merchant_labels: List[str],
     condition_overrides: dict[str, tuple[str, str]] | None = None,
-) -> Dict[str, object] | None:
+) -> List[Dict[str, object]]:
     if not merchant_labels:
-        return None
+        return []
 
-    conditions = [
+    base_conditions = [
         {"type": "TEXT", "value": "UNICARD_HUNDRED_STORE_CATALOG", "label": notes},
         *_build_unicard_hundred_store_conditions(condition_type, merchant_labels, condition_overrides=condition_overrides),
     ]
     if condition_type == "PAYMENT":
-        conditions.insert(1, {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"})
+        base_conditions.insert(1, {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "行動支付"})
 
-    summary = (
-        f"{title_suffix}百大指定消費，{rate_summary}，"
-        f"共 {len(merchant_labels)} 個指定通路，有效期間 {valid_from}~{valid_until}"
-    )
+    base_conditions = sanitize_payment_conditions(title_suffix, " ".join(merchant_labels), base_conditions)
 
-    conditions = sanitize_payment_conditions(title_suffix, " ".join(merchant_labels), conditions)
-
-    return {
-        "title": f"{card.card_name} 百大指定消費 {title_suffix}",
-        "cardCode": card.card_code,
-        "cardName": card.card_name,
-        "cardStatus": "ACTIVE",
-        "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
-        "applyUrl": card.apply_url,
-        "bankCode": BANK_CODE,
-        "bankName": BANK_NAME,
-        "category": category,
-        "subcategory": subcategory,
-        "channel": channel,
-        "cashbackType": "PERCENT",
-        "cashbackValue": 4.5,
-        "minAmount": 0,
-        "maxCashback": None,
-        "frequencyLimit": "NONE",
-        "requiresRegistration": False,
-        "recommendationScope": "CATALOG_ONLY",
-        "eligibilityType": eligibility_type,
-        "validFrom": valid_from,
-        "validUntil": valid_until,
-        "conditions": conditions,
-        "excludedConditions": [],
-        "sourceUrl": card.detail_url,
-        "summary": summary,
-        "status": "ACTIVE",
-        "planId": None,
-    }
+    promotions: List[Dict[str, object]] = []
+    for plan_id, plan_label, cashback_value, max_cashback in _UNICARD_HUNDRED_STORE_PLANS:
+        summary = (
+            f"{title_suffix}百大指定消費（{plan_label} {cashback_value}%），"
+            f"共 {len(merchant_labels)} 個指定通路，月上限 {max_cashback} 點，"
+            f"有效期間 {valid_from}~{valid_until}"
+        )
+        promotions.append({
+            "title": f"{card.card_name} 百大指定消費 {title_suffix}（{plan_label}）",
+            "cardCode": card.card_code,
+            "cardName": card.card_name,
+            "cardStatus": "ACTIVE",
+            "annualFee": _extract_annual_fee_amount(card.annual_fee_summary),
+            "applyUrl": card.apply_url,
+            "bankCode": BANK_CODE,
+            "bankName": BANK_NAME,
+            "category": category,
+            "subcategory": subcategory,
+            "channel": channel,
+            "cashbackType": "PERCENT",
+            "cashbackValue": cashback_value,
+            "minAmount": 0,
+            "maxCashback": max_cashback,
+            "frequencyLimit": "MONTHLY",
+            "requiresRegistration": False,
+            "recommendationScope": "RECOMMENDABLE",
+            "eligibilityType": eligibility_type,
+            "validFrom": valid_from,
+            "validUntil": valid_until,
+            "conditions": [dict(c) for c in base_conditions],
+            "excludedConditions": [],
+            "sourceUrl": card.detail_url,
+            "summary": summary,
+            "status": "ACTIVE",
+            "planId": plan_id,
+        })
+    return promotions
 
 
 def _extract_unicard_hundred_store_promotions(
@@ -892,7 +901,6 @@ def _extract_unicard_hundred_store_promotions(
     if not valid_from or not valid_until or not clusters:
         return []
 
-    rate_summary = "簡單選 3% / 任意選 3.5% / UP選 4.5%"
     notes = (
         "百大指定消費加碼以每月最後一日最終方案計算；任意選需於 100 家指定消費中自選最多 8 家；"
         "簡單選與任意選月上限 1,000 點，UP選月上限 5,000 點。"
@@ -912,13 +920,12 @@ def _extract_unicard_hundred_store_promotions(
                     match_tokens=variant.get("match_tokens"),
                     exclude_tokens=variant.get("exclude_tokens"),
                 )
-                promotion = _build_unicard_hundred_store_promotion(
+                promotions.extend(_build_unicard_hundred_store_promotions_for_cluster(
                     card=card,
                     eligibility_type=eligibility_type,
                     valid_from=valid_from,
                     valid_until=valid_until,
                     notes=notes,
-                    rate_summary=rate_summary,
                     title_suffix=str(variant["title_suffix"]),
                     category=str(variant["category"]),
                     subcategory=str(variant["subcategory"]),
@@ -926,27 +933,22 @@ def _extract_unicard_hundred_store_promotions(
                     condition_type=str(variant["condition_type"]),
                     merchant_labels=variant_labels,
                     condition_overrides=variant.get("condition_overrides"),
-                )
-                if promotion:
-                    promotions.append(promotion)
+                ))
             continue
 
-        promotion = _build_unicard_hundred_store_promotion(
+        promotions.extend(_build_unicard_hundred_store_promotions_for_cluster(
             card=card,
             eligibility_type=eligibility_type,
             valid_from=valid_from,
             valid_until=valid_until,
             notes=notes,
-            rate_summary=rate_summary,
             title_suffix=cluster_name,
             category=meta["category"],
             subcategory=meta["subcategory"],
             channel=meta["channel"],
             condition_type=meta["condition_type"],
             merchant_labels=merchant_labels,
-        )
-        if promotion:
-            promotions.append(promotion)
+        ))
 
     return promotions
 
