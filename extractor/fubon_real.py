@@ -211,6 +211,28 @@ def list_fubon_cards() -> List[CardRecord]:
                 )
             )
 
+    # Second fallback: Ensure INSURANCE, INFINITE, and DIGITALLIFE are always requested
+    # because they disappeared from the main card list page but might still exist.
+    must_have = [
+        ("FUBON_INSURANCE", "富邦鑽保卡", f"{BASE_URL}/banking/personal/credit_card/all_card/insurance/insurance.htm"),
+        ("FUBON_INFINITE", "富邦尊御世界卡", f"{BASE_URL}/banking/personal/credit_card/all_card/infinite/infinite.htm"),
+        ("FUBON_DIGITALLIFE", "數位生活卡", f"{BASE_URL}/banking/personal/credit_card/all_card/digitallife/digitallife.htm"),
+    ]
+    
+    for code, name, detail_url in must_have:
+        if not any(c.card_code == code for c in cards):
+            cards.append(
+                CardRecord(
+                    card_code=code,
+                    card_name=name,
+                    detail_url=detail_url,
+                    apply_url=None,
+                    annual_fee_summary=None,
+                    application_requirements=[],
+                    sections=[],
+                )
+            )
+
     return cards
 
 
