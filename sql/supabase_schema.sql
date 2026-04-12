@@ -101,3 +101,10 @@ CREATE TABLE IF NOT EXISTS promotion_current (
 
 CREATE INDEX IF NOT EXISTS idx_pc_bank_category ON promotion_current (bank_code, category);
 CREATE INDEX IF NOT EXISTS idx_pc_status_dates ON promotion_current (status, valid_from, valid_until);
+
+-- These tables live in the public schema, which Supabase exposes through
+-- PostgREST. Enable RLS without public policies so direct browser access is
+-- denied while the backend PostgreSQL connection can continue to read them.
+ALTER TABLE extract_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotion_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE promotion_current ENABLE ROW LEVEL SECURITY;
