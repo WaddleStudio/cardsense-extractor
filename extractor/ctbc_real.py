@@ -44,6 +44,7 @@ from extractor.promotion_rules import (
     sanitize_payment_conditions,
     append_inferred_cobranded_conditions,
     append_inferred_date_conditions,
+    normalize_venue_conditions,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -350,6 +351,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             requires_registration=requires_registration,
             conditions=conditions,
         )
+        conditions = normalize_venue_conditions(conditions)
 
         base_promotion = {
             "title": f"{enriched_card.card_name} {clean_title}",
