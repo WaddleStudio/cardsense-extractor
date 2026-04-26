@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 from dataclasses import dataclass
@@ -683,9 +683,14 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "momo", "type": "VENUE", "value": "MOMO", "label": "momo"},
         {"token": "蝦皮", "type": "VENUE", "value": "SHOPEE", "label": "蝦皮"},
         {"token": "Yahoo", "type": "VENUE", "value": "YAHOO", "label": "Yahoo"},
+        {"token": "博客來", "type": "VENUE", "value": "BOOKS_COM_TW", "label": "博客來"},
+        {"token": "樂天", "type": "VENUE", "value": "RAKUTEN", "label": "樂天市場"},
+        {"token": "東森購物", "type": "VENUE", "value": "ETMALL", "label": "東森購物"},
+        {"token": "生活市集", "type": "VENUE", "value": "BUY123", "label": "生活市集"},
         {"token": "Coupang", "type": "VENUE", "value": "COUPANG", "label": "Coupang"},
         {"token": "淘寶", "type": "VENUE", "value": "TAOBAO", "label": "淘寶"},
         {"token": "天貓", "type": "VENUE", "value": "TMALL", "label": "天貓"},
+        {"token": "Amazon", "type": "VENUE", "value": "AMAZON", "label": "Amazon"},
     ],
     ("ONLINE", "MOBILE_PAY"): [
         {"token": "LINE Pay", "type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
@@ -735,6 +740,23 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "Uber Eats", "type": "VENUE", "value": "UBER_EATS", "label": "Uber Eats"},
         {"token": "foodpanda", "type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
     ],
+    ("DINING", "RESTAURANT"): [
+        {"token": "麥當勞", "type": "VENUE", "value": "MCDONALD", "label": "麥當勞"},
+        {"token": "McDonald's", "type": "VENUE", "value": "MCDONALD", "label": "麥當勞"},
+        {"token": "肯德基", "type": "VENUE", "value": "KFC", "label": "肯德基"},
+        {"token": "KFC", "type": "VENUE", "value": "KFC", "label": "肯德基"},
+        {"token": "摩斯", "type": "VENUE", "value": "MOS_BURGER", "label": "摩斯漢堡"},
+        {"token": "王品", "type": "VENUE", "value": "WOWPRIME", "label": "王品"},
+        {"token": "瓦城", "type": "VENUE", "value": "THAI_TOWN", "label": "瓦城料理"},
+    ],
+    ("DINING", "CAFE"): [
+        {"token": "星巴克", "type": "VENUE", "value": "STARBUCKS", "label": "星巴克"},
+        {"token": "Starbucks", "type": "VENUE", "value": "STARBUCKS", "label": "星巴克"},
+        {"token": "路易莎", "type": "VENUE", "value": "LOUISA", "label": "路易莎"},
+        {"token": "Louisa", "type": "VENUE", "value": "LOUISA", "label": "路易莎"},
+        {"token": "cama", "type": "VENUE", "value": "CAMA", "label": "cama cafe"},
+        {"token": "85度C", "type": "VENUE", "value": "C85", "label": "85度C"},
+    ],
     ("TRANSPORT", "RIDESHARE"): [
         {"token": "Uber", "type": "VENUE", "value": "UBER", "label": "Uber"},
         {"token": "Grab", "type": "VENUE", "value": "GRAB", "label": "Grab"},
@@ -757,9 +779,23 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
     ],
     ("GROCERY", "SUPERMARKET"): [
         {"token": "全聯", "type": "VENUE", "value": "PXMART", "label": "全聯"},
+        {"token": "大全聯", "type": "VENUE", "value": "PXMART", "label": "大全聯"},
         {"token": "家樂福", "type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
+        {"token": "大潤發", "type": "VENUE", "value": "RT_MART", "label": "大潤發"},
+        {"token": "Costco", "type": "VENUE", "value": "COSTCO", "label": "好市多"},
+        {"token": "好市多", "type": "VENUE", "value": "COSTCO", "label": "好市多"},
         {"token": "LOPIA", "type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
         {"token": "RT-Mart", "type": "VENUE", "value": "RT_MART", "label": "RT-Mart"},
+    ],
+    ("GROCERY", "CONVENIENCE_STORE"): [
+        {"token": "7-ELEVEN", "type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"token": "7-11", "type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"token": "統一超商", "type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"token": "全家", "type": "VENUE", "value": "FAMILYMART", "label": "全家"},
+        {"token": "FamilyMart", "type": "VENUE", "value": "FAMILYMART", "label": "全家"},
+        {"token": "萊爾富", "type": "VENUE", "value": "HI_LIFE", "label": "萊爾富"},
+        {"token": "OK mart", "type": "VENUE", "value": "OK_MART", "label": "OK超商"},
+        {"token": "OK超商", "type": "VENUE", "value": "OK_MART", "label": "OK超商"},
     ],
     ("SHOPPING", "DEPARTMENT"): [
         {"token": "SOGO", "type": "VENUE", "value": "SOGO", "label": "SOGO"},
@@ -771,6 +807,16 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
     ("SHOPPING", "DRUGSTORE"): [
         {"token": "康是美", "type": "VENUE", "value": "COSMED", "label": "康是美"},
         {"token": "屈臣氏", "type": "VENUE", "value": "WATSONS", "label": "屈臣氏"},
+    ],
+    ("SHOPPING", "APPAREL"): [
+        {"token": "UNIQLO", "type": "VENUE", "value": "UNIQLO", "label": "UNIQLO"},
+        {"token": "優衣庫", "type": "VENUE", "value": "UNIQLO", "label": "UNIQLO"},
+        {"token": "NET", "type": "VENUE", "value": "NET", "label": "NET"},
+        {"token": "GU", "type": "VENUE", "value": "GU", "label": "GU"},
+    ],
+    ("SHOPPING", "SPORTING_GOODS"): [
+        {"token": "迪卡儂", "type": "VENUE", "value": "DECATHLON", "label": "迪卡儂"},
+        {"token": "Decathlon", "type": "VENUE", "value": "DECATHLON", "label": "迪卡儂"},
     ],
     ("OTHER", "EV_CHARGING"): [
         {"token": "U-POWER", "type": "VENUE", "value": "U_POWER", "label": "U-POWER"},
