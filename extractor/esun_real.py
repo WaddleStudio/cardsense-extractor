@@ -314,8 +314,11 @@ UNICARD_HUNDRED_STORE_VARIANTS.update(
                 "subcategory": "SUPERMARKET",
                 "channel": "ALL",
                 "condition_type": "VENUE",
-                "match_tokens": ("家樂福",),
+                "match_tokens": ("全聯", "大全聯", "PX", "家樂福"),
                 "condition_overrides": {
+                    "全聯": ("PXMART", "全聯"),
+                    "大全聯": ("PXMART", "全聯"),
+                    "PX": ("PXMART", "全聯"),
                     "家樂福": ("CARREFOUR", "家樂福"),
                 },
             },

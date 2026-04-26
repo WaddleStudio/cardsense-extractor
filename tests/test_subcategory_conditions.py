@@ -60,6 +60,21 @@ def test_append_inferred_subcategory_conditions_adds_travel_platform_merchant_co
     )
 
 
+def test_append_inferred_subcategory_conditions_adds_poya_drugstore_condition():
+    conditions = append_inferred_subcategory_conditions(
+        "寶雅指定通路 5%",
+        "於 POYA 寶雅門市消費享加碼回饋。",
+        "SHOPPING",
+        "DRUGSTORE",
+        [],
+    )
+
+    assert any(
+        condition["type"] == "VENUE" and condition["value"] == "POYA"
+        for condition in conditions
+    )
+
+
 def test_append_inferred_subcategory_conditions_adds_high_frequency_ecommerce_conditions():
     conditions = append_inferred_subcategory_conditions(
         "momo PChome 樂天 最高 5%",
@@ -133,7 +148,6 @@ def test_append_inferred_subcategory_conditions_adds_grocery_and_shopping_condit
     assert {"7_ELEVEN", "FAMILYMART", "HI_LIFE", "OK_MART"}.issubset(convenience_values)
     assert {"UNIQLO", "NET", "GU"}.issubset(apparel_values)
     assert "DECATHLON" in sporting_values
-
 
 def test_append_inferred_payment_method_conditions_adds_mobile_pay_group_condition():
     conditions = append_inferred_payment_method_conditions(
