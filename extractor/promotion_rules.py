@@ -771,6 +771,8 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
     ("SHOPPING", "DRUGSTORE"): [
         {"token": "康是美", "type": "VENUE", "value": "COSMED", "label": "康是美"},
         {"token": "屈臣氏", "type": "VENUE", "value": "WATSONS", "label": "屈臣氏"},
+        {"token": "寶雅", "type": "VENUE", "value": "POYA", "label": "寶雅"},
+        {"token": "POYA", "type": "VENUE", "value": "POYA", "label": "寶雅"},
     ],
     ("OTHER", "EV_CHARGING"): [
         {"token": "U-POWER", "type": "VENUE", "value": "U_POWER", "label": "U-POWER"},

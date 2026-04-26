@@ -60,6 +60,21 @@ def test_append_inferred_subcategory_conditions_adds_travel_platform_merchant_co
     )
 
 
+def test_append_inferred_subcategory_conditions_adds_poya_drugstore_condition():
+    conditions = append_inferred_subcategory_conditions(
+        "寶雅指定通路 5%",
+        "於 POYA 寶雅門市消費享加碼回饋。",
+        "SHOPPING",
+        "DRUGSTORE",
+        [],
+    )
+
+    assert any(
+        condition["type"] == "VENUE" and condition["value"] == "POYA"
+        for condition in conditions
+    )
+
+
 def test_append_inferred_payment_method_conditions_adds_mobile_pay_group_condition():
     conditions = append_inferred_payment_method_conditions(
         "ONLINE",

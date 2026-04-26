@@ -169,6 +169,34 @@ def test_unicard_hundred_store_variant_filters_split_mixed_clusters():
     assert platform_labels == ["Trip.com", "Booking.com", "Klook", "Agoda"]
 
 
+def test_unicard_hundred_store_supermarket_variant_keeps_pxmart_and_carrefour():
+    from extractor.esun_real import (
+        UNICARD_HUNDRED_STORE_VARIANTS,
+        _build_unicard_hundred_store_conditions,
+        _filter_unicard_variant_labels,
+    )
+
+    supermarket_variant = next(
+        variant
+        for variant in UNICARD_HUNDRED_STORE_VARIANTS["生活採買"]
+        if variant["subcategory"] == "SUPERMARKET"
+    )
+
+    labels = _filter_unicard_variant_labels(
+        ["全聯福利中心", "家樂福", "屈臣氏"],
+        match_tokens=supermarket_variant["match_tokens"],
+    )
+    conditions = _build_unicard_hundred_store_conditions(
+        supermarket_variant["condition_type"],
+        labels,
+        condition_overrides=supermarket_variant["condition_overrides"],
+    )
+
+    assert labels == ["全聯福利中心", "家樂福"]
+    assert {"type": "VENUE", "value": "PXMART", "label": "全聯"} in conditions
+    assert {"type": "VENUE", "value": "CARREFOUR", "label": "家樂福"} in conditions
+
+
 def test_unicard_hundred_store_variant_filters_split_remaining_general_clusters():
     from extractor.esun_real import _filter_unicard_variant_labels
 
