@@ -75,6 +75,80 @@ def test_append_inferred_subcategory_conditions_adds_poya_drugstore_condition():
     )
 
 
+def test_append_inferred_subcategory_conditions_adds_high_frequency_ecommerce_conditions():
+    conditions = append_inferred_subcategory_conditions(
+        "momo PChome 樂天 最高 5%",
+        "指定平台含蝦皮、博客來、東森購物與 Amazon。",
+        "ONLINE",
+        "ECOMMERCE",
+        [],
+    )
+
+    values = {condition["value"] for condition in conditions}
+    assert {"MOMO", "SHOPEE", "BOOKS_COM_TW", "RAKUTEN", "ETMALL", "AMAZON"}.issubset(values)
+
+
+def test_append_inferred_subcategory_conditions_adds_dining_merchant_conditions():
+    restaurant_conditions = append_inferred_subcategory_conditions(
+        "速食與集團餐飲加碼",
+        "麥當勞、肯德基、摩斯、王品與瓦城適用。",
+        "DINING",
+        "RESTAURANT",
+        [],
+    )
+    cafe_conditions = append_inferred_subcategory_conditions(
+        "咖啡通路加碼",
+        "星巴克、路易莎與 cama 適用。",
+        "DINING",
+        "CAFE",
+        [],
+    )
+
+    restaurant_values = {condition["value"] for condition in restaurant_conditions}
+    cafe_values = {condition["value"] for condition in cafe_conditions}
+    assert {"MCDONALD", "KFC", "MOS_BURGER", "WOWPRIME", "THAI_TOWN"}.issubset(restaurant_values)
+    assert {"STARBUCKS", "LOUISA", "CAMA"}.issubset(cafe_values)
+
+
+def test_append_inferred_subcategory_conditions_adds_grocery_and_shopping_conditions():
+    grocery_conditions = append_inferred_subcategory_conditions(
+        "超市量販通路",
+        "全聯、大全聯、家樂福、大潤發、Costco 與 LOPIA 適用。",
+        "GROCERY",
+        "SUPERMARKET",
+        [],
+    )
+    convenience_conditions = append_inferred_subcategory_conditions(
+        "四大超商加碼",
+        "7-ELEVEN、全家、萊爾富與 OK mart 適用。",
+        "GROCERY",
+        "CONVENIENCE_STORE",
+        [],
+    )
+    apparel_conditions = append_inferred_subcategory_conditions(
+        "服飾與運動通路",
+        "UNIQLO、NET、GU 與迪卡儂適用。",
+        "SHOPPING",
+        "APPAREL",
+        [],
+    )
+    sporting_conditions = append_inferred_subcategory_conditions(
+        "運動用品通路",
+        "迪卡儂 Decathlon 適用。",
+        "SHOPPING",
+        "SPORTING_GOODS",
+        [],
+    )
+
+    grocery_values = {condition["value"] for condition in grocery_conditions}
+    convenience_values = {condition["value"] for condition in convenience_conditions}
+    apparel_values = {condition["value"] for condition in apparel_conditions}
+    sporting_values = {condition["value"] for condition in sporting_conditions}
+    assert {"PXMART", "CARREFOUR", "RT_MART", "COSTCO", "LOPIA"}.issubset(grocery_values)
+    assert {"7_ELEVEN", "FAMILYMART", "HI_LIFE", "OK_MART"}.issubset(convenience_values)
+    assert {"UNIQLO", "NET", "GU"}.issubset(apparel_values)
+    assert "DECATHLON" in sporting_values
+
 def test_append_inferred_payment_method_conditions_adds_mobile_pay_group_condition():
     conditions = append_inferred_payment_method_conditions(
         "ONLINE",

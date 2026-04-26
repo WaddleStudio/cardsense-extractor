@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import re
 from dataclasses import dataclass
@@ -683,9 +683,14 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "momo", "type": "VENUE", "value": "MOMO", "label": "momo"},
         {"token": "蝦皮", "type": "VENUE", "value": "SHOPEE", "label": "蝦皮"},
         {"token": "Yahoo", "type": "VENUE", "value": "YAHOO", "label": "Yahoo"},
+        {"token": "博客來", "type": "VENUE", "value": "BOOKS_COM_TW", "label": "博客來"},
+        {"token": "樂天", "type": "VENUE", "value": "RAKUTEN", "label": "樂天市場"},
+        {"token": "東森購物", "type": "VENUE", "value": "ETMALL", "label": "東森購物"},
+        {"token": "生活市集", "type": "VENUE", "value": "BUY123", "label": "生活市集"},
         {"token": "Coupang", "type": "VENUE", "value": "COUPANG", "label": "Coupang"},
         {"token": "淘寶", "type": "VENUE", "value": "TAOBAO", "label": "淘寶"},
         {"token": "天貓", "type": "VENUE", "value": "TMALL", "label": "天貓"},
+        {"token": "Amazon", "type": "VENUE", "value": "AMAZON", "label": "Amazon"},
     ],
     ("ONLINE", "MOBILE_PAY"): [
         {"token": "LINE Pay", "type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
@@ -735,6 +740,23 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "Uber Eats", "type": "VENUE", "value": "UBER_EATS", "label": "Uber Eats"},
         {"token": "foodpanda", "type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
     ],
+    ("DINING", "RESTAURANT"): [
+        {"token": "麥當勞", "type": "VENUE", "value": "MCDONALD", "label": "麥當勞"},
+        {"token": "McDonald's", "type": "VENUE", "value": "MCDONALD", "label": "麥當勞"},
+        {"token": "肯德基", "type": "VENUE", "value": "KFC", "label": "肯德基"},
+        {"token": "KFC", "type": "VENUE", "value": "KFC", "label": "肯德基"},
+        {"token": "摩斯", "type": "VENUE", "value": "MOS_BURGER", "label": "摩斯漢堡"},
+        {"token": "王品", "type": "VENUE", "value": "WOWPRIME", "label": "王品"},
+        {"token": "瓦城", "type": "VENUE", "value": "THAI_TOWN", "label": "瓦城料理"},
+    ],
+    ("DINING", "CAFE"): [
+        {"token": "星巴克", "type": "VENUE", "value": "STARBUCKS", "label": "星巴克"},
+        {"token": "Starbucks", "type": "VENUE", "value": "STARBUCKS", "label": "星巴克"},
+        {"token": "路易莎", "type": "VENUE", "value": "LOUISA", "label": "路易莎"},
+        {"token": "Louisa", "type": "VENUE", "value": "LOUISA", "label": "路易莎"},
+        {"token": "cama", "type": "VENUE", "value": "CAMA", "label": "cama cafe"},
+        {"token": "85度C", "type": "VENUE", "value": "C85", "label": "85度C"},
+    ],
     ("TRANSPORT", "RIDESHARE"): [
         {"token": "Uber", "type": "VENUE", "value": "UBER", "label": "Uber"},
         {"token": "Grab", "type": "VENUE", "value": "GRAB", "label": "Grab"},
@@ -757,9 +779,23 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
     ],
     ("GROCERY", "SUPERMARKET"): [
         {"token": "全聯", "type": "VENUE", "value": "PXMART", "label": "全聯"},
+        {"token": "大全聯", "type": "VENUE", "value": "PXMART", "label": "大全聯"},
         {"token": "家樂福", "type": "VENUE", "value": "CARREFOUR", "label": "家樂福"},
+        {"token": "大潤發", "type": "VENUE", "value": "RT_MART", "label": "大潤發"},
+        {"token": "Costco", "type": "VENUE", "value": "COSTCO", "label": "好市多"},
+        {"token": "好市多", "type": "VENUE", "value": "COSTCO", "label": "好市多"},
         {"token": "LOPIA", "type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
         {"token": "RT-Mart", "type": "VENUE", "value": "RT_MART", "label": "RT-Mart"},
+    ],
+    ("GROCERY", "CONVENIENCE_STORE"): [
+        {"token": "7-ELEVEN", "type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"token": "7-11", "type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"token": "統一超商", "type": "VENUE", "value": "7_ELEVEN", "label": "7-ELEVEN"},
+        {"token": "全家", "type": "VENUE", "value": "FAMILYMART", "label": "全家"},
+        {"token": "FamilyMart", "type": "VENUE", "value": "FAMILYMART", "label": "全家"},
+        {"token": "萊爾富", "type": "VENUE", "value": "HI_LIFE", "label": "萊爾富"},
+        {"token": "OK mart", "type": "VENUE", "value": "OK_MART", "label": "OK超商"},
+        {"token": "OK超商", "type": "VENUE", "value": "OK_MART", "label": "OK超商"},
     ],
     ("SHOPPING", "DEPARTMENT"): [
         {"token": "SOGO", "type": "VENUE", "value": "SOGO", "label": "SOGO"},
@@ -773,6 +809,16 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
         {"token": "屈臣氏", "type": "VENUE", "value": "WATSONS", "label": "屈臣氏"},
         {"token": "寶雅", "type": "VENUE", "value": "POYA", "label": "寶雅"},
         {"token": "POYA", "type": "VENUE", "value": "POYA", "label": "寶雅"},
+    ],
+    ("SHOPPING", "APPAREL"): [
+        {"token": "UNIQLO", "type": "VENUE", "value": "UNIQLO", "label": "UNIQLO"},
+        {"token": "優衣庫", "type": "VENUE", "value": "UNIQLO", "label": "UNIQLO"},
+        {"token": "NET", "type": "VENUE", "value": "NET", "label": "NET"},
+        {"token": "GU", "type": "VENUE", "value": "GU", "label": "GU"},
+    ],
+    ("SHOPPING", "SPORTING_GOODS"): [
+        {"token": "迪卡儂", "type": "VENUE", "value": "DECATHLON", "label": "迪卡儂"},
+        {"token": "Decathlon", "type": "VENUE", "value": "DECATHLON", "label": "迪卡儂"},
     ],
     ("OTHER", "EV_CHARGING"): [
         {"token": "U-POWER", "type": "VENUE", "value": "U_POWER", "label": "U-POWER"},
@@ -794,6 +840,16 @@ STRUCTURED_SUBCATEGORY_CONDITION_SIGNALS: Dict[tuple[str, str], List[Dict[str, s
 COBRANDED_RETAILER_SIGNALS: List[Dict[str, str]] = [
     {"token": "中友百貨", "type": "VENUE", "value": "CHUNGYO", "label": "中友百貨"},
     {"token": "大江", "type": "VENUE", "value": "METROWALK", "label": "大江購物中心"},
+    # High-frequency merchants (P2)
+    {"token": "寶雅", "type": "VENUE", "value": "POYA", "label": "寶雅"},
+    {"token": "好市多", "type": "VENUE", "value": "COSTCO", "label": "好市多"},
+    {"token": "Costco", "type": "VENUE", "value": "COSTCO", "label": "好市多"},
+    {"token": "路易莎", "type": "VENUE", "value": "LOUISA", "label": "路易莎"},
+    {"token": "Louisa", "type": "VENUE", "value": "LOUISA", "label": "路易莎"},
+    {"token": "85度C", "type": "VENUE", "value": "C85", "label": "85度C"},
+    {"token": "肯德基", "type": "VENUE", "value": "KFC", "label": "肯德基"},
+    {"token": "KFC", "type": "VENUE", "value": "KFC", "label": "肯德基"},
+    {"token": "摩斯漢堡", "type": "VENUE", "value": "MOS_BURGER", "label": "摩斯漢堡"},
     # Hotel groups — match title mentions to group-level VENUE tag
     {"token": "萬豪", "type": "VENUE", "value": "MARRIOTT", "label": "萬豪酒店"},
     {"token": "萬怡", "type": "VENUE", "value": "MARRIOTT", "label": "萬豪酒店"},
@@ -1132,6 +1188,113 @@ def append_inferred_payment_conditions_from_text(
         seen.add(key)
 
     return merged
+
+
+# Maps raw venue values (from extractors that don't use registry codes) to canonical registry codes.
+# This covers cases where bank JSON APIs return Chinese venue names or inconsistent strings.
+VENUE_VALUE_NORMALIZATION_MAP: Dict[str, str] = {
+    "蝦皮購物": "SHOPEE",
+    "MOMO購物網": "MOMO",
+    "遠東百貨": "FAR_EAST_DEPARTMENT_STORE",
+    "新光三越百貨": "SHIN_KONG_MITSUKOSHI",
+    "新光三越": "SHIN_KONG_MITSUKOSHI",
+    "遠東SOGO": "SOGO",
+    "遠東SOGO百貨": "SOGO",
+    "台北101": "TAIPEI_101",
+    "COUPANG酷澎": "COUPANG",
+    "淘寶網": "TAOBAO",
+    "微風百貨": "BREEZE",
+    "漢來美食": "HI_LAI",
+    "饗賓餐飲": "VOLTERRA_GROUP",
+    "雄獅旅遊": "LION_TRAVEL",
+    "王品瘋PAY": "WOWPRIME",
+    "GOGORO": "GOGORO_BATTERY",
+    # P1 raw values → new registry codes
+    "昇恆昌": "EVERRICH",
+    "美麗華": "MIRAMAR",
+    "京站": "Q_SQUARE",
+    "三井OUTLET": "MITSUI_OUTLET",
+    "秀泰生活": "SHOWTIME_PLAZA",
+    "統一時代百貨台北店_含DREAM_PLAZA": "MEGA_CITY_TAIPEI",
+    "統一時代百貨": "MEGA_CITY_TAIPEI",
+    "漢神百貨_不含漢神巨蛋": "HANSHIN",
+    "漢神百貨": "HANSHIN",
+    "華泰名品城": "GLORIA_OUTLETS",
+    "統領廣場": "TONLIN_FORESQUARE",
+    "乾杯燒肉": "KANPAI",
+    "瓦城料理": "THAI_TOWN",
+    "爭鮮餐飲": "GENKI_SUSHI",
+    "鼎王餐飲": "DING_WANG",
+    "誠品線上": "ESLITE",
+    "誠品書店_不含百貨店": "ESLITE",
+    "誠品生活": "ESLITE",
+    "采盟": "TSAI_MENG",
+    "遠東GARDEN_CITY_大巨蛋": "FAR_EAST_GARDEN_CITY",
+}
+
+# Labels for normalized venue values (used when updating label after normalization)
+VENUE_REGISTRY_LABELS: Dict[str, str] = {
+    "SHOPEE": "蝦皮購物",
+    "MOMO": "momo",
+    "FAR_EAST_DEPARTMENT_STORE": "遠東百貨",
+    "SHIN_KONG_MITSUKOSHI": "新光三越",
+    "SOGO": "遠東SOGO",
+    "TAIPEI_101": "台北101",
+    "COUPANG": "Coupang",
+    "TAOBAO": "淘寶",
+    "BREEZE": "微風百貨",
+    "HI_LAI": "漢來飯店",
+    "VOLTERRA_GROUP": "饗賓餐旅",
+    "LION_TRAVEL": "雄獅旅遊",
+    "WOWPRIME": "王品",
+    "GOGORO_BATTERY": "Gogoro 換電",
+    "EVERRICH": "昇恆昌",
+    "MIRAMAR": "美麗華",
+    "Q_SQUARE": "京站",
+    "MITSUI_OUTLET": "三井OUTLET",
+    "SHOWTIME_PLAZA": "秀泰生活",
+    "MEGA_CITY_TAIPEI": "統一時代百貨",
+    "HANSHIN": "漢神百貨",
+    "GLORIA_OUTLETS": "華泰名品城",
+    "TONLIN_FORESQUARE": "統領廣場",
+    "KANPAI": "乾杯燒肉",
+    "THAI_TOWN": "瓦城料理",
+    "GENKI_SUSHI": "爭鮮餐飲",
+    "DING_WANG": "鼎王餐飲",
+    "ESLITE": "誠品",
+    "TSAI_MENG": "采盟旅遊",
+    "FAR_EAST_GARDEN_CITY": "遠東GARDEN CITY大巨蛋",
+}
+
+
+def normalize_venue_conditions(
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    """Normalize raw venue values to canonical registry codes.
+
+    Handles cases where extractors emit Chinese venue names or inconsistent
+    strings instead of the registry code (e.g. CTBC JSON API output).
+    Deduplicates after normalization so two conditions don't collapse into
+    the same registry code.
+    """
+    result: List[Dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for cond in conditions:
+        if str(cond.get("type", "")).upper() != "VENUE":
+            result.append(cond)
+            continue
+        raw_value = str(cond.get("value", ""))
+        normalized = VENUE_VALUE_NORMALIZATION_MAP.get(raw_value, raw_value)
+        key = ("VENUE", normalized.upper())
+        if key in seen:
+            continue
+        seen.add(key)
+        if normalized != raw_value:
+            cond = dict(cond)
+            cond["value"] = normalized
+            cond["label"] = VENUE_REGISTRY_LABELS.get(normalized, cond.get("label", normalized))
+        result.append(cond)
+    return result
 
 
 def append_inferred_cobranded_conditions(

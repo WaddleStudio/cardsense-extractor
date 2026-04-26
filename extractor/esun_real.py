@@ -33,6 +33,7 @@ from extractor.promotion_rules import (
     sanitize_payment_conditions,
     append_inferred_cobranded_conditions,
     append_inferred_date_conditions,
+    normalize_venue_conditions,
     GENERAL_REWARD_DECOMPOSITION_MARKER,
     SUBCATEGORY_SIGNALS,
     to_condition_value,
@@ -603,6 +604,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             plan_id=plan_id,
         )
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
+        conditions = normalize_venue_conditions(conditions)
 
         base_promotion = {
             "title": f"{enriched_card.card_name} {clean_title}",
@@ -731,6 +733,7 @@ def _postprocess_cobranded_conditions(
         summary = str(promo.get("summary", "") or "")
         new_conditions = append_inferred_cobranded_conditions(title, summary, conditions)
         new_conditions = append_inferred_date_conditions(title, summary, new_conditions)
+        new_conditions = normalize_venue_conditions(new_conditions)
         if len(new_conditions) != len(conditions):
             promo = dict(promo)
             promo["conditions"] = new_conditions

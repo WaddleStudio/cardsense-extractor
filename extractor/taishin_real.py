@@ -34,6 +34,7 @@ from extractor.promotion_rules import (
     sanitize_payment_conditions,
     append_inferred_cobranded_conditions,
     append_inferred_date_conditions,
+    normalize_venue_conditions,
     SUBCATEGORY_SIGNALS,
 )
 
@@ -379,6 +380,7 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             plan_id=plan_id,
         )
         subcategory = canonicalize_subcategory(category, subcategory, conditions)
+        conditions = normalize_venue_conditions(conditions)
 
         base_promotion = {
             "title": f"{enriched_card.card_name} {clean_title}",
@@ -994,6 +996,7 @@ def _build_manual_promotion(
     conditions = build_conditions(body, card.application_requirements, requires_registration)
     conditions.extend(dict(condition) for condition in extra_conditions)
     conditions = sanitize_payment_conditions(title, body, conditions)
+    conditions = normalize_venue_conditions(conditions)
     summary = build_summary(
         title,
         body,
@@ -1151,6 +1154,7 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
         plan_id=plan_id,
     )
     subcategory = canonicalize_subcategory(category, subcategory, conditions)
+    conditions = normalize_venue_conditions(conditions)
     summary = build_summary(
         title,
         focused_text,
