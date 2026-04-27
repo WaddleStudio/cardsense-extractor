@@ -158,6 +158,10 @@ def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
                 ":type": "cathay/components/content/cubelisttitle",
                 "mainTitle": "<p>集精選&nbsp;<span>適用期間：2026/1/1~2026/6/30</span></p>",
             },
+            "title5": {
+                ":type": "cathay/components/content/cubelisttitle",
+                "mainTitle": "<p>日本賞&nbsp;<span>適用期間：2026/3/1~2026/4/30</span></p>",
+            },
         }
     }
     detail_payload = {
@@ -204,19 +208,39 @@ def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
     assert "CUBE信用卡 樂饗購 藥妝通路" in titles
     assert "CUBE信用卡 趣旅行 指定航空公司" in titles
     assert "CUBE信用卡 集精選 充電通路" in titles
+    assert "CUBE信用卡 日本賞 日本實體消費" in titles
+    assert "CUBE信用卡 日本賞 旅日交通" in titles
+    assert "CUBE信用卡 日本賞 預訂行程" in titles
+    assert "CUBE信用卡 日本賞 國內日系餐飲" in titles
+    assert "CUBE信用卡 日本賞 國內日系購物" in titles
     assert ("CATHAY_CUBE_DIGITAL", "AI_TOOL") in keyed
     assert ("CATHAY_CUBE_SHOPPING", "DELIVERY") in keyed
     assert ("CATHAY_CUBE_SHOPPING", "DRUGSTORE") in keyed
     assert ("CATHAY_CUBE_TRAVEL", "AIRLINE") in keyed
     assert ("CATHAY_CUBE_ESSENTIALS", "PARKING") in keyed
+    assert ("CATHAY_CUBE_JAPAN", "OVERSEAS_IN_STORE") in keyed
+    assert ("CATHAY_CUBE_JAPAN", "PUBLIC_TRANSIT") in keyed
+    assert ("CATHAY_CUBE_JAPAN", "TRAVEL_PLATFORM") in keyed
+    assert ("CATHAY_CUBE_JAPAN", "RESTAURANT") in keyed
+    assert ("CATHAY_CUBE_JAPAN", "APPAREL") in keyed
 
     ai_tool = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_DIGITAL" and p["subcategory"] == "AI_TOOL")
     supermarket = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_ESSENTIALS" and p["subcategory"] == "SUPERMARKET")
     airline = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_TRAVEL" and p["subcategory"] == "AIRLINE")
+    japan_transit = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_JAPAN" and p["subcategory"] == "PUBLIC_TRANSIT")
+    japan_travel = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_JAPAN" and p["subcategory"] == "TRAVEL_PLATFORM")
+    japan_dining = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_JAPAN" and p["subcategory"] == "RESTAURANT")
+    japan_shopping = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_JAPAN" and p["subcategory"] == "APPAREL")
 
     assert any(condition["type"] == "VENUE" and condition["value"] == "CHATGPT" for condition in ai_tool["conditions"])
     assert any(condition["type"] == "VENUE" and condition["value"] == "PXMART" for condition in supermarket["conditions"])
     assert any(condition["type"] == "VENUE" and condition["value"] == "CHINA_AIRLINES" for condition in airline["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "SUICA" for condition in japan_transit["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "KLOOK" for condition in japan_travel["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "SUSHIRO" for condition in japan_dining["conditions"])
+    assert any(condition["type"] == "VENUE" and condition["value"] == "UNIQLO" for condition in japan_shopping["conditions"])
+    assert japan_dining["cashbackValue"] == "8"
+    assert japan_shopping["cashbackValue"] == "5"
 
 
 def test_formosa_gas_promos_remove_payment_and_add_gas_station_conditions():

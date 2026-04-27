@@ -242,6 +242,48 @@ CUBE_PLAN_VARIANTS: dict[str, list[dict[str, str]]] = {
             "body": "IKEA宜家家居",
         },
     ],
+    "日本賞": [
+        {
+            "title_suffix": "日本實體消費",
+            "category": "OVERSEAS",
+            "subcategory": "OVERSEAS_IN_STORE",
+            "channel": "OFFLINE",
+            "rate": "3.5",
+            "body": "日本實體消費享日本賞指定消費回饋",
+        },
+        {
+            "title_suffix": "旅日交通",
+            "category": "TRANSPORT",
+            "subcategory": "PUBLIC_TRANSIT",
+            "channel": "ALL",
+            "rate": "3.5",
+            "body": "Apple錢包指定交通卡(SUICA、PASMO、ICOCA)、日本GO Taxi App、桃園機場捷運等指定交通通路",
+        },
+        {
+            "title_suffix": "預訂行程",
+            "category": "TRAVEL",
+            "subcategory": "TRAVEL_PLATFORM",
+            "channel": "ONLINE",
+            "rate": "3.5",
+            "body": "樂桃航空、Hotels.com、Expedia、Klook、KKday、Trip.com、可樂旅遊、東南旅遊、易遊網、Agoda等日本旅遊預訂通路",
+        },
+        {
+            "title_suffix": "國內日系餐飲",
+            "category": "DINING",
+            "subcategory": "RESTAURANT",
+            "channel": "OFFLINE",
+            "rate": "8",
+            "body": "國內日系餐飲指定品牌，包含聚日式鍋物、和牛涮、陶板屋、藝奇、台灣壽司郎、foodpanda、摩斯漢堡等",
+        },
+        {
+            "title_suffix": "國內日系購物",
+            "category": "SHOPPING",
+            "subcategory": "APPAREL",
+            "channel": "ALL",
+            "rate": "5",
+            "body": "LOPIA、台灣DON DON DONKI、UNITED ARROWS、明曜百貨、UNIQLO、GU等國內日系購物指定通路",
+        },
+    ],
 }
 
 CUBE_VARIANT_CONDITIONS: dict[tuple[str, str], list[dict[str, str]]] = {
@@ -341,6 +383,37 @@ CUBE_VARIANT_CONDITIONS: dict[tuple[str, str], list[dict[str, str]]] = {
     ],
     ("集精選", "HOME_LIVING"): [
         {"type": "VENUE", "value": "IKEA", "label": "IKEA"},
+    ],
+    ("日本賞", "PUBLIC_TRANSIT"): [
+        {"type": "VENUE", "value": "SUICA", "label": "SUICA"},
+        {"type": "VENUE", "value": "PASMO", "label": "PASMO"},
+        {"type": "VENUE", "value": "ICOCA", "label": "ICOCA"},
+        {"type": "VENUE", "value": "GO_TAXI_JP", "label": "日本GO Taxi App"},
+        {"type": "VENUE", "value": "TAOYUAN_AIRPORT_MRT", "label": "桃園機場捷運"},
+    ],
+    ("日本賞", "TRAVEL_PLATFORM"): [
+        {"type": "VENUE", "value": "PEACH", "label": "樂桃航空"},
+        {"type": "VENUE", "value": "HOTELS_COM", "label": "Hotels.com"},
+        {"type": "VENUE", "value": "EXPEDIA", "label": "Expedia"},
+        {"type": "VENUE", "value": "KLOOK", "label": "Klook"},
+        {"type": "VENUE", "value": "KKDAY", "label": "KKday"},
+        {"type": "VENUE", "value": "TRIP_COM", "label": "Trip.com"},
+        {"type": "VENUE", "value": "AGODA", "label": "Agoda"},
+        {"type": "VENUE", "value": "EZTRAVEL", "label": "易遊網"},
+    ],
+    ("日本賞", "RESTAURANT"): [
+        {"type": "VENUE", "value": "WOWPRIME", "label": "王品瘋Pay指定日系餐飲"},
+        {"type": "VENUE", "value": "SUSHIRO", "label": "台灣壽司郎"},
+        {"type": "VENUE", "value": "MOS_BURGER", "label": "摩斯漢堡"},
+        {"type": "VENUE", "value": "FOODPANDA", "label": "foodpanda"},
+    ],
+    ("日本賞", "APPAREL"): [
+        {"type": "VENUE", "value": "LOPIA", "label": "LOPIA"},
+        {"type": "VENUE", "value": "DON_DON_DONKI", "label": "台灣DON DON DONKI"},
+        {"type": "VENUE", "value": "UNITED_ARROWS", "label": "UNITED ARROWS"},
+        {"type": "VENUE", "value": "MING_YAO", "label": "明曜百貨"},
+        {"type": "VENUE", "value": "UNIQLO", "label": "UNIQLO"},
+        {"type": "VENUE", "value": "GU", "label": "GU"},
     ],
 }
 
@@ -821,11 +894,12 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
             variants = CUBE_PLAN_VARIANTS.get(plan_name)
             if variants:
                 for variant in variants:
+                    variant_rate = variant.get("rate", rate)
                     promo = _build_plan_promotion_with_conditions(
                         card=card,
                         title=f"{card.card_name} {plan_name} {variant['title_suffix']}",
-                        body=f"{variant['body']}；{tier_title} 享{rate}%小樹點回饋",
-                        rate=rate,
+                        body=f"{variant['body']}；{tier_title} 享{variant_rate}%小樹點回饋",
+                        rate=variant_rate,
                         category=variant["category"],
                         subcategory=variant["subcategory"],
                         channel=variant["channel"],
@@ -878,11 +952,12 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
         variants = CUBE_PLAN_VARIANTS.get(plan_name)
         if variants:
             for variant in variants:
+                variant_rate = variant.get("rate", default_rate)
                 promo = _build_plan_promotion_with_conditions(
                     card=card,
                     title=f"{card.card_name} {plan_name} {variant['title_suffix']}",
-                    body=f"{variant['body']}；指定通路享{default_rate}%小樹點回饋",
-                    rate=default_rate,
+                    body=f"{variant['body']}；指定通路享{variant_rate}%小樹點回饋",
+                    rate=variant_rate,
                     category=variant["category"],
                     subcategory=variant["subcategory"],
                     channel=variant["channel"],
