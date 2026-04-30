@@ -163,18 +163,10 @@ def sync_sqlite_to_supabase(
             result.table_durations["promotion_versions"] = time.perf_counter() - table_start
 
             table_start = time.perf_counter()
-            _clear_table_pg(pg_conn, "promotion_current", sync_filter)
-            pg_conn, _ = _sync_table(
+            pg_conn, _ = _replace_current_pg_atomically(
                 sqlite_conn, pg_conn, supabase_url,
-                sqlite_table="promotion_current",
-                pg_table="promotion_current",
-                cols=_PROMOTION_CURRENT_COLS,
-                pk="promo_id",
-                bool_cols=frozenset({"requires_registration"}),
-                counter_attr="current_upserted",
                 result=result,
                 required_parent_keys=synced_version_ids,
-                parent_key_col="promo_version_id",
                 sync_filter=sync_filter,
             )
             result.table_durations["promotion_current"] = time.perf_counter() - table_start
@@ -381,6 +373,72 @@ def _sync_table(
 
     setattr(result, counter_attr, upserted)
     return pg_conn, synced_keys
+
+
+def _replace_current_pg_atomically(
+    sqlite_conn: sqlite3.Connection,
+    pg_conn,
+    supabase_url: str,
+    *,
+    result: SyncResult,
+    required_parent_keys: set[str],
+    sync_filter: SyncFilter | None = None,
+):
+    rows = _read_sqlite_rows(
+        sqlite_conn,
+        "promotion_current",
+        _PROMOTION_CURRENT_COLS,
+        frozenset({"requires_registration"}),
+        sync_filter,
+    )
+    parent_idx = _PROMOTION_CURRENT_COLS.index("promo_version_id")
+    filtered_rows = [row for row in rows if row[parent_idx] in required_parent_keys]
+    skipped_rows = len(rows) - len(filtered_rows)
+    if skipped_rows:
+        result.failures += skipped_rows
+        print(
+            f"[supabase_store] skipping {skipped_rows} promotion_current rows because parent promo_version_id was not synced",
+            flush=True,
+        )
+    if not filtered_rows:
+        result.current_upserted = 0
+        return pg_conn, set()
+
+    sql = _build_upsert_sql("promotion_current", _PROMOTION_CURRENT_COLS, "promo_id")
+    pk_idx = _PROMOTION_CURRENT_COLS.index("promo_id")
+    batch_size = _get_batch_size()
+    try:
+        with pg_conn.cursor() as cursor:
+            if sync_filter and sync_filter.has_filter():
+                where_sql, params = _build_postgres_filter_clause(sync_filter)
+                cursor.execute(f"DELETE FROM promotion_current WHERE {where_sql}", params)
+            else:
+                cursor.execute("DELETE FROM promotion_current")
+            psycopg2.extras.execute_values(
+                cursor,
+                sql,
+                filtered_rows,
+                page_size=min(batch_size, len(filtered_rows)),
+            )
+        pg_conn.commit()
+        result.current_upserted = len(filtered_rows)
+        return pg_conn, {row[pk_idx] for row in filtered_rows}
+    except Exception as exc:
+        try:
+            pg_conn.rollback()
+        except Exception:
+            pass
+        result.failures += len(filtered_rows)
+        print(
+            f"[supabase_store] atomic promotion_current replace failed ({len(filtered_rows)} rows): {exc}",
+            flush=True,
+        )
+        if pg_conn.closed:
+            print("[supabase_store] reconnecting to Supabase...", flush=True)
+            result.reconnects += 1
+            pg_conn = _pg_connect(supabase_url)
+        result.current_upserted = 0
+        return pg_conn, set()
 
 
 def _sync_table_http(

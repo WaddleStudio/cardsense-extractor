@@ -197,6 +197,14 @@ cardsense-extractor/
 
 匯入同一銀行的全量 JSONL 時，會先刷新該銀行在 `promotion_current` 的舊資料，再寫入最新版本。
 
+### Credential policy
+
+- Do not commit real `.env` files or paste Supabase / Cloudflare secrets into repo docs.
+- Rotate any Supabase service-role key, database password, or Cloudflare token that was ever stored locally in plaintext.
+- Prefer `SUPABASE_DATABASE_URL` from the deployment secret manager for production sync; it publishes `promotion_current` atomically.
+- Use a least-privilege sync credential where possible. Keep `SUPABASE_SERVICE_ROLE_KEY` as a scoped/manual REST fallback only.
+- Cloudflare tokens should be limited to the browser-rendering capability needed by the extractor, not account-wide administration.
+
 ### Supabase Schema
 
 `sql/supabase_schema.sql` 提供 PostgreSQL 版本的 schema，用於線上環境。結構與 SQLite 相同，`supabase_store.py` 負責透過 REST API 寫入。線上 migration 需手動執行 `ALTER TABLE` 加入新欄位（如 `plan_id`）。
