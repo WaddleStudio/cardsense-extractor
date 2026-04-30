@@ -299,8 +299,23 @@ def test_sync_commits_per_table(sqlite_db, mock_pg):
     """Each table upsert is followed by a commit."""
     mock_psycopg2, mock_conn, mock_cursor = mock_pg
     sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
-    # extract_runs + promotion_versions + clear promotion_current + promotion_current upsert
-    assert mock_conn.commit.call_count == 4
+    # extract_runs + promotion_versions + atomic promotion_current replace
+    assert mock_conn.commit.call_count == 3
+
+
+def test_sync_rolls_back_atomic_current_replace_on_error(sqlite_db, mock_pg):
+    mock_psycopg2, mock_conn, mock_cursor = mock_pg
+
+    def fail_current(cursor, sql, rows, page_size=None):
+        if "promotion_current" in sql:
+            raise Exception("statement timeout")
+
+    mock_psycopg2.extras.execute_values.side_effect = fail_current
+    result = sync_sqlite_to_supabase(sqlite_db, "postgresql://fake/db")
+
+    assert result.current_upserted == 0
+    assert result.failures == 1
+    mock_conn.rollback.assert_called()
 
 
 def test_sync_closes_pg_connection_on_success(sqlite_db, mock_pg):
