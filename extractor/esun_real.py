@@ -106,6 +106,10 @@ UNICARD_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
     ),
 }
 
+UNICARD_MOBILE_PAY_EXCLUSIONS: tuple[dict[str, str], ...] = (
+    {"type": "PAYMENT", "value": "MOBILE_PAY", "label": "mobile pay"},
+)
+
 UNICARD_HUNDRED_STORE_CLUSTER_META: dict[str, dict[str, str]] = {
     "行動支付": {
         "category": "ONLINE",
@@ -886,7 +890,11 @@ def _build_unicard_hundred_store_promotions_for_cluster(
             "validFrom": valid_from,
             "validUntil": valid_until,
             "conditions": [dict(c) for c in base_conditions],
-            "excludedConditions": [],
+            "excludedConditions": (
+                []
+                if condition_type in ("PAYMENT", "LOCATION_ONLY")
+                else [dict(condition) for condition in UNICARD_MOBILE_PAY_EXCLUSIONS]
+            ),
             "sourceUrl": card.detail_url,
             "summary": summary,
             "status": "ACTIVE",

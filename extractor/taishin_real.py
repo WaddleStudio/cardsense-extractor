@@ -103,6 +103,14 @@ RICHART_PLAN_HINTS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("影音", "串流", "Netflix", "Spotify", "Disney+", "friDay"), "TAISHIN_RICHART_DIGITAL"),
     (("週末", "周末", "假日"), "TAISHIN_RICHART_WEEKEND"),
 )
+RICHART_DAILY_711_PAYMENT_EXCLUSIONS: tuple[dict[str, str], ...] = (
+    {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+    {"type": "PAYMENT", "value": "JKOPAY", "label": "JKOPay"},
+    {"type": "PAYMENT", "value": "OPEN_WALLET", "label": "OPEN Wallet"},
+    {"type": "PAYMENT", "value": "FAMIPAY", "label": "FamiPay"},
+    {"type": "PAYMENT", "value": "PLUS_PAY", "label": "Plus Pay"},
+)
+
 RICHART_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
     ("TAISHIN_RICHART_PAY", "MOBILE_PAY"): (
         {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
@@ -114,6 +122,11 @@ RICHART_PLAN_CONDITIONS: dict[tuple[str, str], tuple[dict[str, str], ...]] = {
         {"type": "VENUE", "value": "PXMART", "label": "PX Mart"},
         {"type": "VENUE", "value": "CARREFOUR", "label": "Carrefour"},
         {"type": "VENUE", "value": "RT_MART", "label": "RT-Mart"},
+    ),
+    ("TAISHIN_RICHART_DAILY", "CONVENIENCE_STORE"): (
+        {"type": "VENUE", "value": "SEVEN_ELEVEN", "label": "7-ELEVEN"},
+        {"type": "VENUE", "value": "FAMILY_MART", "label": "FamilyMart"},
+        {"type": "PAYMENT", "value": "TAISHIN_PAY", "label": "Taishin Pay"},
     ),
     ("TAISHIN_RICHART_BIG", "DEPARTMENT"): (
         {"type": "VENUE", "value": "SHIN_KONG_MITSUKOSHI", "label": "Shin Kong Mitsukoshi"},
@@ -405,7 +418,11 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             "validFrom": valid_from,
             "validUntil": valid_until,
             "conditions": conditions,
-            "excludedConditions": [],
+            "excludedConditions": _richart_payment_classification_exclusions(
+                plan_id=plan_id,
+                subcategory=subcategory,
+                conditions=conditions,
+            ),
             "sourceUrl": enriched_card.detail_url,
             "summary": summary,
             "status": "ACTIVE",
@@ -1189,7 +1206,11 @@ def _extract_marketing_promotion(card: CardRecord, html: str, source_url: str) -
         "validFrom": valid_from,
         "validUntil": valid_until,
         "conditions": conditions,
-        "excludedConditions": [],
+        "excludedConditions": _richart_payment_classification_exclusions(
+            plan_id=plan_id,
+            subcategory=subcategory,
+            conditions=conditions,
+        ),
         "sourceUrl": source_url,
         "summary": summary,
         "status": "ACTIVE",
@@ -1274,6 +1295,28 @@ def _append_richart_plan_conditions(
         merged.append(dict(condition))
         seen.add(key)
     return merged
+
+
+def _richart_payment_classification_exclusions(
+    *,
+    plan_id: str | None,
+    subcategory: str,
+    conditions: List[Dict[str, object]],
+) -> List[Dict[str, str]]:
+    if plan_id != "TAISHIN_RICHART_DAILY" or subcategory.upper() != "CONVENIENCE_STORE":
+        return []
+    has_convenience_store = any(
+        condition.get("type") == "VENUE"
+        and condition.get("value") in {"SEVEN_ELEVEN", "FAMILY_MART"}
+        for condition in conditions
+    )
+    has_taishin_pay_gate = any(
+        condition.get("type") == "PAYMENT" and condition.get("value") == "TAISHIN_PAY"
+        for condition in conditions
+    )
+    if not has_convenience_store or not has_taishin_pay_gate:
+        return []
+    return [dict(condition) for condition in RICHART_DAILY_711_PAYMENT_EXCLUSIONS]
 
 
 def _append_richart_tier_conditions(
