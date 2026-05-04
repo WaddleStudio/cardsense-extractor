@@ -139,6 +139,59 @@ def test_momo_store_threshold_offer_moves_to_catalog_only():
     assert conditions == []
 
 
+def test_fubon_momo_high_rate_promotion_excludes_third_party_payments():
+    exclusions = fubon_real._payment_classification_exclusions(
+        card_code="FUBON_MOMO",
+        category="ONLINE",
+        subcategory="ECOMMERCE",
+        channel="ONLINE",
+        cashback_value=4.0,
+        conditions=[{"type": "VENUE", "value": "MOMO", "label": "momo"}],
+    )
+
+    payment_values = {condition["value"] for condition in exclusions if condition["type"] == "PAYMENT"}
+    assert "LINE_PAY" in payment_values
+    assert "JKOPAY" in payment_values
+    assert "APPLE_PAY" not in payment_values
+    assert "GOOGLE_PAY" not in payment_values
+    assert "SAMSUNG_PAY" not in payment_values
+    assert "MOBILE_PAY" not in payment_values
+
+
+def test_fubon_momo_general_rate_promotion_keeps_third_party_payments_allowed():
+    exclusions = fubon_real._payment_classification_exclusions(
+        card_code="FUBON_MOMO",
+        category="OTHER",
+        subcategory="GENERAL",
+        channel="ALL",
+        cashback_value=1.0,
+        conditions=[{"type": "VENUE", "value": "MOMO", "label": "momo"}],
+    )
+
+    assert exclusions == []
+
+
+def test_fubon_digitallife_online_two_percent_excludes_physical_categories():
+    exclusions = fubon_real._payment_classification_exclusions(
+        card_code="FUBON_DIGITALLIFE",
+        category="ONLINE",
+        subcategory="GENERAL",
+        channel="ONLINE",
+        cashback_value=2.0,
+        conditions=[],
+    )
+
+    excluded_categories = {
+        condition["value"]
+        for condition in exclusions
+        if condition["type"] == "CATEGORY_EXCLUDE"
+    }
+    assert "GROCERY" in excluded_categories
+    assert "DINING" in excluded_categories
+    assert "TRANSPORT" in excluded_categories
+    assert "SHOPPING" in excluded_categories
+
+
 def test_insurance_feature_general_reward_expands_with_body_text():
     from extractor.promotion_rules import expand_general_reward_promotions
 

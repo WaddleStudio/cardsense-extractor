@@ -61,6 +61,20 @@ CHANNEL_SIGNALS = {
 SUMMARY_NOISE_TOKENS = ("活動詳情", "注意事項", "立即登錄", "了解更多", "專屬網頁", "詳情請參閱", "活動請詳", "官網辦法", "立即擁有", "立即申辦")
 GENERIC_TITLE_TOKENS = {"【活動一】", "【活動二】", "【活動三】", "活動一", "活動二", "活動三", "優惠", "回饋", "滿額活動"}
 
+FUBON_MOMO_THIRD_PARTY_PAYMENT_EXCLUSIONS: tuple[dict[str, str], ...] = (
+    {"type": "PAYMENT", "value": "LINE_PAY", "label": "LINE Pay"},
+    {"type": "PAYMENT", "value": "JKOPAY", "label": "JKOPay"},
+    {"type": "PAYMENT", "value": "PX_PAY", "label": "PX Pay"},
+    {"type": "PAYMENT", "value": "EASY_WALLET", "label": "Easy Wallet"},
+)
+
+FUBON_DIGITALLIFE_PHYSICAL_CATEGORY_EXCLUSIONS: tuple[dict[str, str], ...] = (
+    {"type": "CATEGORY_EXCLUDE", "value": "GROCERY", "label": "physical grocery"},
+    {"type": "CATEGORY_EXCLUDE", "value": "DINING", "label": "physical dining"},
+    {"type": "CATEGORY_EXCLUDE", "value": "TRANSPORT", "label": "physical transport"},
+    {"type": "CATEGORY_EXCLUDE", "value": "SHOPPING", "label": "physical shopping"},
+)
+
 PAGE_CONFIG = SectionedPageConfig(
     section_headings=frozenset(
         {
@@ -349,7 +363,14 @@ def extract_card_promotions(card: CardRecord) -> tuple[CardRecord, List[Dict[str
             "validFrom": valid_from,
             "validUntil": valid_until,
             "conditions": conditions,
-            "excludedConditions": [],
+            "excludedConditions": _payment_classification_exclusions(
+                card_code=enriched_card.card_code,
+                category=category,
+                subcategory=subcategory,
+                channel=channel,
+                cashback_value=float(reward["value"]),
+                conditions=conditions,
+            ),
             "sourceUrl": card.detail_url,
             "summary": summary,
             "status": "ACTIVE",
@@ -634,6 +655,37 @@ def _apply_card_specific_overrides(
             return ("DINING", "GENERAL", "OFFLINE", "CATALOG_ONLY", merged_conditions)
 
     return category, subcategory, channel, recommendation_scope, merged_conditions
+
+
+def _payment_classification_exclusions(
+    *,
+    card_code: str,
+    category: str,
+    subcategory: str,
+    channel: str,
+    cashback_value: float,
+    conditions: List[Dict[str, str]],
+) -> List[Dict[str, str]]:
+    exclusions: List[Dict[str, str]] = []
+
+    if (
+        card_code == "FUBON_MOMO"
+        and cashback_value > 1.0
+        and any(
+            condition.get("type") == "VENUE" and condition.get("value") == "MOMO"
+            for condition in conditions
+        )
+    ):
+        exclusions.extend(dict(condition) for condition in FUBON_MOMO_THIRD_PARTY_PAYMENT_EXCLUSIONS)
+
+    if (
+        card_code == "FUBON_DIGITALLIFE"
+        and channel == "ONLINE"
+        and abs(float(cashback_value) - 2.0) < 0.01
+    ):
+        exclusions.extend(dict(condition) for condition in FUBON_DIGITALLIFE_PHYSICAL_CATEGORY_EXCLUSIONS)
+
+    return exclusions
 
 
 def _should_drop_exclusion_only_payment_conditions(title: str, body: str) -> bool:
