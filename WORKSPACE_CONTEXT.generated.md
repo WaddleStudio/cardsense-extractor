@@ -26,6 +26,9 @@
 ## Workspace Policies
 
 - Python package management: Use uv for Python dependency management and Python command execution across the workspace.
+- Browser verification: Use installed Google Chrome via gstack/browser for browser smoke tests; only fall back to another browser when Chrome is unavailable and report the fallback.
+- Git and PR closeout: Do implementation work on a task branch, verify before commit, commit by repo, push the branch, and create or update the PR when remote access is available.
+- Development CLI checks: Use cardsense-dev-checks during development for targeted tests, curl API smoke checks, Chrome/gstack browser checks, gh PR/CI inspection, and read-only deployment inspection.
 
 ## Completion Reminder
 
@@ -34,6 +37,10 @@
 - For one cross-repo task, keep the same slug across repos.
 - Python work uses `uv` for dependency management and execution.
 - Run verification first.
+- Run cardsense-workspace-completion before ending every CardSense workspace task; use fleet-dashboard-closeout for dashboard-specific details.
+- Use cardsense-dev-checks during development for frequent CLI/API test and confirmation flows.
+- Use uv for Python commands and Chrome via gstack/browser for browser checks.
+- Confirm the task branch, commit verified changes, push, and create or update the PR when remote access is available.
 - Update fleet-command when workflow, architecture, or workspace rules changed.
 - Re-render workspace assets when the manifest or generated context changed.
 - Organize branches by repo + branch type + shared slug.
