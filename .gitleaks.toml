@@ -1,0 +1,11 @@
+title = "CardSense Extractor secret scanning"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholder secrets in examples and tests"
+regexes = [
+  '''<[^>\n]*(?:key|token|secret|password)[^>\n]*>''',
+  '''postgres(?:\.demo)?:secret(?:\?\?)?@''',
+]
