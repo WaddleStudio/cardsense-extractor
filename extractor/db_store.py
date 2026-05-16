@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -177,6 +177,22 @@ def finalize_extract_run(
 def delete_current_promotions_for_bank(connection: sqlite3.Connection, bank_code: str) -> None:
     connection.execute("DELETE FROM promotion_current WHERE bank_code = ?", (bank_code,))
     connection.commit()
+
+
+def mark_expired_current_promotions(connection: sqlite3.Connection, today: date | None = None) -> int:
+    """Mark expired current promotions so active data surfaces stay date-clean."""
+    audit_date = today or date.today()
+    cursor = connection.execute(
+        """
+        UPDATE promotion_current
+        SET status = 'EXPIRED'
+        WHERE upper(coalesce(status, 'ACTIVE')) = 'ACTIVE'
+          AND date(valid_until) < date(?)
+        """,
+        (audit_date.isoformat(),),
+    )
+    connection.commit()
+    return cursor.rowcount
 
 
 def _build_db_record(payload: dict[str, Any], run_id: str) -> dict[str, Any]:

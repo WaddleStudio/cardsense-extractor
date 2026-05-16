@@ -406,6 +406,13 @@ def _clean_ctbc_card_name(name: str, slug: str = "") -> str:
             slug or "(no slug)",
         )
         return slug or name
+    if len(cleaned) < 3:
+        import logging
+        logging.warning(
+            "CTBC: card name resolved to too-short value after cleaning; slug=%r",
+            slug or "(no slug)",
+        )
+        return slug or name
     return cleaned
 
 

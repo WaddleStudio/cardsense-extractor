@@ -4,7 +4,11 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_root)
 
-from extractor.ctbc_real import _refine_ctbc_promotion
+from extractor.ctbc_real import _clean_ctbc_card_name, _refine_ctbc_promotion
+
+
+def test_clean_ctbc_card_name_falls_back_when_cleaned_value_is_too_short():
+    assert _clean_ctbc_card_name("卡", "B_EL") == "B_EL"
 
 
 def test_ctbc_sogo_store_promo_keeps_only_positive_payment_platforms_and_store_shape():

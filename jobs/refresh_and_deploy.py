@@ -182,6 +182,18 @@ def apply_benefit_plan_tags(db_path: str) -> None:
     tag_plan_ids(db_path, dry_run=False)
 
 
+def mark_expired_promotions(db_path: str) -> int:
+    from extractor import db_store
+
+    connection = sqlite3.connect(db_path)
+    try:
+        updated = db_store.mark_expired_current_promotions(connection)
+    finally:
+        connection.close()
+    _console(f">>> Marked expired current promotions: {updated}")
+    return updated
+
+
 def _iter_supabase_candidates(validate_supabase_url) -> tuple[list[tuple[str, str]], list[str]]:
     candidates = (
         ("SUPABASE_POOL_MODE", os.environ.get("SUPABASE_POOL_MODE")),
@@ -332,6 +344,8 @@ def _report_sync_result(result, reconnect_warn_threshold: int) -> bool:
 
 def print_db_summary(db_path: str) -> None:
     """Print a summary of the current DB state."""
+    from jobs.audit_promotion_expiry import audit_promotion_expiry, format_audit
+
     conn = sqlite3.connect(db_path)
 
     _console(f"\n{'='*60}")
@@ -355,6 +369,16 @@ def print_db_summary(db_path: str) -> None:
         _console(f"  {scope}: {count}")
 
     conn.close()
+
+    _console("")
+    audit = audit_promotion_expiry(db_path)
+    for line in format_audit(audit):
+        _console(line)
+    if audit.expired_active_count > 0:
+        _console(
+            ">>> WARNING: expired ACTIVE rows are excluded by the API date filter, "
+            "but the source data needs refresh or cleanup."
+        )
 
 
 def main() -> int:
@@ -389,6 +413,7 @@ def main() -> int:
         _console(f">>> {bank}: {imported} promotions imported")
 
     apply_benefit_plan_tags(args.db)
+    mark_expired_promotions(args.db)
 
     # Summary
     print_db_summary(args.db)

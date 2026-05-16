@@ -223,8 +223,10 @@ def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
     assert ("CATHAY_CUBE_JAPAN", "TRAVEL_PLATFORM") in keyed
     assert ("CATHAY_CUBE_JAPAN", "RESTAURANT") in keyed
     assert ("CATHAY_CUBE_JAPAN", "APPAREL") in keyed
+    assert ("CATHAY_CUBE_FULL_PAY", "GENERAL") in keyed
 
     ai_tool = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_DIGITAL" and p["subcategory"] == "AI_TOOL")
+    full_pay = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_FULL_PAY")
     supermarket = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_ESSENTIALS" and p["subcategory"] == "SUPERMARKET")
     airline = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_TRAVEL" and p["subcategory"] == "AIRLINE")
     japan_transit = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_JAPAN" and p["subcategory"] == "PUBLIC_TRANSIT")
@@ -233,7 +235,11 @@ def test_extract_plan_promotions_emits_curated_cube_variants(monkeypatch):
     japan_shopping = next(p for p in promotions if p["planId"] == "CATHAY_CUBE_JAPAN" and p["subcategory"] == "APPAREL")
 
     assert any(condition["type"] == "VENUE" and condition["value"] == "CHATGPT" for condition in ai_tool["conditions"])
+    assert any(condition["type"] == "PAYMENT" and condition["value"] == "全支付" for condition in full_pay["conditions"])
     assert any(condition["type"] == "VENUE" and condition["value"] == "PXMART" for condition in supermarket["conditions"])
+    assert full_pay["cashbackValue"] == 2.0
+    assert full_pay["validFrom"] == "2026-04-22"
+    assert full_pay["validUntil"] == "2026-12-31"
     assert any(condition["type"] == "VENUE" and condition["value"] == "CHINA_AIRLINES" for condition in airline["conditions"])
     assert any(condition["type"] == "VENUE" and condition["value"] == "SUICA" for condition in japan_transit["conditions"])
     assert any(condition["type"] == "VENUE" and condition["value"] == "KLOOK" for condition in japan_travel["conditions"])

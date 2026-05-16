@@ -997,7 +997,36 @@ def _extract_plan_promotions(card: CardRecord) -> List[Dict[str, object]]:
         )
         promotions.append(promo)
 
+    if not any(promotion.get("planId") == "CATHAY_CUBE_FULL_PAY" for promotion in promotions):
+        promotions.append(_build_cube_full_pay_promotion(card))
+
     return promotions
+
+
+def _build_cube_full_pay_promotion(card: CardRecord) -> Dict[str, object]:
+    return _build_manual_promotion(
+        card,
+        title="全支付 專屬權益",
+        body="切換至「全支付」方案，並以全支付綁定 CUBE 信用卡於全支付國內合作通路消費，享最高2%小樹點(信用卡)。",
+        category="OTHER",
+        subcategory="GENERAL",
+        channel="ALL",
+        recommendation_scope="RECOMMENDABLE",
+        reward={"type": "PERCENT", "value": 2.0},
+        valid_from="2026-04-22",
+        valid_until="2026-12-31",
+        eligibility_type=infer_eligibility_type(card.card_name),
+        conditions=[
+            {"type": "TEXT", "value": "需切換至「全支付」方案", "label": "需切換至「全支付」方案"},
+            {"type": "PAYMENT", "value": "全支付", "label": "全支付"},
+            {"type": "VENUE", "value": "PXMART", "label": "全聯福利中心"},
+            {"type": "VENUE", "value": "PXMART", "label": "大全聯"},
+            {"type": "VENUE", "value": "PXGO", "label": "全電商"},
+            {"type": "VENUE", "value": "PXGO", "label": "小時達"},
+            {"type": "VENUE", "value": "PXGO", "label": "分批取"},
+        ],
+        plan_id="CATHAY_CUBE_FULL_PAY",
+    )
 
 
 def _build_plan_promotion(
@@ -1117,6 +1146,7 @@ def _build_manual_promotion(
     valid_until: str,
     eligibility_type: str,
     conditions: list[dict[str, str]] | None = None,
+    plan_id: str | None = None,
 ) -> dict[str, object]:
     return {
         "title": f"{card.card_name} {title}",
@@ -1145,6 +1175,7 @@ def _build_manual_promotion(
         "sourceUrl": card.detail_url,
         "summary": f"{card.card_name} {title}；期間 {valid_from}~{valid_until}",
         "status": "ACTIVE",
+        "planId": plan_id,
     }
 
 
